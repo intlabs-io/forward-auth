@@ -2,8 +2,9 @@ package fauth
 
 // HostACLs ...
 type HostACLs struct {
-	BaseURL string `json:"baseURL"`
-	ACLs    []ACL  `json:"acls"`
+	Hosts   []string `json:"hosts"`
+	Default bool     `json:"default"`
+	ACLs    []ACL    `json:"acls"`
 }
 
 // ACL ...
@@ -25,14 +26,5 @@ type Method string
 // Rule ...
 type Rule struct {
 	Description string `json:"description"`
-	Definition  string `json:"definition"`
-}
-
-// Request ...
-type Request struct {
-	Bearer   string   `json:"bearer"`
-	Methods  []string `json:"methods"`
-	Path     string   `json:"path"`
-	Tenant   string   `json:"tenant"`
-	Identity Identity `json:"identity"`
+	Expression  string `json:"expression"`
 }

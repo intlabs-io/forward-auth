@@ -1,14 +1,14 @@
-package main
+package mssql
 
 // Config holds the configuration read from the YAML file defining the environment
 // and endpoints to be tested
 type Config struct {
-	tokens            map[string]string
-	tenants           map[string]string
-	AllowHosts        []string `yaml:"AllowHosts"`
-	ApplicationTokens []string `yaml:"ApplicationTokens"`
-	TenantTokens      []string `yaml:"TenantTokens"`
-	TenantIDs         []string `yaml:"TenantIDs"`
+	tokens     map[string]string
+	tenants    map[string]string
+	Root       string   `yaml:"RootToken"`
+	AllowHosts []string `yaml:"AllowHosts"`
+	Tokens     []string `yaml:"Tokens"`
+	Tenants    []string `yaml:"Tenants"`
 }
 
 // NewConfig ...

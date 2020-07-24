@@ -65,9 +65,9 @@ func msgJSONList(w http.ResponseWriter, list []string) {
 	fmt.Fprint(w, json)
 }
 
-func tstJSON(w http.ResponseWriter, status int, message, user string) {
+func tstJSON(w http.ResponseWriter, status int, message string) {
 	w.Header().Set("Content-Type", "application/json")
-	json := fmt.Sprintf("{\"status\" : %d, \"message\" : \"%s\", \"user\" : \"%s\"}", status, message, user)
+	json := fmt.Sprintf("{\"status\" : %d, \"message\" : \"%s\"}", status, message)
 	http.Error(w, json, http.StatusPreconditionRequired)
 }
 

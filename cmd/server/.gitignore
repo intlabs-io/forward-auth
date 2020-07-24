@@ -1,4 +1,7 @@
 server
+rules.tmpl
+run.sh
 *.json
 *.in
+*.toml
 *.yaml

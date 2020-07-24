@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -9,10 +8,10 @@ import (
 
 	"bitbucket.org/_metalogic_/config"
 	fauth "bitbucket.org/_metalogic_/forward-auth"
+	"bitbucket.org/_metalogic_/forward-auth/adapters/file"
+	"bitbucket.org/_metalogic_/forward-auth/adapters/mssql"
 	"bitbucket.org/_metalogic_/forward-auth/http"
-	"bitbucket.org/_metalogic_/forward-auth/mssql"
 	"bitbucket.org/_metalogic_/log"
-	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -24,8 +23,6 @@ var (
 	version string
 	build   string
 
-	auth  *fauth.Auth
-	conf  Config
 	rules []fauth.HostACLs
 
 	configFlg  string
@@ -33,6 +30,7 @@ var (
 	runMode    string
 	storageFlg string
 	levelFlg   log.Level
+	adapterFlg string
 
 	env        string
 	prefix     string
@@ -53,7 +51,7 @@ var (
 
 	institutionEPBCIDs []string
 
-	blockhosts []string
+	blocks map[string]bool
 
 	// TODO: institution bearer tokens are hard-coded for now
 	// when we get real multi-tenant access to the APIs this map should be populated from institutions-api
@@ -77,6 +75,7 @@ func init() {
 	// one of dev, tst, pvw, stg or prd
 	env = config.MustGetenv("ENV")
 
+	flag.StringVar(&adapterFlg, "adapter", "file", "adapter type - one of file, mssql, mock")
 	flag.StringVar(&configFlg, "config", "", "config file")
 	flag.BoolVar(&disableFlg, "disable", false, "disable authorization")
 	flag.Var(&levelFlg, "level", "set log level to one of debug, info, warning, error")
@@ -112,10 +111,8 @@ func init() {
 	//
 	// Map institution bearer tokens to institution EPBC IDs
 
-	conf = NewConfig()
-
 	// the EPBC Institution token is treated as root equivalent in all rules
-	tokens[config.MustGetConfig("EPBC_API_TOKEN")] = "EPBC"
+	tokens[config.MustGetConfig("EPBC_API_TOKEN")] = "ROOT_TOKEN"
 
 	// Simon Fraser University test institution API token
 	tokens[config.MustGetConfig("SFU_API_TOKEN")] = config.MustGetConfig("SFU_ID")
@@ -150,100 +147,46 @@ func main() {
 		}
 	}
 
-	if configFlg == "" {
-		configFlg = config.IfGetenv("CONFIG_PATH", "./config.yaml:/usr/local/etc/forward-auth/config.yaml")
-	}
-
-	data, err := config.LoadFromSearchPath(configFlg)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = yaml.Unmarshal(data, &conf)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	tokens := make(map[string]string)
-	for _, token := range append(conf.ApplicationTokens, conf.TenantTokens...) {
-		tokens[token] = config.MustGetConfig(token)
-	}
-
-	for _, tenant := range conf.TenantIDs {
-		conf.AddTenant(tenant, config.MustGetConfig(tenant))
-	}
-
-	auth := fauth.NewAuth(jwtKey)
-	log.Debugf("config: %+v", conf)
-
-	data, err = config.LoadFromSearchPath("./rules.json:/usr/local/etc/forward-auth/rules.json")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = json.Unmarshal(data, &rules)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Debugf("rules: %+v", rules)
-
 	if disableFlg {
 		runMode = "noAuth"
 	}
 
-	svc, err := mssql.New(prefix, append(applicationTokenNames, institutionTokenNames...), blockhosts, dbname, dbhost, dbport, dbuser, dbpassword, runMode)
+	cwd, err := os.Getwd()
 	if err != nil {
-		log.Fatalf("failed to create forward-auth Service: %s", err)
+		log.Fatal(err)
 	}
-	defer svc.Close()
+	var configPath = configFlg
+	var handler *http.Handler
+	switch adapterFlg {
+	case "file":
+		if configPath == "" {
+			configPath = config.IfGetenv("CONFIG_PATH", cwd+":/usr/local/etc/forward-auth")
+		}
+		var dir = ""
+		svc, err := file.New(prefix, configPath, runMode, dir)
 
-	handler := http.NewHandler(svc, jwtHeader, userHeader, traceHeader)
+		if err != nil {
+			log.Fatalf("failed to create forward-auth Service: %s", err)
+		}
+		defer svc.Close()
+
+		handler = http.NewHandler(svc, jwtHeader, userHeader, traceHeader)
+	case "mssql":
+		if configPath == "" {
+			configPath = config.IfGetenv("CONFIG_PATH", cwd+":/usr/local/etc/forward-auth")
+		}
+		svc, err := mssql.New(prefix, configPath, runMode, dbname, dbhost, dbport, dbuser, dbpassword)
+
+		if err != nil {
+			log.Fatalf("failed to create forward-auth Service: %s", err)
+		}
+		defer svc.Close()
+
+		handler = http.NewHandler(svc, jwtHeader, userHeader, traceHeader)
+	}
 
 	log.Fatal(handler.ServeHTTP(":8080"))
 
-	// the allow hosts under forward-auth control handle their own authz
-	/* 	allowMux := pat.NewHostMux(http.StatusOK)
-	   	fauth.Hostchecks[platformString(prefix, "admin.educationplannerbc.ca")] = allowMux
-	   	fauth.Hostchecks[platformString(prefix, "apply.educationplannerbc.ca")] = allowMux
-	   	fauth.Hostchecks[platformString(prefix, "apply-admin.educationplannerbc.ca")] = allowMux
-	   	fauth.Hostchecks[platformString(prefix, "mc.educationplannerbc.ca")] = allowMux
-	   	fauth.Hostchecks[platformString(prefix, "oauth-demo.educationplannerbc.ca")] = allowMux
-	   	fauth.Hostchecks[platformString(prefix, "signon.educationplannerbc.ca")] = allowMux
-	   	fauth.Hostchecks[platformString(prefix, "sts-private.educationplannerbc.ca")] = allowMux
-
-	   	// EPBC Servers for test institutions
-	   	fauth.Hostchecks[platformString(prefix, "horsefly.educationplannerbc.ca")] = allowMux
-	   	fauth.Hostchecks[platformString(prefix, "skookumchuck.educationplannerbc.ca")] = allowMux
-	   	fauth.Hostchecks[platformString(prefix, "spuzzum.educationplannerbc.ca")] = allowMux
-
-	   	var hostMux *pat.HostMux
-	   	hostMux = apiMux(http.StatusOK)
-	   	fauth.Hostchecks[platformString(prefix, "api.educationplannerbc.ca")] = hostMux
-	   	fauth.Hostchecks[platformString(prefix, "api-private.educationplannerbc.ca")] = hostMux
-
-	   	hostMux = apisMux(http.StatusForbidden)
-	   	fauth.Hostchecks[platformString(prefix, "apis.educationplannerbc.ca")] = hostMux
-	   	fauth.Hostchecks[platformString(prefix, "apis-private.educationplannerbc.ca")] = hostMux
-
-	   	hostMux = logsMux(http.StatusForbidden)
-	   	fauth.Hostchecks[platformString(prefix, "logs.educationplannerbc.ca")] = hostMux
-	   	fauth.Hostchecks[platformString(prefix, "logs-private.educationplannerbc.ca")] = hostMux
-
-	   	for k, v := range institutionTokens {
-	   		institutionEPBCIDs = append(institutionEPBCIDs, v)
-	   		log.Debugf("loaded institutionToken[%s]: %s", k, v)
-	   	}
-
-	   	for k, v := range applicationTokens {
-	   		log.Debugf("loaded appTokens[%s]: %s", k, v)
-	   	}
-
-	   	for host, mux := range fauth.Hostchecks {
-	   		log.Debugf("loaded host %s with muxer %+v", host, mux)
-	   	}
-
-	   	log.Fatal(route()) */
 }
 
 func platformString(prefix, name string) string {

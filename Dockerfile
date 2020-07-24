@@ -15,7 +15,8 @@ RUN adduser -u 25010 -g 'Application Runner' -D runner
 WORKDIR /home/runner
 
 COPY --from=builder /build/cmd/server/forward-auth .
-COPY --from=builder /build/cmd/server/config.yaml .
+COPY --from=builder /build/cmd/server/mssql.yaml .
+COPY --from=builder /build/cmd/server/file.toml .
 COPY --from=builder /build/cmd/server/rules.json .
 COPY --from=builder /build/docs docs
 

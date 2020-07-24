@@ -1,7 +1,8 @@
-package mssql
+package mock
 
 import (
 	"context"
+	"sync"
 )
 
 const rfc339 = "2006-01-02T15:04:05Z07:00"
@@ -11,8 +12,11 @@ type void struct{}
 
 var member void
 
+// Mock ...
 type Mock struct {
 	context context.Context
+	lock    sync.RWMutex
+	runMode string
 	version string
 }
 
@@ -26,6 +30,20 @@ func (mock *Mock) Close() {
 
 func (mock *Mock) Health() error {
 	return nil
+}
+
+// RunMode returns the current value of RunMode
+func (mock *Mock) RunMode() string {
+	mock.lock.Lock()
+	defer mock.lock.Unlock()
+	return mock.runMode
+}
+
+// SetRunMode sets the value of RunMode
+func (mock *Mock) SetRunMode(mode string) {
+	mock.lock.Lock()
+	defer mock.lock.Unlock()
+	mock.runMode = mode
 }
 
 func (mock *Mock) Version() string {
