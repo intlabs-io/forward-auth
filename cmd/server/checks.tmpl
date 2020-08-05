@@ -1,0 +1,340 @@
+{
+   "allowHosts" : [
+      "admin.educationplannerbc.ca",
+      "apply.educationplannerbc.ca",
+      "apply-admin.educationplannerbc.ca",
+      "horsefly.educationplannerbc.ca",
+      "mc.educationplannerbc.ca",
+      "oauth-demo.educationplannerbc.ca",
+      "signon.educationplannerbc.ca",
+      "skookumchuck.educationplannerbc.ca",
+      "spuzzum.educationplannerbc.ca",
+      "sts-private.educationplannerbc.ca"
+   ],
+   "denyHosts" : [],
+   "checkHosts" : [
+   {
+      "hosts": ["{{ .ENV }}-api.educationplannerbc.ca","{{ .ENV }}-api-private.educationplannerbc.ca"],
+      "default": true,
+      "acls": [
+         {
+            "name": "Mule APIs",
+            "root": ""
+         }
+      ]
+   },
+   {
+      "hosts": ["{{ .ENV }}-apis.educationplannerbc.ca","{{ .ENV }}-apis-private.educationplannerbc.ca"],
+      "default": false,
+      "acls": [
+         {
+            "name": "applications-api",
+            "root": "/applications-api/v1",
+            "paths": [
+               {
+                  "path": "/health",
+                  "rules": {
+                     "GET": {
+                        "description": "get API health",
+                        "expression": "true"
+                     }
+                  }
+               },
+               {
+                  "path": "/info",
+                  "rules": {
+                     "GET": {
+                        "description": "get API info",
+                        "expression": "bearer('ROOT_TOKEN')"
+                     }
+                  }
+               },
+               {
+                  "path": "/files/:guid",
+                  "rules": {
+                     "GET": {
+                        "description": "get an application file attachment with EPBC ROOT bearer token or ROOT role in Management Console",
+                        "expression": "bearer('ROOT_TOKEN') || (bearer('MGT_TOKEN') && root())"
+                     },
+                     "DELETE": {
+                        "description": "delete an application file attachment with EPBC ROOT bearer token or ROOT role in Management Console",
+                        "expression": "bearer('ROOT_TOKEN') || (bearer('MGT_TOKEN') && root())"
+                     }
+                  }
+               },
+               {
+                  "path": "/institutions/:tenantID/applications",
+                  "rules": {
+                     "GET": {
+                        "description": "get applications for tenantID with root or tenant bearer token or ROOT role in Management Console",
+                        "expression": "bearer('ROOT_TOKEN',param(':tenantID')) || (bearer('MGT_TOKEN') && (root() || role('ADM','READ')))"
+                     }
+                  }
+               }
+            ]
+         },
+         {
+            "name": "auth-api",
+            "root": "/auth-api/v1",
+            "paths": [
+               {
+                  "path": "/health",
+                  "rules": {
+                     "GET": {
+                        "description": "get API health",
+                        "expression": "true"
+                     }
+                  }
+               },
+               {
+                  "path": "/login",
+                  "rules": {
+                     "POST": {
+                        "description": "user/password login is public",
+                        "expression": "true"
+                     }
+                  }
+               }
+            ]
+         },
+         {
+            "name": "docs-api",
+            "root": "/docs-api/v1",
+            "paths": [
+               {
+                  "path": "/health",
+                  "rules": {
+                     "GET": {
+                        "description": "get API health",
+                        "expression": "true"
+                     }
+                  }
+               }
+            ]
+         },
+         {
+            "name": "email-api",
+            "root": "/email-api/v1",
+            "paths": [
+               {
+                  "path": "/health",
+                  "rules": {
+                     "GET": {
+                        "description": "get API health",
+                        "expression": "true"
+                     }
+                  }
+               }
+            ]
+         },
+         {
+            "name": "fees-api",
+            "root": "/fees-api/v1",
+            "paths": [
+               {
+                  "path": "/health",
+                  "rules": {
+                     "GET": {
+                        "description": "get API health",
+                        "expression": "true"
+                     }
+                  }
+               }
+            ]
+         },
+         {
+            "name": "institutions-api",
+            "root": "/institutions-api/v1",
+            "paths": [
+               {
+                  "path": "/health",
+                  "rules": {
+                     "GET": {
+                        "description": "get API health",
+                        "expression": "true"
+                     }
+                  }
+               }
+            ]
+         },
+         {
+            "name": "mailer-api",
+            "root": "/mailer-api/v1",
+            "paths": [
+               {
+                  "path": "/health",
+                  "rules": {
+                     "GET": {
+                        "description": "get API health",
+                        "expression": "true"
+                     }
+                  }
+               }
+            ]
+         },
+         {
+            "name": "passwordreset-api",
+            "root": "/passwordreset-api/v1",
+            "paths": [
+               {
+                  "path": "/health",
+                  "rules": {
+                     "GET": {
+                        "description": "get API health",
+                        "expression": "true"
+                     }
+                  }
+               }
+            ]
+         },
+         {
+            "name": "payments-api",
+            "root": "/payments-api/v1",
+            "paths": [
+               {
+                  "path": "/health",
+                  "rules": {
+                     "GET": {
+                        "description": "get API health",
+                        "expression": "true"
+                     }
+                  }
+               }
+            ]
+         },
+         {
+            "name": "pdfapplications-api",
+            "root": "/pdfapplications-api/v1",
+            "paths": [
+               {
+                  "path": "/health",
+                  "rules": {
+                     "GET": {
+                        "description": "get API health",
+                        "expression": "true"
+                     }
+                  }
+               }
+            ]
+         },
+         {
+            "name": "person-api",
+            "root": "/person-api/v1",
+            "paths": [
+               {
+                  "path": "/health",
+                  "rules": {
+                     "GET": {
+                        "description": "get API health",
+                        "expression": "true"
+                     }
+                  }
+               }
+            ]
+         },
+         {
+            "name": "programselection-api",
+            "root": "/programselection-api/v1",
+            "paths": [
+               {
+                  "path": "/health",
+                  "rules": {
+                     "GET": {
+                        "description": "get API health",
+                        "expression": "true"
+                     }
+                  }
+               }
+            ]
+         },
+         {
+            "name": "questions-api",
+            "root": "/questions-api/v1",
+            "paths": [
+               {
+                  "path": "/health",
+                  "rules": {
+                     "GET": {
+                        "description": "get API health",
+                        "expression": "true"
+                     }
+                  }
+               }
+            ]
+         },
+         {
+            "name": "rules-api",
+            "root": "/rules-api/v1",
+            "paths": [
+               {
+                  "path": "/health",
+                  "rules": {
+                     "GET": {
+                        "description": "get API health",
+                        "expression": "true"
+                     }
+                  }
+               }
+            ]
+         },
+         {
+            "name": "user-profiles-api",
+            "root": "/user-profiles-api/v1",
+            "paths": [
+               {
+                  "path": "/health",
+                  "rules": {
+                     "GET": {
+                        "description": "get API health",
+                        "expression": "true"
+                     }
+                  }
+               }
+            ]
+         }
+      ]
+   },
+   {
+      "hosts": ["{{ .ENV }}-logs.educationplannerbc.ca"],
+      "default": false,
+      "acls": [
+         {
+            "name": "public logs service",
+            "root": "",
+            "paths": [
+               {
+                  "path": "/wss",
+                  "rules": {
+                     "GET": {
+                        "description": "get logs stream over secure web socket",
+                        "expression": "bearer('ROOT_TOKEN','LCAT_TOKEN')"
+                     }
+                  }
+               }
+            ]
+         }
+      ]
+   },
+   {
+      "hosts": ["{{ .ENV }}-logs-private.educationplannerbc.ca"],
+      "default": false,
+      "acls": [
+         {
+            "name": "private logs service",
+            "root": "",
+            "paths": [
+               {
+                  "path": "/ws",
+                  "rules": {
+                     "GET": {
+                        "description": "get logs stream over private web socket",
+                        "expression": "bearer('ROOT_TOKEN','LCAT_TOKEN')"
+                     }
+                  }
+               }
+            ]
+         }
+      ]
+   }
+   ]
+}
