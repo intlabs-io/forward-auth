@@ -7,15 +7,14 @@ import (
 
 // Service ...
 type Service interface {
-	AllowHost(host string) bool
-	DenyHost(host string) bool
 	Authorize(host, method, path string, credentials *ident.Credentials) (status int, message string, err error)
 	Block(user string)
 	Blocked() []string
-	Checks(host string) (hostMux *pat.HostMux, err error)
 	Close()
 	Health() error
 	Info() string
+	Muxer(host string) (hostMux *pat.HostMux, err error)
+	Override(host string) int
 	Rules() (rulesJSON string, err error)
 	RunMode() string
 	SetRunMode(string)

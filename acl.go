@@ -1,9 +1,16 @@
 package fauth
 
+// Checks ...
+type Checks struct {
+	AllowHosts []string   `json:"allowHosts"`
+	DenyHosts  []string   `json:"denyHosts"`
+	CheckHosts []HostACLs `json:"checkHosts"`
+}
+
 // HostACLs ...
 type HostACLs struct {
 	Hosts   []string `json:"hosts"`
-	Default bool     `json:"default"`
+	Default string   `json:"default"` // "allow" or "deny" (define in pat?)
 	ACLs    []ACL    `json:"acls"`
 }
 

@@ -12,42 +12,6 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
-// AuthType defines the authorization type
-type AuthType int
-
-// Authorization types
-const (
-	AuthBasic  = AuthType(1)
-	AuthBearer = AuthType(2)
-	AuthCookie = AuthType(3)
-	AuthDigest = AuthType(4)
-	AuthJWT    = AuthType(5)
-)
-
-func (a AuthType) String() string {
-	switch a {
-	case AuthBasic:
-		return "Basic auth"
-	case AuthBearer:
-		return "Bearer auth"
-	case AuthCookie:
-		return "Cookie auth"
-	case AuthDigest:
-		return "Digest auth"
-	case AuthJWT:
-		return "JWT auth"
-	default:
-		return "Undefined auth"
-	}
-}
-
-// Authorizer is the interface for authorization
-// Authorize returns true if the credentials are authorized by authType
-// in the auth environment
-type Authorizer interface {
-	Authorize(authType AuthType, auth Auth, credentials string) bool
-}
-
 const (
 	// ANY wildcard category matches any individual category (eg ADM, FEE, INST, etc)
 	ANY = "ANY"
@@ -64,17 +28,20 @@ const (
 	DELETE = "DELETE"
 )
 
-// Auth type implements the Authorizer interface
+// Auth type holds data for  authorization
+// - jwtHeader is the name of the header containing the user's JWT
 // - jwtKey is a shared secret key used to encrypt and decrypt JWTs passed in a request
 // - tokens maps token values passed in a request to token names referenced in
-//   access control functions; eg: bearer(EPBC_API_TOKEN)
+//   access control functions; eg: bearer(ROOT_TOKEN) returns true if the bearer
+//   auth token in the request maps to the name ROOT_TOKEN
 // - blocks is a map of subjects (usernames, hostnames, IP addresses) to be denied
 //   access; subject names must be unique for all subjects
-// an instance of Auth is passed to the handler to allow authorization calculations
+// an instance of Auth is passed to handlers to drive authorization calculations
 type Auth struct {
-	jwtKey []byte
-	tokens map[string]string
-	blocks map[string]bool
+	jwtHeader string
+	jwtKey    []byte
+	tokens    map[string]string
+	blocks    map[string]bool
 }
 
 // NewAuth ...
@@ -221,7 +188,7 @@ func Action(method string) string {
 }
 
 // Handler returns a handler implementing rule evluation for an auth environment and authorizer
-func Handler(rule Rule, auth *Auth) func(method, path string, params map[string][]string, header http.Header) (status int, message, username string) {
+func Handler(rule Rule, jwtHeader string, auth *Auth) func(method, path string, params map[string][]string, header http.Header) (status int, message, username string) {
 	if rule.Expression == "true" {
 		return pat.AllowHandler
 	}
@@ -242,7 +209,7 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 			}
 		}
 
-		jwt := header.Get("X-Jwt-Header")
+		jwt := header.Get(jwtHeader)
 
 		credentials := &ident.Credentials{
 			Token: token,

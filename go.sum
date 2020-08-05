@@ -36,6 +36,8 @@ bitbucket.org/_metalogic_/pat v0.0.0-20200722195421-80d17a120022 h1:peMBDfrRHWJG
 bitbucket.org/_metalogic_/pat v0.0.0-20200722195421-80d17a120022/go.mod h1:m2kGEn9bG0v56IHpk2QVKOpaDAmoDGIsJhu1j9kdnDc=
 bitbucket.org/_metalogic_/pat v0.0.0-20200722221633-2bc0e32de2a3 h1:zuaPd7hZK+3Jd0A+FcrFC/nBYkxOYEmAJY6QrgsI5H0=
 bitbucket.org/_metalogic_/pat v0.0.0-20200722221633-2bc0e32de2a3/go.mod h1:m2kGEn9bG0v56IHpk2QVKOpaDAmoDGIsJhu1j9kdnDc=
+bitbucket.org/_metalogic_/pat v0.0.0-20200727171704-7def6b7347a7 h1:PlUGzO0kZ3r0mNHwarVey4nqGW4fKjy3gpCCvSGIn6U=
+bitbucket.org/_metalogic_/pat v0.0.0-20200727171704-7def6b7347a7/go.mod h1:m2kGEn9bG0v56IHpk2QVKOpaDAmoDGIsJhu1j9kdnDc=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=

@@ -8,7 +8,7 @@ require (
 	bitbucket.org/_metalogic_/httptreemux-swagger v1.0.0
 	bitbucket.org/_metalogic_/ident v0.0.0-20200722224441-d7f9b6b844be
 	bitbucket.org/_metalogic_/log v1.3.5
-	bitbucket.org/_metalogic_/pat v0.0.0-20200722221633-2bc0e32de2a3
+	bitbucket.org/_metalogic_/pat v0.0.0-20200727171704-7def6b7347a7
 	github.com/BurntSushi/toml v0.3.1
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/denisenkom/go-mssqldb v0.0.0-20200620013148-b91950f658ec

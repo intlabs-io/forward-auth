@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,8 +27,7 @@ type Service struct {
 	context      context.Context
 	prefix       string
 	hostMuxers   map[string]*pat.HostMux
-	allowHosts   map[string]bool
-	denyHosts    map[string]bool
+	overrides    map[string]int
 	blockedUsers map[string]bool
 	rules        []fauth.HostACLs
 	runMode      string
@@ -36,10 +36,11 @@ type Service struct {
 }
 
 // New creates a new Service and sets the database
-func New(prefix, configPath, runMode string, database, server string, port int, user, password string) (svc *Service, err error) {
+func New(prefix, jwtHeader, configPath, runMode string, database, server string, port int, user, password string) (svc *Service, err error) {
 	svc = &Service{
 		prefix:     prefix,
 		hostMuxers: make(map[string]*pat.HostMux),
+		overrides:  make(map[string]int),
 		context:    context.TODO(),
 		runMode:    runMode}
 
@@ -58,7 +59,7 @@ func New(prefix, configPath, runMode string, database, server string, port int, 
 	var tokens = make(map[string]string)
 	// add token mappings from token value to token name
 	for _, token := range conf.Tokens {
-		if token == conf.Root { // associate tenant token with token name "ROOT_TOKEN"
+		if token == conf.RootToken { // associate tenant token with token name "ROOT_TOKEN"
 			tokens[config.MustGetConfig(token)] = "ROOT_TOKEN"
 		} else {
 			tokens[config.MustGetConfig(token)] = token
@@ -83,7 +84,7 @@ func New(prefix, configPath, runMode string, database, server string, port int, 
 
 	log.Debugf("configured authorization environment %+v", auth)
 
-	data, err = config.LoadFromSearchPath("rules.json", ".:/usr/local/etc/forward-auth/rules.json")
+	data, err = config.LoadFromSearchPath("rules.json", ".:/usr/local/etc/forward-auth")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -131,29 +132,31 @@ func New(prefix, configPath, runMode string, database, server string, port int, 
 				pathPrefix := hostMux.AddPrefix(acl.Root, pat.DenyHandler)
 				for _, path := range acl.Paths {
 					if r, ok := path.Rules["GET"]; ok {
-						pathPrefix.Get(path.Path, fauth.Handler(r, auth))
+						pathPrefix.Get(path.Path, fauth.Handler(r, jwtHeader, auth))
 						continue
 					}
 					if r, ok := path.Rules["POST"]; ok {
-						pathPrefix.Post(path.Path, fauth.Handler(r, auth))
+						pathPrefix.Post(path.Path, fauth.Handler(r, jwtHeader, auth))
 						continue
 					}
 					if r, ok := path.Rules["PUT"]; ok {
-						pathPrefix.Put(path.Path, fauth.Handler(r, auth))
+						pathPrefix.Put(path.Path, fauth.Handler(r, jwtHeader, auth))
 						continue
 					}
 					if r, ok := path.Rules["DELETE"]; ok {
-						pathPrefix.Del(path.Path, fauth.Handler(r, auth))
+						pathPrefix.Del(path.Path, fauth.Handler(r, jwtHeader, auth))
 						continue
 					}
 					if r, ok := path.Rules["HEAD"]; ok {
-						pathPrefix.Head(path.Path, fauth.Handler(r, auth))
+						pathPrefix.Head(path.Path, fauth.Handler(r, jwtHeader, auth))
 						continue
 					}
 				}
 			}
 		}
 	}
+
+	log.Debugf("initialized new mssql service %+v", svc)
 
 	return svc, err
 }
@@ -180,18 +183,17 @@ func (svc *Service) Blocked() []string {
 	return blocks
 }
 
-// AllowHost returns true if host is on host allows list
-func (svc *Service) AllowHost(host string) bool {
-	return svc.allowHosts[host]
+// Override overrides access control processing at the host level,
+// returning 0 if no override, 1 if ALLOW override and 2 if DENY override
+func (svc *Service) Override(host string) int {
+	if v, ok := svc.overrides[host]; ok {
+		return v
+	}
+	return 0
 }
 
-// DenyHost returns true if host is on host blocks list
-func (svc *Service) DenyHost(host string) bool {
-	return svc.denyHosts[host]
-}
-
-// Checks returns the pattern mux for host
-func (svc *Service) Checks(host string) (mux *pat.HostMux, err error) {
+// Muxer returns the pattern mux for host
+func (svc *Service) Muxer(host string) (mux *pat.HostMux, err error) {
 	var ok bool
 	if mux, ok = svc.hostMuxers[host]; ok {
 		return mux, nil
@@ -322,4 +324,13 @@ func dbError(err error) error {
 	default:
 		return fauth.NewBadRequestError(dberr.SQLErrorMessage())
 	}
+}
+
+func platformString(prefix, name string) string {
+	prefix = strings.ToLower(prefix)
+	name = strings.ToLower(name)
+	if name == "admin.educationplannerbc.ca" || name == "logs.educationplannerbc.ca" || prefix != "prd" {
+		return prefix + "-" + name
+	}
+	return name
 }

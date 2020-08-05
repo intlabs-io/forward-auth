@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	fa "bitbucket.org/_metalogic_/forward-auth"
 	fauth "bitbucket.org/_metalogic_/forward-auth"
 	"bitbucket.org/_metalogic_/log"
 	"github.com/pborman/uuid"
@@ -16,7 +15,7 @@ var ok = []byte("ok")
 
 // Auth authorizes a request based on configured access control rules;
 // jwtHeader, traceHeader and userHeader are added to the forwarded request headers
-func Auth(svc fa.Service, jwtHeader, traceHeader, userHeader string) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Auth(svc fauth.Service, jwtHeader, traceHeader, userHeader string) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		if svc.RunMode() == "noAuth" {
@@ -34,7 +33,7 @@ func Auth(svc fa.Service, jwtHeader, traceHeader, userHeader string) func(w http
 		if log.Loggable(log.DebugLevel) {
 			data, err := httputil.DumpRequest(r, false)
 			if err != nil {
-				errJSON(w, fa.NewUnauthorizedError("authorization failed to unpack request"))
+				errJSON(w, fauth.NewUnauthorizedError("authorization failed to unpack request"))
 				return
 			}
 			raw := strconv.Quote(strings.ReplaceAll(strings.ReplaceAll(string(data), "\r", ""), "\n", "; "))
@@ -55,46 +54,28 @@ func Auth(svc fa.Service, jwtHeader, traceHeader, userHeader string) func(w http
 		method := r.Header.Get("X-Forwarded-Method")
 		path := r.Header.Get("X-Forwarded-Uri")
 
-		if svc.AllowHost(host) {
+		// check for host overrides
+		if svc.Override(host) == 1 {
 			if testing {
-				tstJSON(w, http.StatusOK, "authorized for allow host "+host)
+				tstJSON(w, http.StatusOK, "allow override for host "+host)
 			} else {
-				okJSON(w, "authorized for allow host "+host)
+				okJSON(w, "allow override for host "+host)
 			}
+			log.Debug("allow override for host " + host)
+			return
+		} else if svc.Override(host) == 2 {
+			if testing {
+				tstJSON(w, http.StatusForbidden, "deny override for host "+host)
+			} else {
+				errJSON(w, fauth.NewForbiddenError("deny override for host "+host))
+			}
+			log.Debug("deny override for host " + host)
 			return
 		}
 
-		if svc.DenyHost(host) {
-			if testing {
-				tstJSON(w, http.StatusForbidden, "unauthorized for blocked host "+host)
-			} else {
-				errJSON(w, fa.NewForbiddenError("unauthorized for blocked host "+host))
-			}
-			return
-		}
-
-		// authHeader := r.Header.Get("Authorization")
-		// var token string
-		// if authHeader != "" {
-		// 	// Get the Bearer auth token
-		// 	splitToken := strings.Split(authHeader, "Bearer ")
-		// 	if len(splitToken) == 2 {
-		// 		token = splitToken[1]
-		// 	}
-		// }
-
-		// log.Debugf("HTTP Request Headers: %s", headers(r))
-
-		// jwt := r.Header.Get(jwtHeader)
-
-		// credentials := &ident.Credentials{
-		// 	Token: token,
-		// 	JWT:   jwt,
-		// }
-
-		mux, err := svc.Checks(host)
+		mux, err := svc.Muxer(host)
 		if err != nil { // shouldn't happen
-			errJSON(w, fa.NewForbiddenError(err.Error()))
+			errJSON(w, fauth.NewForbiddenError(err.Error()))
 			return
 		}
 
@@ -108,9 +89,9 @@ func Auth(svc fa.Service, jwtHeader, traceHeader, userHeader string) func(w http
 
 		switch status {
 		case 401: // TODO send WWW-Authenticate in response header
-			errJSON(w, fa.NewUnauthorizedError(message))
+			errJSON(w, fauth.NewUnauthorizedError(message))
 		case 403:
-			errJSON(w, fa.NewForbiddenError(message))
+			errJSON(w, fauth.NewForbiddenError(message))
 		case 200:
 			w.Header().Add(userHeader, username)
 			w.Write(ok)
@@ -119,7 +100,7 @@ func Auth(svc fa.Service, jwtHeader, traceHeader, userHeader string) func(w http
 }
 
 // Rules returns a handler for returning the configured access control rules
-func Rules(svc fa.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Rules(svc fauth.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		rules, err := svc.Rules()
 		if err != nil {

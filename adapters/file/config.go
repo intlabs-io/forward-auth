@@ -5,8 +5,9 @@ package file
 type Config struct {
 	tokens     map[string]string
 	tenants    map[string]string
-	Root       string   `toml:"RootToken"`
-	AllowHosts []string `toml:"AllowHosts"`
+	JWTHeader  string   `toml:"jwtHeader"`
+	UserHeader string   `toml:"userHeader"`
+	RootToken  string   `toml:"rootToken"`
 	Tokens     []string `toml:"Tokens"`
 	Tenants    []string `toml:"Tenants"`
 }

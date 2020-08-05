@@ -1,2 +1,2 @@
 tests:
-	envtpl -in rules.tmpl > rules.json
+	envtpl -in checks.tmpl > checks.json

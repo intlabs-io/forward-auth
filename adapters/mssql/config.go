@@ -5,7 +5,8 @@ package mssql
 type Config struct {
 	tokens     map[string]string
 	tenants    map[string]string
-	Root       string   `yaml:"RootToken"`
+	JWTHeader  string   `yaml:"JWTHeader"`
+	RootToken  string   `yaml:"RootToken"`
 	AllowHosts []string `yaml:"AllowHosts"`
 	Tokens     []string `yaml:"Tokens"`
 	Tenants    []string `yaml:"Tenants"`

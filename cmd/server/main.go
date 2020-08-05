@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 
 	"bitbucket.org/_metalogic_/config"
 	fauth "bitbucket.org/_metalogic_/forward-auth"
@@ -163,7 +162,7 @@ func main() {
 			configPath = config.IfGetenv("CONFIG_PATH", cwd+":/usr/local/etc/forward-auth")
 		}
 		var dir = ""
-		svc, err := file.New(prefix, configPath, runMode, dir)
+		svc, err := file.New(prefix, jwtHeader, configPath, runMode, dir)
 
 		if err != nil {
 			log.Fatalf("failed to create forward-auth Service: %s", err)
@@ -175,7 +174,7 @@ func main() {
 		if configPath == "" {
 			configPath = config.IfGetenv("CONFIG_PATH", cwd+":/usr/local/etc/forward-auth")
 		}
-		svc, err := mssql.New(prefix, configPath, runMode, dbname, dbhost, dbport, dbuser, dbpassword)
+		svc, err := mssql.New(prefix, jwtHeader, configPath, runMode, dbname, dbhost, dbport, dbuser, dbpassword)
 
 		if err != nil {
 			log.Fatalf("failed to create forward-auth Service: %s", err)
@@ -187,13 +186,4 @@ func main() {
 
 	log.Fatal(handler.ServeHTTP(":8080"))
 
-}
-
-func platformString(prefix, name string) string {
-	prefix = strings.ToLower(prefix)
-	name = strings.ToLower(name)
-	if name == "admin.educationplannerbc.ca" || name == "logs.educationplannerbc.ca" || prefix != "prd" {
-		return prefix + "-" + name
-	}
-	return name
 }
