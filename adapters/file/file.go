@@ -89,16 +89,8 @@ func New(prefix, jwtHeader, configPath, runMode, dir string) (svc *Service, err 
 
 	log.Debugf("rules: %+v", svc.checks)
 
-	for _, host := range svc.checks.AllowHosts {
-		svc.overrides[platformString(prefix, host)] = 1
-	}
-
-	for _, host := range svc.checks.DenyHosts {
-		if svc.overrides[platformString(prefix, host)] == 1 {
-			log.Errorf("deny override conflicts with allow override for %s; deny takes precedence", host)
-		}
-		svc.overrides[platformString(prefix, host)] = 2
-	}
+	// override = 1: allow; override = 2: deny
+	svc.overrides = svc.checks.Overrides
 
 	for _, hostACL := range svc.checks.CheckHosts {
 		// default to deny
@@ -106,34 +98,40 @@ func New(prefix, jwtHeader, configPath, runMode, dir string) (svc *Service, err 
 		if hostACL.Default == "allow" {
 			hostMux = pat.NewAllowMux()
 		}
+		// each host shares the hostMux
 		for _, host := range hostACL.Hosts {
 			if v, ok := svc.overrides[platformString(prefix, host)]; ok {
-				log.Warningf("%d override host on %s disables defined host checks", v, platformString(prefix, host))
+				log.Warningf("%d override on host %s disables defined host checks", v, platformString(prefix, host))
+			}
+			if _, ok := svc.hostMuxers[platformString(prefix, host)]; ok {
+				log.Errorf("ignoring duplicate host checks for %s", platformString(prefix, host))
+				continue
 			}
 			svc.hostMuxers[platformString(prefix, host)] = hostMux
-			for _, acl := range hostACL.ACLs {
-				pathPrefix := hostMux.AddPrefix(acl.Root, pat.DenyHandler)
-				for _, path := range acl.Paths {
-					if r, ok := path.Rules["GET"]; ok {
-						pathPrefix.Get(path.Path, fauth.Handler(r, jwtHeader, auth))
-						continue
-					}
-					if r, ok := path.Rules["POST"]; ok {
-						pathPrefix.Post(path.Path, fauth.Handler(r, jwtHeader, auth))
-						continue
-					}
-					if r, ok := path.Rules["PUT"]; ok {
-						pathPrefix.Put(path.Path, fauth.Handler(r, jwtHeader, auth))
-						continue
-					}
-					if r, ok := path.Rules["DELETE"]; ok {
-						pathPrefix.Del(path.Path, fauth.Handler(r, jwtHeader, auth))
-						continue
-					}
-					if r, ok := path.Rules["HEAD"]; ok {
-						pathPrefix.Head(path.Path, fauth.Handler(r, jwtHeader, auth))
-						continue
-					}
+		}
+		// add path prefixes to hostMux
+		for _, acl := range hostACL.ACLs {
+			pathPrefix := hostMux.AddPrefix(acl.Root, pat.DenyHandler)
+			for _, path := range acl.Paths {
+				if r, ok := path.Rules["GET"]; ok {
+					pathPrefix.Get(path.Path, fauth.Handler(r, jwtHeader, auth))
+					continue
+				}
+				if r, ok := path.Rules["POST"]; ok {
+					pathPrefix.Post(path.Path, fauth.Handler(r, jwtHeader, auth))
+					continue
+				}
+				if r, ok := path.Rules["PUT"]; ok {
+					pathPrefix.Put(path.Path, fauth.Handler(r, jwtHeader, auth))
+					continue
+				}
+				if r, ok := path.Rules["DELETE"]; ok {
+					pathPrefix.Del(path.Path, fauth.Handler(r, jwtHeader, auth))
+					continue
+				}
+				if r, ok := path.Rules["HEAD"]; ok {
+					pathPrefix.Head(path.Path, fauth.Handler(r, jwtHeader, auth))
+					continue
 				}
 			}
 		}

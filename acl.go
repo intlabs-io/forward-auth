@@ -2,9 +2,8 @@ package fauth
 
 // Checks ...
 type Checks struct {
-	AllowHosts []string   `json:"allowHosts"`
-	DenyHosts  []string   `json:"denyHosts"`
-	CheckHosts []HostACLs `json:"checkHosts"`
+	Overrides  map[string]int `json:"overrides"`
+	CheckHosts []HostACLs     `json:"checkHosts"`
 }
 
 // HostACLs ...
