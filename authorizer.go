@@ -57,7 +57,7 @@ func NewAuth(jwtKey []byte, tokens map[string]string, blocks map[string]bool) *A
 func (auth *Auth) CheckBearerAuth(token string, tokens ...string) bool {
 	for _, t := range tokens {
 		if t == auth.tokens[token] {
-			log.Debugf("allowing by bearer token %s", redact(token))
+			log.Debugf("allowing by bearer token '%s'", redact(token))
 			return true
 		}
 	}
