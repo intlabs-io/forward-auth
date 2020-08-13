@@ -1,0 +1,2 @@
+DROP PROCEDURE [auth].[HostChecks];
+
