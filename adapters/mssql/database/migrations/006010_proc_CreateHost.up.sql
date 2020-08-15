@@ -1,7 +1,6 @@
 CREATE PROCEDURE [auth].[CreateHost]
   @SessionGUID [varchar](50),
-  @Hostname varchar(40),
-  @DefaultAccess varchar(20)
+  @Hostname varchar(40)
 WITH EXEC AS CALLER
 AS
 BEGIN
@@ -11,8 +10,8 @@ BEGIN
 
   BEGIN TRY
 
-    INSERT INTO [auth].[HOSTS]([Hostname],[DefaultAccess],[CreateUser],[UpdateUser])
-    VALUES (@Hostname,@DefaultAccess,@SessionGUID,@SessionGUID)
+    INSERT INTO [auth].[HOSTS]([Hostname],[CreateUser],[UpdateUser])
+    VALUES (@Hostname,@SessionGUID,@SessionGUID)
 
     SELECT SCOPE_IDENTITY()
 

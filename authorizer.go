@@ -75,7 +75,6 @@ func (auth *Auth) CheckJWT(jwt, tenantID, category, action string) bool {
 	var identity *Identity
 	if identity, err = checkJWT(auth.jwtKey, jwt); err != nil {
 		log.Errorf("JWT found in request is invalid: %s", err)
-		// return 401, "JWT found in request is invalid", xUser, nil
 		return false
 	}
 

@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -25,22 +24,20 @@ import (
 type Service struct {
 	database     *sql.DB
 	context      context.Context
-	prefix       string
 	hostMuxers   map[string]*pat.HostMux
-	overrides    map[string]int
+	overrides    map[string]string
 	blockedUsers map[string]bool
-	rules        []fauth.HostACLs
+	hostChecks   []fauth.HostChecks
 	runMode      string
 	lock         sync.RWMutex
 	version      string
 }
 
 // New creates a new Service and sets the database
-func New(prefix, jwtHeader, configPath, runMode string, database, server string, port int, user, password string) (svc *Service, err error) {
+func New(jwtHeader, configPath, runMode string, database, server string, port int, user, password string) (svc *Service, err error) {
 	svc = &Service{
-		prefix:     prefix,
 		hostMuxers: make(map[string]*pat.HostMux),
-		overrides:  make(map[string]int),
+		overrides:  make(map[string]string),
 		context:    context.TODO(),
 		runMode:    runMode}
 
@@ -89,12 +86,12 @@ func New(prefix, jwtHeader, configPath, runMode string, database, server string,
 		log.Fatal(err)
 	}
 
-	err = json.Unmarshal(data, &svc.rules)
+	err = json.Unmarshal(data, &svc.hostChecks)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Debugf("rules: %+v", svc.rules)
+	log.Debugf("rules: %+v", svc.hostChecks)
 
 	// configure MSSql Server
 	values := url.Values{}
@@ -119,17 +116,17 @@ func New(prefix, jwtHeader, configPath, runMode string, database, server string,
 	//
 	// TODO - convert file based rules to database
 	//
-	err = json.Unmarshal(data, &svc.rules)
+	err = json.Unmarshal(data, &svc.hostChecks)
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, hostACL := range svc.rules {
+	for _, hostACL := range svc.hostChecks {
 		// FIXME: change NewHostMux to accept hostACL.Default bool not HTTP status
 		hostMux := pat.NewHostMux(403)
 		for _, host := range hostACL.Hosts {
 			svc.hostMuxers[host] = hostMux
-			for _, acl := range hostACL.ACLs {
-				pathPrefix := hostMux.AddPrefix(acl.Root, pat.DenyHandler)
+			for _, acl := range hostACL.Checks {
+				pathPrefix := hostMux.AddPrefix(acl.Base, pat.DenyHandler)
 				for _, path := range acl.Paths {
 					if r, ok := path.Rules["GET"]; ok {
 						pathPrefix.Get(path.Path, fauth.Handler(r, jwtHeader, auth))
@@ -183,13 +180,18 @@ func (svc *Service) Blocked() []string {
 	return blocks
 }
 
+// AccessControls loads checks from a JSON checks file
+func AccessControls(configPath string) (acs fauth.AccessControls, err error) {
+	return acs, err
+}
+
 // Override overrides access control processing at the host level,
 // returning 0 if no override, 1 if ALLOW override and 2 if DENY override
-func (svc *Service) Override(host string) int {
+func (svc *Service) Override(host string) string {
 	if v, ok := svc.overrides[host]; ok {
 		return v
 	}
-	return 0
+	return "none"
 }
 
 // Muxer returns the pattern mux for host
@@ -228,11 +230,11 @@ func (svc *Service) Info() string {
 	return string(infoJSON)
 }
 
-// Rules returns JSON formatted rules
-func (svc *Service) Rules() (rulesJSON string, err error) {
-	data, err := json.Marshal(svc.rules)
+// HostChecks returns JSON formatted host checks
+func (svc *Service) HostChecks() (hostCheckJSON string, err error) {
+	data, err := json.Marshal(svc.hostChecks)
 	if err != nil {
-		return rulesJSON, err
+		return hostCheckJSON, err
 	}
 	return string(data), nil
 }
@@ -324,13 +326,4 @@ func dbError(err error) error {
 	default:
 		return fauth.NewBadRequestError(dberr.SQLErrorMessage())
 	}
-}
-
-func platformString(prefix, name string) string {
-	prefix = strings.ToLower(prefix)
-	name = strings.ToLower(name)
-	if name == "admin.educationplannerbc.ca" || name == "logs.educationplannerbc.ca" || prefix != "prd" {
-		return prefix + "-" + name
-	}
-	return name
 }

@@ -1,6 +1,7 @@
 CREATE PROCEDURE [auth].[CreateHostCheck]
   @SessionGUID [varchar](50),
   @HostID int,
+  @DefaultAccess [varchar](16),
   @CheckID int
 WITH EXEC AS CALLER
 AS
@@ -11,8 +12,8 @@ BEGIN
 
   BEGIN TRY
 
-    INSERT INTO [auth].[HOST_CHECKS]([HostID], [CheckID], [CreateUser], [UpdateUser])
-    VALUES (@HostID, @CheckID, @SessionGUID, @SessionGUID)
+    INSERT INTO [auth].[HOST_CHECKS]([HostID], [DefaultAccess], [CheckID], [CreateUser], [UpdateUser])
+    VALUES (@HostID, @DefaultAccess, @CheckID, @SessionGUID, @SessionGUID)
 
     SELECT SCOPE_IDENTITY()
 

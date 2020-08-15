@@ -42,7 +42,7 @@ func router(svc fa.Service, jwtHeader, userHeader, traceHeader string) *httptree
 	api.POST("/block/:userGUID", Block(svc))
 	api.DELETE("/block/:userGUID", Unblock(svc))
 	api.GET("/auth", Auth(svc, jwtHeader, userHeader, traceHeader))
-	api.GET("/rules", Rules(svc))
+	api.GET("/rules", HostChecks(svc))
 	api.GET("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("doc.json"), // The url pointing to API definition
 		httpSwagger.DeepLinking(true),

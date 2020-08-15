@@ -55,7 +55,7 @@ func Auth(svc fauth.Service, jwtHeader, traceHeader, userHeader string) func(w h
 		path := r.Header.Get("X-Forwarded-Uri")
 
 		// check for host overrides
-		if svc.Override(host) == 1 {
+		if svc.Override(host) == "allow" {
 			if testing {
 				tstJSON(w, http.StatusOK, "allow override for host "+host)
 			} else {
@@ -63,7 +63,7 @@ func Auth(svc fauth.Service, jwtHeader, traceHeader, userHeader string) func(w h
 			}
 			log.Debug("allow override for host " + host)
 			return
-		} else if svc.Override(host) == 2 {
+		} else if svc.Override(host) == "deny" {
 			if testing {
 				tstJSON(w, http.StatusForbidden, "deny override for host "+host)
 			} else {
@@ -99,14 +99,14 @@ func Auth(svc fauth.Service, jwtHeader, traceHeader, userHeader string) func(w h
 	}
 }
 
-// Rules returns a handler for returning the configured access control rules
-func Rules(svc fauth.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+// HostChecks returns a handler for returning the configured access control rules
+func HostChecks(svc fauth.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		rules, err := svc.Rules()
+		hostChecks, err := svc.HostChecks()
 		if err != nil {
 			errJSON(w, fauth.NewServerError(err.Error()))
 			return
 		}
-		okJSON(w, rules)
+		okJSON(w, hostChecks)
 	}
 }

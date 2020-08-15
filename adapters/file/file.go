@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 	"sync"
 
 	"bitbucket.org/_metalogic_/config"
@@ -16,22 +15,20 @@ import (
 
 // Service implements the forward-auth service interface against Microsoft SQLServer
 type Service struct {
-	prefix       string
 	directory    string
 	hostMuxers   map[string]*pat.HostMux
-	overrides    map[string]int
+	overrides    map[string]string
 	blockedUsers map[string]bool
-	checks       fauth.Checks
+	access       fauth.AccessControls
 	runMode      string
 	lock         sync.RWMutex
 	version      string
 }
 
-// New creates a new Service and sets the database
-func New(prefix, jwtHeader, configPath, runMode, dir string) (svc *Service, err error) {
+// New creates a new forward-auth Service from file
+func New(jwtHeader, configPath, runMode string) (svc *Service, err error) {
 	svc = &Service{
-		prefix:     prefix,
-		overrides:  make(map[string]int),
+		overrides:  make(map[string]string),
 		hostMuxers: make(map[string]*pat.HostMux),
 		runMode:    runMode,
 	}
@@ -76,43 +73,37 @@ func New(prefix, jwtHeader, configPath, runMode, dir string) (svc *Service, err 
 
 	log.Debugf("configured authorization environment %+v", auth)
 
-	// load checks from file
-	data, err = config.LoadFromSearchPath("checks.json", ".:/usr/local/etc/forward-auth")
+	svc.access, err = AccessControls(configPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = json.Unmarshal(data, &svc.checks)
-	if err != nil {
-		log.Fatal(err)
-	}
+	log.Debugf("loaded checks: %+v", svc.access)
 
-	log.Debugf("rules: %+v", svc.checks)
+	svc.overrides = svc.access.Overrides
 
-	// override = 1: allow; override = 2: deny
-	svc.overrides = svc.checks.Overrides
-
-	for _, hostACL := range svc.checks.CheckHosts {
+	// create Pat Host Muxers from Checks
+	for _, hostCheck := range svc.access.HostChecks {
 		// default to deny
 		hostMux := pat.NewDenyMux()
-		if hostACL.Default == "allow" {
+		if hostCheck.Default == "allow" {
 			hostMux = pat.NewAllowMux()
 		}
 		// each host shares the hostMux
-		for _, host := range hostACL.Hosts {
-			if v, ok := svc.overrides[platformString(prefix, host)]; ok {
-				log.Warningf("%d override on host %s disables defined host checks", v, platformString(prefix, host))
+		for _, host := range hostCheck.Hosts {
+			if v, ok := svc.overrides[host]; ok {
+				log.Warningf("%d override on host %s disables defined host checks", v, host)
 			}
-			if _, ok := svc.hostMuxers[platformString(prefix, host)]; ok {
-				log.Errorf("ignoring duplicate host checks for %s", platformString(prefix, host))
+			if _, ok := svc.hostMuxers[host]; ok {
+				log.Errorf("ignoring duplicate host checks for %s", host)
 				continue
 			}
-			svc.hostMuxers[platformString(prefix, host)] = hostMux
+			svc.hostMuxers[host] = hostMux
 		}
 		// add path prefixes to hostMux
-		for _, acl := range hostACL.ACLs {
-			pathPrefix := hostMux.AddPrefix(acl.Root, pat.DenyHandler)
-			for _, path := range acl.Paths {
+		for _, check := range hostCheck.Checks {
+			pathPrefix := hostMux.AddPrefix(check.Base, pat.DenyHandler)
+			for _, path := range check.Paths {
 				if r, ok := path.Rules["GET"]; ok {
 					pathPrefix.Get(path.Path, fauth.Handler(r, jwtHeader, auth))
 					continue
@@ -142,6 +133,25 @@ func New(prefix, jwtHeader, configPath, runMode, dir string) (svc *Service, err 
 	return svc, err
 }
 
+// AccessControls loads checks from a JSON checks file
+func AccessControls(configPath string) (checks fauth.AccessControls, err error) {
+
+	// load checks from file
+	data, err := config.LoadFromSearchPath("checks.json", ".:/usr/local/etc/forward-auth")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = json.Unmarshal(data, &checks)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Debugf("loaded checks: %+v", checks)
+
+	return checks, nil
+}
+
 // Block adds userID to the user block access list
 // TODO protect with mutex
 func (svc *Service) Block(userID string) {
@@ -164,20 +174,19 @@ func (svc *Service) Blocked() []string {
 	return blocks
 }
 
-// Override overrides access control processing at the host level,
-// returning 0 if no override, 1 if ALLOW override and 2 if DENY override
-func (svc *Service) Override(host string) int {
+// Override overrides access control processing at the host level
+func (svc *Service) Override(host string) string {
 	if v, ok := svc.overrides[host]; ok {
 		return v
 	}
-	return 0
+	return "none"
 }
 
-// Close closes the DB connection
+// Close closes the source checks file
 func (svc *Service) Close() {
 }
 
-// Health checks to see if the DB is available.
+// Health checks to see if the file service is available.
 func (svc *Service) Health() error {
 	return nil
 }
@@ -204,11 +213,11 @@ func (svc *Service) Muxer(host string) (mux *pat.HostMux, err error) {
 	return mux, fmt.Errorf("host checks not defined for %s", host)
 }
 
-// Checks returns JSON formatted checks
-func (svc *Service) Rules() (rulesJSON string, err error) {
-	data, err := json.Marshal(svc.checks)
+// HostChecks returns JSON formatted host checks
+func (svc *Service) HostChecks() (hostChecksJSON string, err error) {
+	data, err := json.Marshal(svc.access)
 	if err != nil {
-		return rulesJSON, err
+		return hostChecksJSON, err
 	}
 	return string(data), nil
 }
@@ -223,13 +232,4 @@ func (svc *Service) Stats() string {
 // Version returns the database version
 func (svc *Service) Version() string {
 	return svc.version
-}
-
-func platformString(prefix, name string) string {
-	prefix = strings.ToLower(prefix)
-	name = strings.ToLower(name)
-	if name == "admin.educationplannerbc.ca" || name == "logs.educationplannerbc.ca" || prefix != "prd" {
-		return prefix + "-" + name
-	}
-	return name
 }

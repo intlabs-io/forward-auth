@@ -22,7 +22,7 @@ var (
 	version string
 	build   string
 
-	rules []fauth.HostACLs
+	rules []fauth.HostChecks
 
 	configFlg  string
 	disableFlg bool
@@ -155,14 +155,14 @@ func main() {
 		log.Fatal(err)
 	}
 	var configPath = configFlg
+	if configPath == "" {
+		configPath = config.IfGetenv("CONFIG_PATH", cwd+":/usr/local/etc/forward-auth")
+	}
+
 	var handler *http.Handler
 	switch adapterFlg {
 	case "file":
-		if configPath == "" {
-			configPath = config.IfGetenv("CONFIG_PATH", cwd+":/usr/local/etc/forward-auth")
-		}
-		var dir = ""
-		svc, err := file.New(prefix, jwtHeader, configPath, runMode, dir)
+		svc, err := file.New(jwtHeader, configPath, runMode)
 
 		if err != nil {
 			log.Fatalf("failed to create forward-auth Service: %s", err)
@@ -171,10 +171,7 @@ func main() {
 
 		handler = http.NewHandler(svc, jwtHeader, userHeader, traceHeader)
 	case "mssql":
-		if configPath == "" {
-			configPath = config.IfGetenv("CONFIG_PATH", cwd+":/usr/local/etc/forward-auth")
-		}
-		svc, err := mssql.New(prefix, jwtHeader, configPath, runMode, dbname, dbhost, dbport, dbuser, dbpassword)
+		svc, err := mssql.New(jwtHeader, configPath, runMode, dbname, dbhost, dbport, dbuser, dbpassword)
 
 		if err != nil {
 			log.Fatalf("failed to create forward-auth Service: %s", err)
