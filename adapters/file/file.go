@@ -106,23 +106,18 @@ func New(jwtHeader, configPath, runMode string) (svc *Service, err error) {
 			for _, path := range check.Paths {
 				if r, ok := path.Rules["GET"]; ok {
 					pathPrefix.Get(path.Path, fauth.Handler(r, jwtHeader, auth))
-					continue
 				}
 				if r, ok := path.Rules["POST"]; ok {
 					pathPrefix.Post(path.Path, fauth.Handler(r, jwtHeader, auth))
-					continue
 				}
 				if r, ok := path.Rules["PUT"]; ok {
 					pathPrefix.Put(path.Path, fauth.Handler(r, jwtHeader, auth))
-					continue
 				}
 				if r, ok := path.Rules["DELETE"]; ok {
 					pathPrefix.Del(path.Path, fauth.Handler(r, jwtHeader, auth))
-					continue
 				}
 				if r, ok := path.Rules["HEAD"]; ok {
 					pathPrefix.Head(path.Path, fauth.Handler(r, jwtHeader, auth))
-					continue
 				}
 			}
 		}
