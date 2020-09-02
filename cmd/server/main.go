@@ -127,9 +127,9 @@ func main() {
 						return
 					}
 					log.Debugf("checks file watch: %s", event)
-					if event.Op&fsnotify.Write == fsnotify.Write {
+					if event.Name == checksFile && (event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write) {
 						log.Infof("checks file %s has changed; reloading", checksFile)
-						svc.LoadAccess()
+						svc.LoadAccess(true)
 					}
 				case err, ok := <-watcher.Errors:
 					if !ok {
@@ -140,7 +140,7 @@ func main() {
 			}
 		}()
 
-		err = watcher.Add(checksFile)
+		err = watcher.Add(configPath)
 		if err != nil {
 			log.Fatal(err)
 		}
