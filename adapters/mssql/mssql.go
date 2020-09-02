@@ -24,6 +24,7 @@ import (
 type Service struct {
 	database     *sql.DB
 	context      context.Context
+	auth         *fauth.Auth
 	hostMuxers   map[string]*pat.HostMux
 	overrides    map[string]string
 	blockedUsers map[string]bool
@@ -77,9 +78,10 @@ func New(jwtHeader, configPath, runMode string, database, server string, port in
 
 	// block list of usernames, hostnames, IP addresses
 	blocks := make(map[string]bool)
-	auth := fauth.NewAuth(jwtKey, tokens, blocks)
 
-	log.Debugf("configured authorization environment %+v", auth)
+	svc.auth = fauth.NewAuth(jwtHeader, jwtKey, tokens, blocks)
+
+	log.Debugf("configured authorization environment %+v", svc.auth)
 
 	data, err = config.LoadFromSearchPath("rules.json", ".:/usr/local/etc/forward-auth")
 	if err != nil {
@@ -120,32 +122,32 @@ func New(jwtHeader, configPath, runMode string, database, server string, port in
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, hostACL := range svc.hostChecks {
+	for _, hostCheck := range svc.hostChecks {
 		// FIXME: change NewHostMux to accept hostACL.Default bool not HTTP status
 		hostMux := pat.NewHostMux(403)
-		for _, host := range hostACL.Hosts {
+		for _, host := range hostCheck.Hosts {
 			svc.hostMuxers[host] = hostMux
-			for _, acl := range hostACL.Checks {
-				pathPrefix := hostMux.AddPrefix(acl.Base, pat.DenyHandler)
-				for _, path := range acl.Paths {
+			for _, check := range hostCheck.Checks {
+				pathPrefix := hostMux.AddPrefix(check.Base, pat.DenyHandler)
+				for _, path := range check.Paths {
 					if r, ok := path.Rules["GET"]; ok {
-						pathPrefix.Get(path.Path, fauth.Handler(r, jwtHeader, auth))
+						pathPrefix.Get(path.Path, fauth.Handler(r, svc.auth))
 						continue
 					}
 					if r, ok := path.Rules["POST"]; ok {
-						pathPrefix.Post(path.Path, fauth.Handler(r, jwtHeader, auth))
+						pathPrefix.Post(path.Path, fauth.Handler(r, svc.auth))
 						continue
 					}
 					if r, ok := path.Rules["PUT"]; ok {
-						pathPrefix.Put(path.Path, fauth.Handler(r, jwtHeader, auth))
+						pathPrefix.Put(path.Path, fauth.Handler(r, svc.auth))
 						continue
 					}
 					if r, ok := path.Rules["DELETE"]; ok {
-						pathPrefix.Del(path.Path, fauth.Handler(r, jwtHeader, auth))
+						pathPrefix.Del(path.Path, fauth.Handler(r, svc.auth))
 						continue
 					}
 					if r, ok := path.Rules["HEAD"]; ok {
-						pathPrefix.Head(path.Path, fauth.Handler(r, jwtHeader, auth))
+						pathPrefix.Head(path.Path, fauth.Handler(r, svc.auth))
 						continue
 					}
 				}
@@ -181,8 +183,54 @@ func (svc *Service) Blocked() []string {
 }
 
 // AccessControls loads checks from a JSON checks file
-func AccessControls(configPath string) (acs fauth.AccessControls, err error) {
-	return acs, err
+func AccessControls(database, server string, port int, user, password string) (acs fauth.AccessControls, err error) {
+	var (
+		rows *sql.Rows
+	)
+	// configure MSSql Server
+	values := url.Values{}
+	values.Set("database", database)
+	values.Set("app", "EPBC applications-api")
+	u := &url.URL{
+		Scheme: "sqlserver",
+		User:   url.UserPassword(user, password),
+		Host:   fmt.Sprintf("%s:%d", server, port),
+		// Path:  instance, // if connecting to an instance instead of a port
+		RawQuery: values.Encode(),
+	}
+	log.Debugf("sqlserver connection string: %s", u.String())
+
+	db, err := sql.Open("sqlserver", u.String())
+	if err != nil {
+		return acs, err
+	}
+
+	rows, err = db.QueryContext(context.Background(), "[auth].[HostChecks]")
+
+	if err != nil {
+		return acs, err
+	}
+
+	defer rows.Close()
+
+	var acsJSON string
+	for rows.Next() {
+		err = rows.Scan(&acsJSON)
+	}
+
+	if err != nil {
+		log.Errorf("%s", err)
+		return acs, err
+	}
+
+	err = json.Unmarshal([]byte(acsJSON), &acs)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Debugf("loaded access controls: %+v", acs)
+
+	return acs, nil
 }
 
 // Override overrides access control processing at the host level,

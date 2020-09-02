@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"bitbucket.org/_metalogic_/config"
-	fauth "bitbucket.org/_metalogic_/forward-auth"
 	"bitbucket.org/_metalogic_/forward-auth/adapters/file"
 	"bitbucket.org/_metalogic_/forward-auth/adapters/mssql"
 	"bitbucket.org/_metalogic_/log"
@@ -16,11 +15,7 @@ var (
 	version string
 	build   string
 
-	rules []fauth.HostChecks
-
-	configFlg  string
-	disableFlg bool
-	storageFlg string
+	fileFlg    string
 	levelFlg   log.Level
 	adapterFlg string
 
@@ -29,24 +24,14 @@ var (
 	dbport     int
 	dbuser     string
 	dbpassword string
-
-	tenantParam string
-	blocks      map[string]bool
 )
 
 func init() {
 
 	flag.StringVar(&adapterFlg, "adapter", "file", "adapter type - one of file, mssql, mock")
-	flag.StringVar(&configFlg, "config", "", "config file")
-	flag.BoolVar(&disableFlg, "disable", false, "disable authorization")
-	flag.Var(&levelFlg, "level", "set log level to one of debug, info, warning, error")
+	flag.StringVar(&fileFlg, "file", "", "checks file")
 
-	// get config from Docker secrets or environment
-	dbhost = config.MustGetenv("DB_HOST")
-	dbport = config.MustGetInt("DB_PORT")
-	dbname = config.MustGetenv("DB_NAME")
-	dbuser = config.MustGetConfig("API_DB_USER")
-	dbpassword = config.MustGetConfig("API_DB_PASSWORD")
+	flag.Var(&levelFlg, "level", "set log level to one of debug, info, warning, error")
 
 	flag.Usage = func() {
 		fmt.Printf("Usage (dump version %s, build %s):\n\n", version, build)
@@ -58,6 +43,12 @@ func init() {
 func main() {
 	flag.Parse()
 
+	if adapterFlg == "file" && fileFlg == "" {
+		flag.Usage()
+		log.Error("a checks file must be passed with file adapter")
+		return
+	}
+
 	if levelFlg != log.None {
 		log.SetLevel(levelFlg)
 	} else {
@@ -67,41 +58,27 @@ func main() {
 		}
 	}
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	var configPath = configFlg
-
-	if configPath == "" {
-		configPath = config.IfGetenv("CONFIG_PATH", cwd+":/usr/local/etc/forward-auth")
-	}
 	switch adapterFlg {
 	case "file":
-		ac, err := file.AccessControl(configPath)
+		acs, err := file.AccessControls(fileFlg)
 		if err != nil {
 			log.Fatalf("failed to load access controls from file: %s", err)
 		}
-
-		if err != nil {
-			log.Fatalf("failed to create forward-auth file Service: %s", err)
-		}
-		fmt.Print(ac)
+		fmt.Printf("%+v\n", acs)
 
 	case "mssql":
+		// get config from Docker secrets or environment
+		dbhost = config.MustGetenv("DB_HOST")
+		dbport = config.MustGetInt("DB_PORT")
+		dbname = config.MustGetenv("DB_NAME")
+		dbuser = config.MustGetConfig("API_DB_USER")
+		dbpassword = config.MustGetConfig("API_DB_PASSWORD")
 
-		svc, err := mssql.New("", configPath, "", dbname, dbhost, dbport, dbuser, dbpassword)
-
-		if err != nil {
-			log.Fatalf("failed to create forward-auth mssql Service: %s", err)
-		}
-		ac, err := mssql.AccessControl(configPath)
+		acs, err := mssql.AccessControls(dbname, dbhost, dbport, dbuser, dbpassword)
 		if err != nil {
 			log.Fatalf("failed to load access controls from mssql: %s", err)
 		}
-		fmt.Print(ac)
-		defer svc.Close()
-
+		fmt.Printf("%+v\n", acs)
 	}
 
 }

@@ -21,7 +21,3 @@ type Service interface {
 	Stats() string
 	Unblock(user string)
 }
-
-// type Checks interface {
-
-// }

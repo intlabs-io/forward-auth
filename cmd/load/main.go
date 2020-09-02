@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"bitbucket.org/_metalogic_/config"
-	fauth "bitbucket.org/_metalogic_/forward-auth"
 	"bitbucket.org/_metalogic_/forward-auth/adapters/file"
 	"bitbucket.org/_metalogic_/forward-auth/adapters/mssql"
 	"bitbucket.org/_metalogic_/log"
@@ -16,11 +15,8 @@ var (
 	version string
 	build   string
 
-	rules []fauth.HostChecks
-
-	configFlg  string
+	fileFlg    string
 	disableFlg bool
-	storageFlg string
 	levelFlg   log.Level
 
 	dbname     string
@@ -28,24 +24,10 @@ var (
 	dbport     int
 	dbuser     string
 	dbpassword string
-
-	jwtKey        []byte
-	jwtRefreshKey []byte
-
-	jwtHeader   string
-	userHeader  string
-	traceHeader string
-
-	tenantParam string
-
-	institutionEPBCIDs []string
-
-	blocks map[string]bool
 )
 
 func init() {
-
-	flag.StringVar(&configFlg, "config", "", "config file")
+	flag.StringVar(&fileFlg, "file", "", "checks file")
 	flag.BoolVar(&disableFlg, "disable", false, "disable authorization")
 	flag.Var(&levelFlg, "level", "set log level to one of debug, info, warning, error")
 
@@ -75,16 +57,7 @@ func main() {
 		}
 	}
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	var configPath = configFlg
-
-	if configPath == "" {
-		configPath = config.IfGetenv("CONFIG_PATH", cwd+":/usr/local/etc/forward-auth")
-	}
-	acs, err := file.AccessControls(configPath)
+	acs, err := file.AccessControls(fileFlg)
 	if err != nil {
 		log.Fatalf("failed to load checks from file: %s", err)
 	}
@@ -97,7 +70,7 @@ func main() {
 	count, err := loader.Load(acs)
 
 	if err != nil {
-		log.Fatalf("failed to load checks to database: %s", err)
+		log.Fatalf("failed to load checks file %s to database: %s", fileFlg, err)
 	}
 
 	log.Debugf("loaded %d checks to database", count)

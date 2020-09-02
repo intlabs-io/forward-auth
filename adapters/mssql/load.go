@@ -185,7 +185,7 @@ func (loader *Loader) createCheck(sessionGUID string, name, base string) (checkI
 	return checkID, err
 }
 
-// createCheck ...
+// getCheck ...
 func (loader *Loader) getCheck(name, base string) (checkID int, err error) {
 	var (
 		rows *sql.Rows

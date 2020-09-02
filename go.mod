@@ -14,6 +14,7 @@ require (
 	github.com/denisenkom/go-mssqldb v0.0.0-20200620013148-b91950f658ec
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dimfeld/httptreemux/v5 v5.2.2
+	github.com/fsnotify/fsnotify v1.4.9
 	github.com/pborman/uuid v1.2.0
 	github.com/swaggo/swag v1.6.3
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect

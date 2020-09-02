@@ -45,11 +45,12 @@ type Auth struct {
 }
 
 // NewAuth ...
-func NewAuth(jwtKey []byte, tokens map[string]string, blocks map[string]bool) *Auth {
+func NewAuth(jwtHeader string, jwtKey []byte, tokens map[string]string, blocks map[string]bool) *Auth {
 	return &Auth{
-		jwtKey: jwtKey,
-		tokens: tokens,
-		blocks: blocks,
+		jwtHeader: jwtHeader,
+		jwtKey:    jwtKey,
+		tokens:    tokens,
+		blocks:    blocks,
 	}
 }
 
@@ -186,8 +187,8 @@ func Action(method string) string {
 	}
 }
 
-// Handler returns a handler implementing rule evluation for an auth environment and authorizer
-func Handler(rule Rule, jwtHeader string, auth *Auth) func(method, path string, params map[string][]string, header http.Header) (status int, message, username string) {
+// Handler returns a handler implementing rule evaluation for an auth environment and authorizer
+func Handler(rule Rule, auth *Auth) func(method, path string, params map[string][]string, header http.Header) (status int, message, username string) {
 	if rule.Expression == "true" {
 		return pat.AllowHandler
 	}
@@ -208,7 +209,7 @@ func Handler(rule Rule, jwtHeader string, auth *Auth) func(method, path string, 
 			}
 		}
 
-		jwt := header.Get(jwtHeader)
+		jwt := header.Get(auth.jwtHeader)
 
 		credentials := &ident.Credentials{
 			Token: token,

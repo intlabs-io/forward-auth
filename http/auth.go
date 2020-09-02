@@ -15,7 +15,7 @@ var ok = []byte("ok")
 
 // Auth authorizes a request based on configured access control rules;
 // jwtHeader, traceHeader and userHeader are added to the forwarded request headers
-func Auth(svc fauth.Service, jwtHeader, traceHeader, userHeader string) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Auth(svc fauth.Service, userHeader, traceHeader string) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		if svc.RunMode() == "noAuth" {

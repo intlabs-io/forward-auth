@@ -23,5 +23,7 @@ fi
 
 source $ENV.in
 
-./dump  -level DEBUG
+./dump -file /usr/local/etc/forward-auth/checks.json -level DEBUG
+
+# ./dump -adapter mssql -level DEBUG
 
