@@ -93,7 +93,7 @@ func New(configPath, runMode string) (svc *Service, err error) {
 
 	log.Debugf("configured authorization environment %+v", svc.auth)
 
-	err = svc.LoadAccess()
+	err = svc.LoadAccess(false)
 	if err != nil {
 		return svc, err
 	}
@@ -123,7 +123,7 @@ func LoadConfig(configPath string) (conf Config, err error) {
 }
 
 // LoadAccess loads checks from a JSON checks file
-func (svc *Service) LoadAccess() (err error) {
+func (svc *Service) LoadAccess(reload bool) (err error) {
 	file := filepath.Join(svc.directory, "checks.json")
 
 	// load checks from file
@@ -154,7 +154,7 @@ func (svc *Service) LoadAccess() (err error) {
 			if v, ok := svc.overrides[host]; ok {
 				log.Warningf("%s override on host %s disables defined host checks", v, host)
 			}
-			if _, ok := svc.getMux(host); ok {
+			if _, ok := svc.getMux(host); !reload && ok {
 				log.Errorf("ignoring duplicate host checks for %s", host)
 				continue
 			}
