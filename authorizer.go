@@ -102,7 +102,7 @@ func (auth *Auth) CheckJWT(jwt, tenantID, category, action string) bool {
 }
 
 // Root returns true if jwt has root privilege
-func (a *Auth) Root(jwt string) bool {
+func (auth *Auth) Root(jwt string) bool {
 	if jwt == "" {
 		return false
 	}
