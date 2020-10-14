@@ -84,6 +84,7 @@ func (auth *Auth) CheckJWT(jwt, tenantID, category, action string) bool {
 	if identity.Root {
 		return true
 	}
+	log.Debugf("evaluating user permissions: %v+", identity.UserPermissions)
 	for _, role := range identity.UserPermissions {
 		if role.TenantID == tenantID {
 			for _, perm := range role.Permissions {
