@@ -1,34 +1,38 @@
 package fauth
 
-// Checks ...
-type Checks struct {
-	AllowHosts []string   `json:"allowHosts"`
-	DenyHosts  []string   `json:"denyHosts"`
-	CheckHosts []HostACLs `json:"checkHosts"`
+// AccessControls ...
+type AccessControls struct {
+	Overrides  map[string]string `json:"overrides"`
+	HostChecks []HostChecks      `json:"hostChecks"`
 }
 
-// HostACLs ...
-type HostACLs struct {
+// Host ...
+type Host struct {
+	Hostname string `json:"hostname"`
+}
+
+// HostChecks ...
+type HostChecks struct {
 	Hosts   []string `json:"hosts"`
 	Default string   `json:"default"` // "allow" or "deny" (define in pat?)
-	ACLs    []ACL    `json:"acls"`
+	Checks  []Check  `json:"checks"`
 }
 
-// ACL ...
-type ACL struct {
+// Check ...
+type Check struct {
 	Name  string `json:"name"`
-	Root  string `json:"root"`
+	Base  string `json:"base"`
 	Paths []Path `json:"paths"`
 }
+
+// Method ...
+type Method string
 
 // Path ...
 type Path struct {
 	Path  string          `json:"path"`
 	Rules map[Method]Rule `json:"rules"`
 }
-
-// Method ...
-type Method string
 
 // Rule ...
 type Rule struct {

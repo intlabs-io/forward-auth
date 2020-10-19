@@ -21,12 +21,12 @@ func (h *Handler) ServeHTTP(addr string) error {
 }
 
 // NewHandler returns a new Handler for the servicej
-func NewHandler(svc fa.Service, jwtHeader, userHeader, traceHeader string) *Handler {
-	return &Handler{service: svc, handler: router(svc, jwtHeader, userHeader, traceHeader)}
+func NewHandler(svc fa.Service, userHeader, traceHeader string) *Handler {
+	return &Handler{service: svc, handler: router(svc, userHeader, traceHeader)}
 }
 
 // create the router for Service
-func router(svc fa.Service, jwtHeader, userHeader, traceHeader string) *httptreemux.TreeMux {
+func router(svc fa.Service, userHeader, traceHeader string) *httptreemux.TreeMux {
 	// initialize HTTP router
 	treemux := httptreemux.New()
 	api := treemux.NewGroup("/")
@@ -41,8 +41,8 @@ func router(svc fa.Service, jwtHeader, userHeader, traceHeader string) *httptree
 	api.GET("/block", Blocked(svc))
 	api.POST("/block/:userGUID", Block(svc))
 	api.DELETE("/block/:userGUID", Unblock(svc))
-	api.GET("/auth", Auth(svc, jwtHeader, userHeader, traceHeader))
-	api.GET("/rules", Rules(svc))
+	api.GET("/auth", Auth(svc, userHeader, traceHeader))
+	api.GET("/rules", HostChecks(svc))
 	api.GET("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("doc.json"), // The url pointing to API definition
 		httpSwagger.DeepLinking(true),

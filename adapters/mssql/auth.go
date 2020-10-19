@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"bitbucket.org/_metalogic_/ident"
+	_ "github.com/denisenkom/go-mssqldb"
 )
 
 // Authorize returns an authorization decision for host, method and path with given credentials

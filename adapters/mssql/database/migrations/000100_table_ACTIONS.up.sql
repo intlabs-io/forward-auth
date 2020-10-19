@@ -1,0 +1,15 @@
+CREATE TABLE [auth].[ACTIONS] (
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[Code] [varchar](50) NOT NULL,
+	[Description] [varchar](200) NOT NULL,
+	[Created] [datetime] NOT NULL,
+        [CreateUser] [varchar](50) NOT NULL,
+	[Updated] [datetime] NOT NULL,
+	[UpdateUser] [varchar](50) NOT NULL,
+  CONSTRAINT [PK_ACTIONS] PRIMARY KEY CLUSTERED ([ID] ASC) 
+    WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY];
+ALTER TABLE [auth].[ACTIONS] ADD  CONSTRAINT [DF_ACTIONS_Created]  DEFAULT (getdate()) FOR [Created];
+ALTER TABLE [auth].[ACTIONS] ADD  CONSTRAINT [DF_ACTIONS_CreateUser]  DEFAULT ('ROOT') FOR [CreateUser];
+ALTER TABLE [auth].[ACTIONS] ADD  CONSTRAINT [DF_ACTIONS_Updated]  DEFAULT (getdate()) FOR [Updated];
+ALTER TABLE [auth].[ACTIONS] ADD  CONSTRAINT [DF_ACTIONS_UpdateUser]  DEFAULT ('ROOT') FOR [UpdateUser];

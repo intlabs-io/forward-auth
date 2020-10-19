@@ -45,11 +45,12 @@ type Auth struct {
 }
 
 // NewAuth ...
-func NewAuth(jwtKey []byte, tokens map[string]string, blocks map[string]bool) *Auth {
+func NewAuth(jwtHeader string, jwtKey []byte, tokens map[string]string, blocks map[string]bool) *Auth {
 	return &Auth{
-		jwtKey: jwtKey,
-		tokens: tokens,
-		blocks: blocks,
+		jwtHeader: jwtHeader,
+		jwtKey:    jwtKey,
+		tokens:    tokens,
+		blocks:    blocks,
 	}
 }
 
@@ -57,7 +58,7 @@ func NewAuth(jwtKey []byte, tokens map[string]string, blocks map[string]bool) *A
 func (auth *Auth) CheckBearerAuth(token string, tokens ...string) bool {
 	for _, t := range tokens {
 		if t == auth.tokens[token] {
-			log.Debugf("allowing by bearer token %s", redact(token))
+			log.Debugf("allowing by bearer token '%s'", redact(token))
 			return true
 		}
 	}
@@ -75,7 +76,6 @@ func (auth *Auth) CheckJWT(jwt, tenantID, category, action string) bool {
 	var identity *Identity
 	if identity, err = checkJWT(auth.jwtKey, jwt); err != nil {
 		log.Errorf("JWT found in request is invalid: %s", err)
-		// return 401, "JWT found in request is invalid", xUser, nil
 		return false
 	}
 
@@ -84,6 +84,7 @@ func (auth *Auth) CheckJWT(jwt, tenantID, category, action string) bool {
 	if identity.Root {
 		return true
 	}
+	log.Debugf("evaluating user permissions: %v+", identity.UserPermissions)
 	for _, role := range identity.UserPermissions {
 		if role.TenantID == tenantID {
 			for _, perm := range role.Permissions {
@@ -101,14 +102,14 @@ func (auth *Auth) CheckJWT(jwt, tenantID, category, action string) bool {
 }
 
 // Root returns true if jwt has root privilege
-func (a *Auth) Root(jwt string) bool {
+func (auth *Auth) Root(jwt string) bool {
 	if jwt == "" {
 		return false
 	}
 
 	var err error
 	var identity *Identity
-	if identity, err = checkJWT(a.jwtKey, jwt); err != nil {
+	if identity, err = checkJWT(auth.jwtKey, jwt); err != nil {
 		log.Errorf("JWT found in request is invalid: %s", err)
 		return false
 	}
@@ -187,8 +188,8 @@ func Action(method string) string {
 	}
 }
 
-// Handler returns a handler implementing rule evluation for an auth environment and authorizer
-func Handler(rule Rule, jwtHeader string, auth *Auth) func(method, path string, params map[string][]string, header http.Header) (status int, message, username string) {
+// Handler returns a handler implementing rule evaluation for an auth environment and authorizer
+func Handler(rule Rule, auth *Auth) func(method, path string, params map[string][]string, header http.Header) (status int, message, username string) {
 	if rule.Expression == "true" {
 		return pat.AllowHandler
 	}
@@ -209,7 +210,7 @@ func Handler(rule Rule, jwtHeader string, auth *Auth) func(method, path string, 
 			}
 		}
 
-		jwt := header.Get(jwtHeader)
+		jwt := header.Get(auth.jwtHeader)
 
 		credentials := &ident.Credentials{
 			Token: token,

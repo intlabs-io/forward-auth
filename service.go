@@ -14,8 +14,8 @@ type Service interface {
 	Health() error
 	Info() string
 	Muxer(host string) (hostMux *pat.HostMux, err error)
-	Override(host string) int
-	Rules() (rulesJSON string, err error)
+	Override(host string) string
+	HostChecks() (hostChecksJSON string, err error)
 	RunMode() string
 	SetRunMode(string)
 	Stats() string

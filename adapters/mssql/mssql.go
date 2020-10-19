@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -25,22 +24,21 @@ import (
 type Service struct {
 	database     *sql.DB
 	context      context.Context
-	prefix       string
+	auth         *fauth.Auth
 	hostMuxers   map[string]*pat.HostMux
-	overrides    map[string]int
+	overrides    map[string]string
 	blockedUsers map[string]bool
-	rules        []fauth.HostACLs
+	hostChecks   []fauth.HostChecks
 	runMode      string
 	lock         sync.RWMutex
 	version      string
 }
 
 // New creates a new Service and sets the database
-func New(prefix, jwtHeader, configPath, runMode string, database, server string, port int, user, password string) (svc *Service, err error) {
+func New(jwtHeader, configPath, runMode string, database, server string, port int, user, password string) (svc *Service, err error) {
 	svc = &Service{
-		prefix:     prefix,
 		hostMuxers: make(map[string]*pat.HostMux),
-		overrides:  make(map[string]int),
+		overrides:  make(map[string]string),
 		context:    context.TODO(),
 		runMode:    runMode}
 
@@ -80,21 +78,22 @@ func New(prefix, jwtHeader, configPath, runMode string, database, server string,
 
 	// block list of usernames, hostnames, IP addresses
 	blocks := make(map[string]bool)
-	auth := fauth.NewAuth(jwtKey, tokens, blocks)
 
-	log.Debugf("configured authorization environment %+v", auth)
+	svc.auth = fauth.NewAuth(jwtHeader, jwtKey, tokens, blocks)
+
+	log.Debugf("configured authorization environment %+v", svc.auth)
 
 	data, err = config.LoadFromSearchPath("rules.json", ".:/usr/local/etc/forward-auth")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = json.Unmarshal(data, &svc.rules)
+	err = json.Unmarshal(data, &svc.hostChecks)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Debugf("rules: %+v", svc.rules)
+	log.Debugf("rules: %+v", svc.hostChecks)
 
 	// configure MSSql Server
 	values := url.Values{}
@@ -119,36 +118,36 @@ func New(prefix, jwtHeader, configPath, runMode string, database, server string,
 	//
 	// TODO - convert file based rules to database
 	//
-	err = json.Unmarshal(data, &svc.rules)
+	err = json.Unmarshal(data, &svc.hostChecks)
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, hostACL := range svc.rules {
+	for _, hostCheck := range svc.hostChecks {
 		// FIXME: change NewHostMux to accept hostACL.Default bool not HTTP status
 		hostMux := pat.NewHostMux(403)
-		for _, host := range hostACL.Hosts {
+		for _, host := range hostCheck.Hosts {
 			svc.hostMuxers[host] = hostMux
-			for _, acl := range hostACL.ACLs {
-				pathPrefix := hostMux.AddPrefix(acl.Root, pat.DenyHandler)
-				for _, path := range acl.Paths {
+			for _, check := range hostCheck.Checks {
+				pathPrefix := hostMux.AddPrefix(check.Base, pat.DenyHandler)
+				for _, path := range check.Paths {
 					if r, ok := path.Rules["GET"]; ok {
-						pathPrefix.Get(path.Path, fauth.Handler(r, jwtHeader, auth))
+						pathPrefix.Get(path.Path, fauth.Handler(r, svc.auth))
 						continue
 					}
 					if r, ok := path.Rules["POST"]; ok {
-						pathPrefix.Post(path.Path, fauth.Handler(r, jwtHeader, auth))
+						pathPrefix.Post(path.Path, fauth.Handler(r, svc.auth))
 						continue
 					}
 					if r, ok := path.Rules["PUT"]; ok {
-						pathPrefix.Put(path.Path, fauth.Handler(r, jwtHeader, auth))
+						pathPrefix.Put(path.Path, fauth.Handler(r, svc.auth))
 						continue
 					}
 					if r, ok := path.Rules["DELETE"]; ok {
-						pathPrefix.Del(path.Path, fauth.Handler(r, jwtHeader, auth))
+						pathPrefix.Del(path.Path, fauth.Handler(r, svc.auth))
 						continue
 					}
 					if r, ok := path.Rules["HEAD"]; ok {
-						pathPrefix.Head(path.Path, fauth.Handler(r, jwtHeader, auth))
+						pathPrefix.Head(path.Path, fauth.Handler(r, svc.auth))
 						continue
 					}
 				}
@@ -183,13 +182,64 @@ func (svc *Service) Blocked() []string {
 	return blocks
 }
 
+// AccessControls loads checks from a JSON checks file
+func AccessControls(database, server string, port int, user, password string) (acs fauth.AccessControls, err error) {
+	var (
+		rows *sql.Rows
+	)
+	// configure MSSql Server
+	values := url.Values{}
+	values.Set("database", database)
+	values.Set("app", "EPBC applications-api")
+	u := &url.URL{
+		Scheme: "sqlserver",
+		User:   url.UserPassword(user, password),
+		Host:   fmt.Sprintf("%s:%d", server, port),
+		// Path:  instance, // if connecting to an instance instead of a port
+		RawQuery: values.Encode(),
+	}
+	log.Debugf("sqlserver connection string: %s", u.String())
+
+	db, err := sql.Open("sqlserver", u.String())
+	if err != nil {
+		return acs, err
+	}
+
+	rows, err = db.QueryContext(context.Background(), "[auth].[HostChecks]")
+
+	if err != nil {
+		return acs, err
+	}
+
+	defer rows.Close()
+
+	var acsJSON string
+	for rows.Next() {
+		err = rows.Scan(&acsJSON)
+	}
+
+	if err != nil {
+		log.Errorf("%s", err)
+		return acs, err
+	}
+
+	err = json.Unmarshal([]byte(acsJSON), &acs)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Debugf("loaded access controls: %+v", acs)
+
+	return acs, nil
+}
+
 // Override overrides access control processing at the host level,
 // returning 0 if no override, 1 if ALLOW override and 2 if DENY override
-func (svc *Service) Override(host string) int {
+func (svc *Service) Override(host string) string {
 	if v, ok := svc.overrides[host]; ok {
 		return v
 	}
-	return 0
+	return "none"
 }
 
 // Muxer returns the pattern mux for host
@@ -228,11 +278,11 @@ func (svc *Service) Info() string {
 	return string(infoJSON)
 }
 
-// Rules returns JSON formatted rules
-func (svc *Service) Rules() (rulesJSON string, err error) {
-	data, err := json.Marshal(svc.rules)
+// HostChecks returns JSON formatted host checks
+func (svc *Service) HostChecks() (hostCheckJSON string, err error) {
+	data, err := json.Marshal(svc.hostChecks)
 	if err != nil {
-		return rulesJSON, err
+		return hostCheckJSON, err
 	}
 	return string(data), nil
 }
@@ -324,13 +374,4 @@ func dbError(err error) error {
 	default:
 		return fauth.NewBadRequestError(dberr.SQLErrorMessage())
 	}
-}
-
-func platformString(prefix, name string) string {
-	prefix = strings.ToLower(prefix)
-	name = strings.ToLower(name)
-	if name == "admin.educationplannerbc.ca" || name == "logs.educationplannerbc.ca" || prefix != "prd" {
-		return prefix + "-" + name
-	}
-	return name
 }
