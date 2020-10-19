@@ -109,7 +109,7 @@ func (auth *Auth) Root(jwt string) bool {
 
 	var err error
 	var identity *Identity
-	if identity, err = checkJWT(a.jwtKey, jwt); err != nil {
+	if identity, err = checkJWT(auth.jwtKey, jwt); err != nil {
 		log.Errorf("JWT found in request is invalid: %s", err)
 		return false
 	}
