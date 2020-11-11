@@ -101,6 +101,24 @@ func (auth *Auth) CheckJWT(jwt, tenantID, category, action string) bool {
 	return false
 }
 
+// User returns the user GUID in jwt
+func (auth *Auth) User(jwt string) (guid string) {
+	if jwt == "" {
+		return guid
+	}
+
+	var err error
+	var identity *Identity
+	if identity, err = checkJWT(auth.jwtKey, jwt); err != nil {
+		log.Errorf("JWT found in request is invalid: %s", err)
+		return guid
+	}
+
+	log.Debugf("identity found in JWT: %s", identity)
+
+	return identity.User
+}
+
 // Root returns true if jwt has root privilege
 func (auth *Auth) Root(jwt string) bool {
 	if jwt == "" {
@@ -215,6 +233,10 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 		credentials := &ident.Credentials{
 			Token: token,
 			JWT:   jwt,
+		}
+
+		if jwt != "" {
+			username = auth.User(jwt)
 		}
 
 		if t, err := evaluate(rule.Expression, params, auth, credentials); err != nil {
