@@ -79,7 +79,7 @@ func Auth(svc fauth.Service, userHeader, traceHeader string) func(w http.Respons
 			return
 		}
 
-		// TODO return user ??
+		// TODO return user - username is always empty in this call ??
 		status, message, username := mux.Check(method, path, r.Header)
 
 		if testing {
@@ -93,7 +93,10 @@ func Auth(svc fauth.Service, userHeader, traceHeader string) func(w http.Respons
 		case 403:
 			errJSON(w, fauth.NewForbiddenError(message))
 		case 200:
-			w.Header().Add(userHeader, username)
+			if username != "" {
+				log.Debugf("Adding HTTP header %s %s", userHeader, username)
+				w.Header().Add(userHeader, username)
+			}
 			w.Write(ok)
 		}
 	}
