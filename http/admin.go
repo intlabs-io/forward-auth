@@ -1,11 +1,14 @@
 package http
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 
 	fa "bitbucket.org/_metalogic_/forward-auth"
+	"bitbucket.org/_metalogic_/forward-auth/build"
+	. "bitbucket.org/_metalogic_/glib/http" // dot import fo avoid package prefix in reference (shutup lint)
 	"bitbucket.org/_metalogic_/log"
 )
 
@@ -27,9 +30,28 @@ func init() {
 // @Router /forward-auth/v1/info [get]
 func APIInfo(svc fa.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		w.Header().Set("Content-Type", "application/json")
-		info := svc.Info()
-		fmt.Fprint(w, info)
+		projectInfo, err := build.Info()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+		type runtime struct {
+			ProjectInfo *build.ProjectInfo `json:"projectInfo"`
+			ServiceInfo map[string]string  `json:"serviceInfo"`
+			LogLevel    string             `json:"logLevel"`
+		}
+		rt := &runtime{
+			ProjectInfo: projectInfo,
+			ServiceInfo: svc.Info(),
+			LogLevel:    log.GetLevel().String(),
+		}
+
+		runtimeJSON, err := json.Marshal(rt)
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+		OkJSON(w, string(runtimeJSON))
 		return
 	}
 }
@@ -124,7 +146,7 @@ func SetLogLevel(svc fa.Service) func(w http.ResponseWriter, r *http.Request, pa
 		case "trace":
 			v = log.TraceLevel
 		default:
-			errJSON(w, fa.NewBadRequestError(fmt.Sprintf("invalid log level: %s", verbosity)))
+			errJSON(w, NewBadRequestError(fmt.Sprintf("invalid log level: %s", verbosity)))
 			return
 		}
 

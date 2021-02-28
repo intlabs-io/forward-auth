@@ -25,7 +25,7 @@ type Service struct {
 	blockedUsers map[string]bool
 	runMode      string
 	lock         sync.RWMutex
-	version      string
+	info         map[string]string
 }
 
 // Config holds the configuration read from a config file
@@ -70,6 +70,11 @@ func New(configPath, runMode string) (svc *Service, err error) {
 			tokens[config.MustGetConfig(token)] = token
 		}
 	}
+
+	svc.info = make(map[string]string)
+	svc.info["type"] = "file"
+	svc.info["hostname"] = os.Getenv("HOSTNAME")
+	svc.info["directory"] = svc.directory
 
 	// TODO: institution bearer tokens are hard-coded for now
 	// when we get real multi-tenant access to the APIs this map should be populated from institutions-api
@@ -260,16 +265,8 @@ func (svc *Service) Health() error {
 }
 
 // Info return information about the Service.
-func (svc *Service) Info() string {
-	info := &info{}
-	info.Hostname = os.Getenv("HOSTNAME")
-	info.Directory = svc.directory
-	info.LogLevel = log.GetLevel().String()
-	infoJSON, err := json.Marshal(info)
-	if err != nil {
-		return fmt.Sprintf("failed to marshal info from %+v", info)
-	}
-	return string(infoJSON)
+func (svc *Service) Info() map[string]string {
+	return svc.info
 }
 
 // Muxer returns the pattern mux for host
@@ -295,9 +292,4 @@ func (svc *Service) HostChecks() (hostChecksJSON string, err error) {
 func (svc *Service) Stats() string {
 	js := fmt.Sprintf("{\"Requests\": %d, \"Allowed\" : %d, \"Denied\": %d}", 100, 50, 50)
 	return js
-}
-
-// Version returns the database version
-func (svc *Service) Version() string {
-	return svc.version
 }

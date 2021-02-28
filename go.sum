@@ -1,3 +1,5 @@
+bitbucket.org/_metalogic_/build v0.6.0 h1:Emx488Mng/kj3INswT2olpr61y08+cx0Pm9Tl9A5zKs=
+bitbucket.org/_metalogic_/build v0.6.0/go.mod h1:JWopCqM7aO9cDJtvezNXS/gJITrJvAm0Gze9nBaMjN0=
 bitbucket.org/_metalogic_/color v1.0.4 h1:CPsOhTyTKnJ00mONyxMxr2zyh+GK2rjkdnmzGDZFde4=
 bitbucket.org/_metalogic_/color v1.0.4/go.mod h1:C/g7bUOawd4wuj7fI/UFSkZ3PKD07tjo1Xgek2bVtps=
 bitbucket.org/_metalogic_/colorable v1.0.3 h1:KlLJkk4Eps3tIOpamrvYot7TvnYndC4w5y5XGie9q9Q=
@@ -6,6 +8,10 @@ bitbucket.org/_metalogic_/config v1.1.0 h1:1HL+OpNSJ2QBFJMss31rEkgDGIMWrTPC0byFZ
 bitbucket.org/_metalogic_/config v1.1.0/go.mod h1:i/F2BFo5ptm8yBVnkOD9cBxd+pusNPey72X1c34TLoA=
 bitbucket.org/_metalogic_/eval v1.0.1 h1:Ffb1mf2AWEMwTzw7ln+7BYDWd54JWtzfv4rZyVBfQHE=
 bitbucket.org/_metalogic_/eval v1.0.1/go.mod h1:E0x17mvUTlrWLD09ZY3ZPo/OZsFD7c39YzrjaJ3TQ9I=
+bitbucket.org/_metalogic_/glib v0.9.0 h1:zSHrYpQEqjOPqZa7QnFGcV9pdMTvBcLzR9i2dtxmtEw=
+bitbucket.org/_metalogic_/glib v0.9.0/go.mod h1:MPYUNKiHnjqhw95Bsj64QiTVl7FEvdMPHVssGSiROVc=
+bitbucket.org/_metalogic_/gogit v0.0.0-20210207005759-7fdb8c8ed0f4 h1:TNMfdCJ4iKCldjabtW4QPVLq6tNAuxJjLQufiy+t5Cc=
+bitbucket.org/_metalogic_/gogit v0.0.0-20210207005759-7fdb8c8ed0f4/go.mod h1:nyBNwqMKB7xpddQsU3MelF8bJHx5ZMZO18KocwqNDRo=
 bitbucket.org/_metalogic_/httptreemux-swagger v1.0.1 h1:Xg2PYjqDZ1h5boXm9ujwKSNyAuSc2uVUk4x/envHWBU=
 bitbucket.org/_metalogic_/httptreemux-swagger v1.0.1/go.mod h1:H2vf3cXBowf7JN5ZpljmKNjgR/OmLvULyZETMvbgFvE=
 bitbucket.org/_metalogic_/ident v1.1.1 h1:NUwJcfMScAk0lTjYJBMCgJJ5/GTcFctGQt0PeisYJEI=
@@ -14,6 +20,8 @@ bitbucket.org/_metalogic_/isatty v1.0.4 h1:L4PMTm1MR/jEgItkJheGHfjw7/6PDlgnc5hMG
 bitbucket.org/_metalogic_/isatty v1.0.4/go.mod h1:RuNRfBFSbwFXA86JDSaQh3jQZ4Qd7u4qFmK44xvKdm4=
 bitbucket.org/_metalogic_/log v1.4.1 h1:EIDhcp2n5FcUw21p4Zy/aT44zrYD1ipR0QCOJ7YfvKM=
 bitbucket.org/_metalogic_/log v1.4.1/go.mod h1:NfZyXZFE5zxW8/5BRNoTVT0pvFfHjVoaT221EL62niE=
+bitbucket.org/_metalogic_/mmap v0.0.0-20210207003405-1e2136f1733c h1:jakeuD7FrP8SsHbt9iJkfkuQA00LeUu5FsWghBYUZXs=
+bitbucket.org/_metalogic_/mmap v0.0.0-20210207003405-1e2136f1733c/go.mod h1:dz2kDJAMANtLsj++XZYyc6VkwDmOWIla3Uzadg0R2pY=
 bitbucket.org/_metalogic_/pat v0.9.1 h1:HdUioTgXoYXUPknnL3jxI8FfAjNmRfGIpabfYjQu028=
 bitbucket.org/_metalogic_/pat v0.9.1/go.mod h1:REH1IDr/pn6hv0J5kn84gbmNgYPq1GYKHBCO3g8zWH0=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	fauth "bitbucket.org/_metalogic_/forward-auth"
+	. "bitbucket.org/_metalogic_/glib/http" // dot import fo avoid package prefix in reference (shutup lint)
 	"bitbucket.org/_metalogic_/log"
 	"github.com/pborman/uuid"
 )
@@ -33,7 +34,7 @@ func Auth(svc fauth.Service, userHeader, traceHeader string) func(w http.Respons
 		if log.Loggable(log.DebugLevel) {
 			data, err := httputil.DumpRequest(r, false)
 			if err != nil {
-				errJSON(w, fauth.NewUnauthorizedError("authorization failed to unpack request"))
+				errJSON(w, NewUnauthorizedError("authorization failed to unpack request"))
 				return
 			}
 			raw := strconv.Quote(strings.ReplaceAll(strings.ReplaceAll(string(data), "\r", ""), "\n", "; "))
@@ -67,7 +68,7 @@ func Auth(svc fauth.Service, userHeader, traceHeader string) func(w http.Respons
 			if testing {
 				tstJSON(w, http.StatusForbidden, "deny override for host "+host)
 			} else {
-				errJSON(w, fauth.NewForbiddenError("deny override for host "+host))
+				errJSON(w, NewForbiddenError("deny override for host "+host))
 			}
 			log.Debug("deny override for host " + host)
 			return
@@ -75,7 +76,7 @@ func Auth(svc fauth.Service, userHeader, traceHeader string) func(w http.Respons
 
 		mux, err := svc.Muxer(host)
 		if err != nil { // shouldn't happen
-			errJSON(w, fauth.NewForbiddenError(err.Error()))
+			errJSON(w, NewForbiddenError(err.Error()))
 			return
 		}
 
@@ -89,9 +90,9 @@ func Auth(svc fauth.Service, userHeader, traceHeader string) func(w http.Respons
 
 		switch status {
 		case 401: // TODO send WWW-Authenticate in response header
-			errJSON(w, fauth.NewUnauthorizedError(message))
+			errJSON(w, NewUnauthorizedError(message))
 		case 403:
-			errJSON(w, fauth.NewForbiddenError(message))
+			errJSON(w, NewForbiddenError(message))
 		case 200:
 			if username != "" {
 				log.Debugf("Adding HTTP header %s %s", userHeader, username)
@@ -107,7 +108,7 @@ func HostChecks(svc fauth.Service) func(w http.ResponseWriter, r *http.Request, 
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		hostChecks, err := svc.HostChecks()
 		if err != nil {
-			errJSON(w, fauth.NewServerError(err.Error()))
+			errJSON(w, NewServerError(err.Error()))
 			return
 		}
 		okJSON(w, hostChecks)
