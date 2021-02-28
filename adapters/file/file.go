@@ -71,6 +71,8 @@ func New(configPath, runMode string) (svc *Service, err error) {
 		}
 	}
 
+	svc.info = make(map[string]string)
+	svc.info["Type"] = "file"
 	svc.info["hostname"] = os.Getenv("HOSTNAME")
 	svc.info["directory"] = svc.directory
 
