@@ -6,13 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"os"
-	"strconv"
 	"sync"
 	"time"
 
 	"bitbucket.org/_metalogic_/config"
 	fauth "bitbucket.org/_metalogic_/forward-auth"
+	. "bitbucket.org/_metalogic_/glib/http" // dot import fo avoid package prefix in reference (shutup lint)
 	"bitbucket.org/_metalogic_/log"
 	"bitbucket.org/_metalogic_/pat"
 	_ "github.com/denisenkom/go-mssqldb"
@@ -31,7 +30,7 @@ type Service struct {
 	hostChecks   []fauth.HostChecks
 	runMode      string
 	lock         sync.RWMutex
-	version      string
+	info         map[string]string
 }
 
 // New creates a new Service and sets the database
@@ -111,6 +110,15 @@ func New(jwtHeader, configPath, runMode string, database, server string, port in
 	if err != nil {
 		return svc, err
 	}
+
+	svc.info = make(map[string]string)
+	svc.info["Type"] = "sqlserver"
+	svc.info["Version"], err = svc.getVersion()
+	if err != nil {
+		log.Error(err.Error())
+	}
+	svc.info["Database"] = database
+
 	svc.database.SetConnMaxLifetime(300 * time.Second)
 	svc.database.SetMaxIdleConns(50)
 	svc.database.SetMaxOpenConns(50)
@@ -261,23 +269,6 @@ func (svc *Service) Health() error {
 	return svc.database.Ping()
 }
 
-// Info return information about the Service.
-func (svc *Service) Info() string {
-	info := &info{}
-	info.Hostname = os.Getenv("HOSTNAME")
-	info.Database = "TODO replace with value of dbname"
-	_, err := svc.database.QueryContext(svc.context, "[dbo].[Version]", sql.Named("Version", sql.Out{Dest: &info.MSSql}))
-	if err != nil {
-		info.MSSql = "error retrieving MSSql version details"
-	}
-	info.LogLevel = log.GetLevel().String()
-	infoJSON, err := json.Marshal(info)
-	if err != nil {
-		return fmt.Sprintf("failed to marshal info from %v", info)
-	}
-	return string(infoJSON)
-}
-
 // HostChecks returns JSON formatted host checks
 func (svc *Service) HostChecks() (hostCheckJSON string, err error) {
 	data, err := json.Marshal(svc.hostChecks)
@@ -285,6 +276,11 @@ func (svc *Service) HostChecks() (hostCheckJSON string, err error) {
 		return hostCheckJSON, err
 	}
 	return string(data), nil
+}
+
+// Info returns information about the Service.
+func (svc *Service) Info() (info map[string]string) {
+	return svc.info
 }
 
 // Stats returns Service  statistics
@@ -302,58 +298,13 @@ func (svc *Service) Stats() string {
 	return js
 }
 
-// Version returns the database version
-func (svc *Service) Version() string {
-	return svc.version
-}
-
-func (svc *Service) setVersion() (err error) {
-	var version string
-	_, err = svc.database.QueryContext(svc.context, "[dbo].[Version]", sql.Named("Version", sql.Out{Dest: &version}))
+func (svc *Service) getVersion() (version string, err error) {
+	_, err = svc.database.QueryContext(svc.context, "[dbo].[Version]", sql.Named("Version", sql.Out{Dest: &(version)}))
 	if err != nil {
 		log.Errorf("%s", err)
+		return version, err
 	}
-	return err
-}
-
-// ifnullString invalidates a sql.NullString if empty, validates if not empty
-func ifnullString(s string) sql.NullString {
-	return sql.NullString{String: s, Valid: s != ""}
-}
-
-// ifnullInt validates a sql.NullInt64 if i is equal to nullValue, invalidates if it does not
-func ifnullInt(i, nullValue int) sql.NullInt64 {
-	if i == nullValue {
-		return sql.NullInt64{}
-	}
-	return sql.NullInt64{Int64: int64(i), Valid: true}
-}
-
-func ifnullIntString(s string) sql.NullInt64 {
-	i, err := strconv.Atoi(s)
-	return sql.NullInt64{Int64: int64(i), Valid: err == nil}
-}
-
-//ToNullString invalidates a sql.NullString if empty, validates if not empty
-func ToNullString(s string) sql.NullString {
-	return sql.NullString{String: s, Valid: s != ""}
-}
-
-func ifnullTime(t time.Time) sql.NullTime {
-	return sql.NullTime{Time: t, Valid: !t.IsZero()}
-}
-
-//ToNullTime invalidates a sql.NullTime if empty, validates if not empty
-func ToNullTime(t time.Time) sql.NullTime {
-	return sql.NullTime{Time: t, Valid: !t.IsZero()}
-}
-
-// ifnullBool invalidates a sql.NullBool if incoming bool is equal to nullValue
-func ifnullBool(t, nullValue bool) sql.NullBool {
-	if t == nullValue {
-		return sql.NullBool{}
-	}
-	return sql.NullBool{Bool: t, Valid: true}
+	return version, nil
 }
 
 func dbError(err error) error {
@@ -366,12 +317,12 @@ func dbError(err error) error {
 
 	switch code {
 	case 400:
-		return fauth.NewBadRequestError(dberr.SQLErrorMessage())
+		return NewBadRequestError(dberr.SQLErrorMessage())
 	case 404:
-		return fauth.NewNotFoundError(dberr.SQLErrorMessage())
+		return NewNotFoundError(dberr.SQLErrorMessage())
 	case 500:
-		return fauth.NewServerError(fmt.Sprintf("%s: %s", dberr.SQLErrorServerName(), dberr.SQLErrorMessage()))
+		return NewServerError(fmt.Sprintf("%s: %s", dberr.SQLErrorServerName(), dberr.SQLErrorMessage()))
 	default:
-		return fauth.NewBadRequestError(dberr.SQLErrorMessage())
+		return NewBadRequestError(dberr.SQLErrorMessage())
 	}
 }

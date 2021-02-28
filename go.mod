@@ -1,10 +1,12 @@
 module bitbucket.org/_metalogic_/forward-auth
 
-go 1.15
+go 1.16
 
 require (
+	bitbucket.org/_metalogic_/build v0.6.0 // indirect
 	bitbucket.org/_metalogic_/config v1.1.0
 	bitbucket.org/_metalogic_/eval v1.0.1
+	bitbucket.org/_metalogic_/glib v0.9.0 // indirect
 	bitbucket.org/_metalogic_/httptreemux-swagger v1.0.1
 	bitbucket.org/_metalogic_/ident v1.1.1
 	bitbucket.org/_metalogic_/log v1.4.1

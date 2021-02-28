@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	fauth "bitbucket.org/_metalogic_/forward-auth"
+	. "bitbucket.org/_metalogic_/glib/http" // dot import fo avoid package prefix in reference (shutup lint)
 	"bitbucket.org/_metalogic_/log"
 )
 
@@ -22,7 +22,7 @@ func validateQuery(r *http.Request, keys ...string) error {
 			}
 		}
 		if !found {
-			return fauth.NewBadRequestError("invalid parameter '" + key + "'")
+			return NewBadRequestError("invalid parameter '" + key + "'")
 		}
 	}
 	return nil
@@ -77,15 +77,15 @@ func errJSON(w http.ResponseWriter, err error) {
 	json := fmt.Sprintf("{\"message\" : \"%s\", \"timestamp\" : %d}", err, time.Now().UnixNano())
 
 	switch err.(type) {
-	case *fauth.DBError, *fauth.ServerError:
+	case *DBError, *ServerError:
 		http.Error(w, json, http.StatusInternalServerError)
-	case *fauth.BadRequestError:
+	case *BadRequestError:
 		http.Error(w, json, http.StatusBadRequest)
-	case *fauth.ForbiddenError:
+	case *ForbiddenError:
 		http.Error(w, json, http.StatusForbidden)
-	case *fauth.NotFoundError:
+	case *NotFoundError:
 		http.Error(w, json, http.StatusNotFound)
-	case *fauth.UnauthorizedError:
+	case *UnauthorizedError:
 		http.Error(w, json, http.StatusUnauthorized)
 	default:
 		http.Error(w, json, http.StatusBadRequest)
