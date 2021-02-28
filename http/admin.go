@@ -42,6 +42,7 @@ func APIInfo(svc fa.Service) func(w http.ResponseWriter, r *http.Request, params
 		}
 		rt := &runtime{
 			ProjectInfo: projectInfo,
+			ServiceInfo: svc.Info(),
 			LogLevel:    log.GetLevel().String(),
 		}
 
