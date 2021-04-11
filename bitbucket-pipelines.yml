@@ -1,25 +1,54 @@
-#  Template Go (Golang) build
+# Template docker-push
 
-#  This template allows you to validate your Go (Golang) code.
-#  The workflow allows running tests, build and code linting on the default branch.
+# This template allows you to build and push your docker image to a Docker Hub account.
+# The workflow allows running tests, code linting and security scans on feature branches (as well as master).
+# The docker image will be validated and pushed to the docker registry after the code is merged to master.
 
-image: golang:1.16
+# Prerequisites: $DOCKERHUB_USERNAME, $DOCKERHUB_PASSWORD setup as deployment variables
+
+image: atlassian/default-image:2
 
 pipelines:
   default:
     - parallel:
+        - step:
+            name: Build and Test
+            script:
+              - IMAGE_NAME=metalogic/forward-auth
+              - docker build . --file Dockerfile --tag ${IMAGE_NAME}
+            services:
+              - docker
+            caches:
+              - docker
+        - step:
+            name: Lint the Dockerfile
+            image: hadolint/hadolint:latest-debian
+            script:
+              - hadolint Dockerfile
+  branches:
+    master:
       - step:
-          name: Test and Build
+          name: Build and Test
           script:
-            - mkdir test-reports
-            - go get -u bitbucket.org/_metalogic_/junit-report
-            - go test tests/* -v 2>&1 | junit-report > test-reports/report.xml
-            # Docker build
-            - docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD
-            - docker build -t metalogic/forward-auth:latest .
-            - docker push metalogic/forward-auth:latest
+            - IMAGE_NAME=metalogic/forward-auth
+            - docker build . --file Dockerfile --tag ${IMAGE_NAME}
+            - docker save ${IMAGE_NAME} --output "${IMAGE_NAME}.tar"
+          services:
+            - docker
+          caches:
+            - docker
+          artifacts:
+            - "*.tar"
       - step:
-          name: Lint code
-          image: golangci/golangci-lint:v1.31.0
+          name: Deploy to Production
+          deployment: Production
           script:
-            - golangci-lint run -v
+            - echo ${DOCKER_HUB_PASSWORD} | docker login --username "{$DOCKER_HUB_USER}" --password-stdin
+            - IMAGE_NAME=metalogic/forward-auth
+            - docker load --input "${IMAGE_NAME}.tar"
+            - VERSION="latest"
+            - IMAGE=${DOCKERHUB_NAMESPACE}/${IMAGE_NAME}
+            - docker tag "${IMAGE_NAME}" "${IMAGE}:${VERSION}"
+            - docker push "${IMAGE}:${VERSION}"
+          services:
+            - docker
