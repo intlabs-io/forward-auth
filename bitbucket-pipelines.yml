@@ -12,8 +12,8 @@ pipelines:
           name: Test and Build
           script:
             - mkdir test-reports
-            - go get -u github.com/jstemmer/go-junit-report
-            - go test tests/* -v 2>&1 | go-junit-report > test-reports/report.xml
+            - go get -u bitbucket.org/_metalogic_/junit-report
+            - go test tests/* -v 2>&1 | junit-report > test-reports/report.xml
             # Docker build
             - docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD
             - docker build -t metalogic/forward-auth:latest .
