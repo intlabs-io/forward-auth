@@ -1,6 +1,7 @@
 package fauth
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -28,9 +29,12 @@ const (
 	DELETE = "DELETE"
 )
 
-// Auth type holds data for  authorization
+// Auth type holds data for authorization
 // - jwtHeader is the name of the header containing the user's JWT
-// - jwtKey is a shared secret key used to encrypt and decrypt JWTs passed in a request
+// - idType is a string with value either "string" or "struct":
+//   if "string" then the value of Claim.Identity is a string;
+//   if "struct" then the value of Claim.Identity is the Identity struct defined in this package
+// - keyFunc is a function passed to JWT parse function to return the key for decrypting the JWT token
 // - tokens maps token values passed in a request to token names referenced in
 //   access control functions; eg: bearer(ROOT_TOKEN) returns true if the bearer
 //   auth token in the request maps to the name ROOT_TOKEN
@@ -39,19 +43,32 @@ const (
 // an instance of Auth is passed to handlers to drive authorization calculations
 type Auth struct {
 	jwtHeader string
-	jwtKey    []byte
+	keyFunc   func(token *jwt.Token) (interface{}, error)
 	tokens    map[string]string
 	blocks    map[string]bool
 }
 
-// NewAuth ...
-func NewAuth(jwtHeader string, jwtKey []byte, tokens map[string]string, blocks map[string]bool) *Auth {
-	return &Auth{
+// NewAuth returns a new RSA Auth
+func NewAuth(jwtHeader string, publicKey, secret []byte, tokens map[string]string, blocks map[string]bool) (auth *Auth, err error) {
+	auth = &Auth{
 		jwtHeader: jwtHeader,
-		jwtKey:    jwtKey,
 		tokens:    tokens,
 		blocks:    blocks,
 	}
+	rsaKey, err := jwt.ParseRSAPublicKeyFromPEM(publicKey)
+	if err != nil {
+		return auth, err
+	}
+	auth.keyFunc = func(token *jwt.Token) (key interface{}, err error) {
+		switch token.Method.Alg() {
+		case "HS256":
+			return secret, nil
+		case "RS256":
+			return rsaKey, nil
+		}
+		return key, fmt.Errorf("invalid JWT alg: %s", token.Method.Alg())
+	}
+	return auth, nil
 }
 
 // CheckBearerAuth checks for token in list of tokens returning true if found
@@ -74,7 +91,7 @@ func (auth *Auth) CheckJWT(jwt, tenantID, category, action string) bool {
 
 	var err error
 	var identity *Identity
-	if identity, err = checkJWT(auth.jwtKey, jwt); err != nil {
+	if identity, err = jwtIdentity(jwt, auth); err != nil {
 		log.Errorf("JWT found in request is invalid: %s", err)
 		return false
 	}
@@ -101,22 +118,8 @@ func (auth *Auth) CheckJWT(jwt, tenantID, category, action string) bool {
 	return false
 }
 
-// User returns the user GUID in jwt
-func (auth *Auth) User(jwt string) (guid string) {
-	if jwt == "" {
-		return guid
-	}
-
-	var err error
-	var identity *Identity
-	if identity, err = checkJWT(auth.jwtKey, jwt); err != nil {
-		log.Errorf("JWT found in request is invalid: %s", err)
-		return guid
-	}
-
-	log.Debugf("identity found in JWT: %s", identity)
-
-	return identity.User
+func (auth *Auth) JWTIdentity(tknStr string) (identity *Identity, err error) {
+	return jwtIdentity(tknStr, auth)
 }
 
 // Root returns true if jwt has root privilege
@@ -127,7 +130,7 @@ func (auth *Auth) Root(jwt string) bool {
 
 	var err error
 	var identity *Identity
-	if identity, err = checkJWT(auth.jwtKey, jwt); err != nil {
+	if identity, err = jwtIdentity(jwt, auth); err != nil {
 		log.Errorf("JWT found in request is invalid: %s", err)
 		return false
 	}
@@ -135,6 +138,24 @@ func (auth *Auth) Root(jwt string) bool {
 	log.Debugf("identity found in JWT: %s", identity)
 
 	return identity.Root
+}
+
+// User returns the user GUID in jwt
+func (auth *Auth) User(jwt string) (guid string) {
+	if jwt == "" {
+		return guid
+	}
+
+	var err error
+	var identity *Identity
+	if identity, err = jwtIdentity(jwt, auth); err != nil {
+		log.Errorf("JWT found in request is invalid: %s", err)
+		return guid
+	}
+
+	log.Debugf("identity found in JWT: %s", identity)
+
+	return identity.User
 }
 
 // Identity type
@@ -161,33 +182,64 @@ type CategoryPermissions struct {
 	Action   []string `json:"actions"`
 }
 
-// Claims type
-type Claims struct {
-	Identity *Identity `json:"identity"`
-	jwt.StandardClaims
-}
+func jwtIdentity(tknStr string, auth *Auth) (identity *Identity, err error) {
 
-func checkJWT(jwtKey []byte, tknStr string) (identity *Identity, err error) {
-
+	// ClaimsOld type
+	type ClaimsOld struct {
+		Identity string `json:"identity"`
+		jwt.StandardClaims
+	}
 	// Initialize a new instance of `Claims`
-	claims := &Claims{}
+	old := &ClaimsOld{}
 
-	// Parse the JWT string and store the result in `claims`.
+	// Parse the JWT token and store the result in `claims`.
 	// Note that we are passing the key in this method as well. This method will return an error
 	// if the token is invalid (that is expired according to the expiry time set at sign in),
 	// or if the signature does not match
-	tkn, err := jwt.ParseWithClaims(tknStr, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
-	})
+	tkn, err := jwt.ParseWithClaims(tknStr, old, auth.keyFunc)
+
+	if err == nil {
+		if !tkn.Valid {
+			return identity, fmt.Errorf("JWT token in request is expired")
+		}
+		log.Debugf("JWT Claims: %+v", old)
+		identity = &Identity{}
+		err = json.Unmarshal([]byte(old.Identity), identity)
+		if err == nil {
+			return identity, nil
+		}
+	}
+
+	log.Debug("failed to parse Claim as old - continuing")
+
+	// Claims type
+	type Claims struct {
+		Identity *Identity `json:"identity"`
+		jwt.StandardClaims
+	}
+	// Initialize a new instance of `Claims`
+	new := &Claims{}
+
+	// Parse the JWT token and store the result in `claims`.
+	// Note that we are passing the key in this method as well. This method will return an error
+	// if the token is invalid (that is expired according to the expiry time set at sign in),
+	// or if the signature does not match
+	tkn, err = jwt.ParseWithClaims(tknStr, new, auth.keyFunc)
 
 	if err != nil {
+		log.Error(err)
 		return identity, err
 	}
 
 	if !tkn.Valid {
 		return identity, fmt.Errorf("JWT token in request is expired")
 	}
-	return claims.Identity, nil
+
+	log.Debugf("JWT Claims: %+v", new)
+
+	identity = new.Identity
+
+	return identity, err
 }
 
 // Action returns an action from an HTTP method
