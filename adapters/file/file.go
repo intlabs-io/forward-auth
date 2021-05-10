@@ -83,18 +83,28 @@ func New(configPath, runMode string) (svc *Service, err error) {
 	//
 	// add token mappings from tenant token value to tenantID
 	for _, t := range conf.Tenants {
-		tenantID := t + "_ID"
-		token := t + "_API_TOKEN"
+		tenantID := t + "_ID"     // eg ACME_ID
+		token := t + "_API_TOKEN" // eg ACME_API_TOKEN
 		tokens[config.MustGetConfig(token)] = config.MustGetConfig(tenantID)
 	}
-
-	jwtKey := []byte(config.MustGetConfig("JWT_SECRET_KEY"))
-	// TODO jwtRefreshKey := []byte(config.MustGetConfig("JWT_REFRESH_SECRET_KEY"))
 
 	// block list of usernames, hostnames, IP addresses
 	blocks := make(map[string]bool)
 
-	svc.auth = fauth.NewAuth(conf.JWTHeader, jwtKey, tokens, blocks)
+	// RSA Public Key
+	publicKey, err := config.GetRawSecret("IDENTITY_PROVIDER_PUBLIC_KEY")
+	if err != nil {
+		return svc, err
+	}
+
+	// Symmetric secret key
+	secretKey := []byte(config.MustGetConfig("JWT_SECRET_KEY"))
+	// TODO jwtRefreshKey := []byte(config.MustGetConfig("JWT_REFRESH_SECRET_KEY"))
+
+	svc.auth, err = fauth.NewAuth(conf.JWTHeader, publicKey, secretKey, tokens, blocks)
+	if err != nil {
+		return svc, err
+	}
 
 	log.Debugf("configured authorization environment %+v", svc.auth)
 
