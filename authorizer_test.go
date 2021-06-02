@@ -17,8 +17,10 @@ var (
 	blocks    map[string]bool
 	tokens    map[string]string
 	secret    []byte
-	adamTkn   = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjRFQjcxODhFMzhGOTgyNEY2M0QyQTRFQzdEMjNEMjAxREYyRTZBMjFSUzI1NiIsInR5cCI6ImF0K2p3dCIsIng1dCI6IlRyY1lqamo1Z2s5ajBxVHNmU1BTQWQ4dWFpRSJ9.eyJuYmYiOjE2MjAyNTQ4NzAsImV4cCI6MTYyMjg0Njg3MCwiaXNzIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6ODA4MSIsImNsaWVudF9pZCI6Im1jIiwic3ViIjoiQ0YxQjczMDYtOUM4Qy00REZGLUE2NzgtMTBDREJDMEYzRDMxIiwiYXV0aF90aW1lIjoxNjIwMjU0NTU2LCJpZHAiOiJsb2NhbCIsImlkZW50aXR5Ijoie1widXNlckdVSURcIjpcIkNGMUI3MzA2LTlDOEMtNERGRi1BNjc4LTEwQ0RCQzBGM0QzMVwiLFwidXNlcm5hbWVcIjpcImFkYW0uYnJvd25AZWR1Y2F0aW9ucGxhbm5lcmJjLmNhXCIsXCJyb290XCI6dHJ1ZSxcInVzZXJQZXJtc1wiOlt7XCJ0ZW5hbnRJRFwiOlwiMTk2RUUzNjMtQTVBMy00QzQ3LThGREItMkU4REE4REJFMkU5XCIsXCJwZXJtc1wiOlt7XCJjYXRlZ29yeVwiOlwiQU5ZXCIsXCJhY3Rpb25zXCI6W1wiQUxMXCJdfV19LHtcInRlbmFudElEXCI6XCIyRDAzRDY3Ny02RDY0LTRGMzYtQjA5OC05Q0E0ODdFM0I2RUFcIixcInBlcm1zXCI6W3tcImNhdGVnb3J5XCI6XCJBRE1cIixcImFjdGlvbnNcIjpbXCJSRUFEXCJdfV19LHtcInRlbmFudElEXCI6XCI0NDEwNTBDMS04ODM5LTRBRTktOTY5My03OTVFNEU0RkE4NzVcIixcInBlcm1zXCI6W119LHtcInRlbmFudElEXCI6XCI1MzlFMjQ3NS0wMjE1LTQ0QzMtQTREMC1FQTgwNkNGOUFCOUZcIixcInBlcm1zXCI6W3tcImNhdGVnb3J5XCI6XCJBTllcIixcImFjdGlvbnNcIjpbXCJBTExcIl19XX1dfSIsImp0aSI6IjM3RkE1RjIzRUIzRjJEOEVGMTUyNEExMEEzNjNFMDQ0Iiwic2lkIjoiNzUyNEI0QTkxRkUxNEMzRDI5MTlDMzVFRDgzQzk0NzUiLCJpYXQiOjE2MjAyNTQ4NzAsInNjb3BlIjpbIm9wZW5pZCIsInByb2ZpbGUiLCJlbWFpbCIsImVwYmNfaWRlbnRpdHkiLCJvZmZsaW5lX2FjY2VzcyJdLCJhbXIiOlsicHdkIl19.QhGIVAT8Eb8GzNSykLJbj5SRypbpZeDgA5Gr0kja_sRRTEeOE9rLcdwKF853WFdqz4MzE-cdhndqoLjpxPyKhnM-VGJmjSPOlffYX8zJSEM3jPhzqxdHBr0d-g6lAJNr77PNq4_5CVfbo6BQ1NHQyjhxjNEmdnRiRnUNSjj2-4tBQQu5vyaKccKTm51n_eHetcNdoC5CeFlKwAJEs9zEsGSdGPmswtMVM7FEpd8B0TMFyrKihc9FJrN09Yoq3J6FSU1W7bPPkNWYU1irXNUGSTfkM2Wfx_PZcalk6XeQOsVBt0fj4ogSywyPiUXrc3RkfT8MbqQCpGuDNln8Dh6JO9HXWByj_gvPk4c_7N4TMcshw6EoGQjO42KADXGEmonAMZnnqPUioRpPJ4ai8gt2MpUIH-ZydRbcYE-hA1qktyJuqRetS8YwMN52dcS7emirX19-J8rbfJv7d7kOh17COSgI2zGV2d9UIl62YynDiKdJnyiGEgfxiKHhr8JfEqypVUSRWnplbqUTUOwAEDKxgHthXG8McgbHWe86QFTxrVQIXWUnaCDllw6sh8EUtMVQ0ElnEoliSVH4Buorr5-qg4cFEA-41Tcw4M-DieqO9JXxxaiV178_6MJR69VPLmKZKZHyCqTUg729THiCHlk8eka5RBuFBEx1KWR0S0MJFbU"
-	adamJWT   = `{
+	// new
+	keyFile = "test/new-public.key"
+	adamTkn = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjRFQjcxODhFMzhGOTgyNEY2M0QyQTRFQzdEMjNEMjAxREYyRTZBMjFSUzI1NiIsInR5cCI6ImF0K2p3dCIsIng1dCI6IlRyY1lqamo1Z2s5ajBxVHNmU1BTQWQ4dWFpRSJ9.eyJuYmYiOjE2MjA3NjkxMTAsImV4cCI6MTYyMzM2MTExMCwiaXNzIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6ODA4MSIsImNsaWVudF9pZCI6Im1jIiwic3ViIjoiQ0YxQjczMDYtOUM4Qy00REZGLUE2NzgtMTBDREJDMEYzRDMxIiwiYXV0aF90aW1lIjoxNjIwNzY5MTA5LCJpZHAiOiJsb2NhbCIsImlkZW50aXR5Ijoie1widXNlckdVSURcIjpcIkNGMUI3MzA2LTlDOEMtNERGRi1BNjc4LTEwQ0RCQzBGM0QzMVwiLFwidXNlcm5hbWVcIjpcImFkYW0uYnJvd25AZWR1Y2F0aW9ucGxhbm5lcmJjLmNhXCIsXCJyb290XCI6dHJ1ZSxcInVzZXJQZXJtc1wiOlt7XCJ0ZW5hbnRJRFwiOlwiMTk2RUUzNjMtQTVBMy00QzQ3LThGREItMkU4REE4REJFMkU5XCIsXCJwZXJtc1wiOlt7XCJjYXRlZ29yeVwiOlwiQU5ZXCIsXCJhY3Rpb25zXCI6W1wiQUxMXCJdfV19LHtcInRlbmFudElEXCI6XCIyRDAzRDY3Ny02RDY0LTRGMzYtQjA5OC05Q0E0ODdFM0I2RUFcIixcInBlcm1zXCI6W3tcImNhdGVnb3J5XCI6XCJBRE1cIixcImFjdGlvbnNcIjpbXCJSRUFEXCJdfV19LHtcInRlbmFudElEXCI6XCI0NDEwNTBDMS04ODM5LTRBRTktOTY5My03OTVFNEU0RkE4NzVcIixcInBlcm1zXCI6W119LHtcInRlbmFudElEXCI6XCI1MzlFMjQ3NS0wMjE1LTQ0QzMtQTREMC1FQTgwNkNGOUFCOUZcIixcInBlcm1zXCI6W3tcImNhdGVnb3J5XCI6XCJBTllcIixcImFjdGlvbnNcIjpbXCJBTExcIl19XX1dfSIsImp0aSI6IjI2NTE2MzAzOThGNjA3RjdENEE2NDYwNzQ2NEFENzMyIiwic2lkIjoiODNERjUzNTc2NUM2QzRDQzQ3ODUwNzgyQTE0QTdGQjgiLCJpYXQiOjE2MjA3NjkxMTAsInNjb3BlIjpbIm9wZW5pZCIsInByb2ZpbGUiLCJlbWFpbCIsImVwYmNfaWRlbnRpdHkiLCJvZmZsaW5lX2FjY2VzcyJdLCJhbXIiOlsicHdkIl19.ydqtqCrEir97BYfr7Q_Dz_ubM9zDl3tbRB1YkNR2iVSBXKyGZnIKQFVoohW7b-fSZ2ute5_1n2t0xo91VzUupckruGE04zWQ_y2fWCexhZTEUNCLs9yQLHcluzbadMHMkwXqgqfQ2VVXImLbg8tpoDPJnGeGQQ0isK7eYslvZPTPhIHV1LIqhErAQplNTcAj12SPv2imN4KkAHjdg2_FtaM_XFNb5cVr_daQnwZsC_RgBRAYjWN3XbCDtRdNxnIrKO0Jg3c_SFVhV2A-EbieuRYZ5nEni3ETgpjY9UX7NK9tbEBfcj5qsoPgmFwE6Ppqfx59lrl414bYV3wN91nYA32lxBOJTLiCU-yevxV1Y76Fx-MVq0rV9VOJ2i_6N7hOOxXldae-iq7kvC7EdZTLdnp36KYZy2-U15_XQ9naaX_b9VCe5BOIjafSUn57C99OIgE-XIOYUf-0sZ-HpTO_RdK9yHiMqdadTnH6ceBrakjp-Es4YXwS-AdaW9CuwuEW8AO0FYYC8l-bzbDiUqN0quZ3yzbOVmDxAW1deFjGWAXuxxpolXwCuP4P6PWWOCXURGwhTxDUPwDJaIuJmSzIIJyCXQppbEHIAD9j4MazXqZhSOI0d1RPaROUC-O5ffrLg1m22dvX85nuy6-3WKaci4pCmfKv0z-vhSuCYzV3DHU"
+	adamJWT = `{
 		"nbf": 1620162215,
 		"exp": 1622754215,
 		"iss": "https://localhost:8081",
@@ -41,55 +43,11 @@ var (
 		  "pwd"
 		]
 	  }`
-	// use auth-api/v1/login to get rickyTkn string
-	rickyTkn = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZGVudGl0eSI6eyJ1c2VyR1VJRCI6IjYwMENBOTI3LTVFMkItNDhCNC04Qzk1LUE1Qjg4MzlDM0E3RiIsInVzZXJuYW1lIjoicmlja3lAZWR1Y2F0aW9ucGxhbm5lcmJjLmNhIiwicm9vdCI6dHJ1ZSwidXNlclBlcm1zIjpbeyJ0ZW5hbnRJRCI6IjQ0MTA1MEMxLTg4MzktNEFFOS05NjkzLTc5NUU0RTRGQTg3NSIsInBlcm1zIjpbeyJjYXRlZ29yeSI6IlBST0ciLCJhY3Rpb25zIjpbIkNSRUFURSIsIkRFTEVURSIsIlJFQUQiLCJVUERBVEUiXX1dfV19LCJleHAiOjE2MjA0MjYxODcsImlhdCI6MTYyMDQyNDM4NywiaXNzIjoiRWR1Y2F0aW9uUGxhbm5lckJDIn0.QuCnG3IQKZRdVfdsgjuQezbtV4dW_aj9Cj2OHDk_smc"
-	rickyJWT = `{
-		"nbf": 1619721524,
-		"exp": 1619725124,
-		"iss": "https://example.com",
-		"client_id": "forward-auth",
-		"sub": "CF1B7306-9C8C-4DFF-A678-10CDBC0F3D31",
-		"auth_time": 1619721524,
-		"idp": "local",
-		"identity": {"userGUID":"CF1B7306-9C8C-4DFF-A678-10CDBC0F3D31",
-		              "username":"ricky@educationplannerbc.ca",
-					  "root":true,
-					  "userPerms":[
-						  {
-							"tenantID": "441050C1-8839-4AE9-9693-795E4E4FA875",
-							"perms": [
-								{
-									"category": "PROG",
-									"actions": [
-										"CREATE",
-										"DELETE",
-										"READ",
-										"UPDATE"
-									]
-								}
-							]
-						}						  
-						  }
-					  ]},
-		"jti": "2BC03C3941B5FF428A6F6FE7C1CE9255",
-		"sid": "C0D2DB88F455BCA775AC79625E59947E",
-		"iat": 1619721524,
-		"scope": [
-		  "openid",
-		  "profile",
-		  "email",
-		  "epbc_identity",
-		  "offline_access"
-		],
-		"amr": [
-		  "pwd"
-		]
-	  }`
 )
 
 func init() {
 	var err error
-	publicKey, err = ioutil.ReadFile("test/public.key")
+	publicKey, err = ioutil.ReadFile(keyFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -131,20 +89,6 @@ func Test_checkJWT(t *testing.T) {
 			wants{
 				"CF1B7306-9C8C-4DFF-A678-10CDBC0F3D31",
 				"adam.brown@educationplannerbc.ca",
-				true,
-				"441050C1-8839-4AE9-9693-795E4E4FA875",
-			},
-		},
-		{
-			"Ricky claims",
-			args{
-				keyType:     "secret",
-				key:         secret,
-				tokenString: rickyTkn,
-			},
-			wants{
-				"600CA927-5E2B-48B4-8C95-A5B8839C3A7F",
-				"ricky@educationplannerbc.ca",
 				true,
 				"441050C1-8839-4AE9-9693-795E4E4FA875",
 			},
