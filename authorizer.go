@@ -184,47 +184,19 @@ type CategoryPermissions struct {
 
 func jwtIdentity(tknStr string, auth *Auth) (identity *Identity, err error) {
 
-	// ClaimsOld type
-	type ClaimsOld struct {
+	// Claims type
+	type Claims struct {
 		Identity string `json:"identity"`
 		jwt.StandardClaims
 	}
 	// Initialize a new instance of `Claims`
-	old := &ClaimsOld{}
+	claims := &Claims{}
 
 	// Parse the JWT token and store the result in `claims`.
 	// Note that we are passing the key in this method as well. This method will return an error
 	// if the token is invalid (that is expired according to the expiry time set at sign in),
 	// or if the signature does not match
-	tkn, err := jwt.ParseWithClaims(tknStr, old, auth.keyFunc)
-
-	if err == nil {
-		if !tkn.Valid {
-			return identity, fmt.Errorf("JWT token in request is expired")
-		}
-		log.Debugf("JWT Claims: %+v", old)
-		identity = &Identity{}
-		err = json.Unmarshal([]byte(old.Identity), identity)
-		if err == nil {
-			return identity, nil
-		}
-	}
-
-	log.Debug("failed to parse Claim as old - continuing")
-
-	// Claims type
-	type Claims struct {
-		Identity *Identity `json:"identity"`
-		jwt.StandardClaims
-	}
-	// Initialize a new instance of `Claims`
-	new := &Claims{}
-
-	// Parse the JWT token and store the result in `claims`.
-	// Note that we are passing the key in this method as well. This method will return an error
-	// if the token is invalid (that is expired according to the expiry time set at sign in),
-	// or if the signature does not match
-	tkn, err = jwt.ParseWithClaims(tknStr, new, auth.keyFunc)
+	tkn, err := jwt.ParseWithClaims(tknStr, claims, auth.keyFunc)
 
 	if err != nil {
 		log.Error(err)
@@ -234,12 +206,14 @@ func jwtIdentity(tknStr string, auth *Auth) (identity *Identity, err error) {
 	if !tkn.Valid {
 		return identity, fmt.Errorf("JWT token in request is expired")
 	}
+	log.Debugf("JWT Claims: %+v", claims)
+	identity = &Identity{}
+	err = json.Unmarshal([]byte(claims.Identity), identity)
+	if err != nil {
+		return identity, err
+	}
 
-	log.Debugf("JWT Claims: %+v", new)
-
-	identity = new.Identity
-
-	return identity, err
+	return identity, nil
 }
 
 // Action returns an action from an HTTP method
