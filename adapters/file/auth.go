@@ -8,7 +8,6 @@ import (
 
 // Authorize returns an authorization decision for host, method and path with given credentials
 func (svc *Service) Authorize(host, method, path string, credentials *ident.Credentials) (status int, message string, err error) {
-
 	return http.StatusForbidden, message, nil
 }
 

@@ -72,13 +72,21 @@ func New(jwtHeader, configPath, runMode string, database, server string, port in
 
 	log.Debugf("config: %+v", conf)
 
-	jwtKey := []byte(config.MustGetConfig("JWT_SECRET_KEY"))
+	publicKey, err := config.GetRawSecret("IDENTITY_PROVIDER_PUBLIC_KEY")
+	if err != nil {
+		return svc, err
+	}
+
+	secretKey := []byte(config.MustGetConfig("JWT_SECRET_KEY"))
 	// TODO jwtRefreshKey := []byte(config.MustGetConfig("JWT_REFRESH_SECRET_KEY"))
 
 	// block list of usernames, hostnames, IP addresses
 	blocks := make(map[string]bool)
 
-	svc.auth = fauth.NewAuth(jwtHeader, jwtKey, tokens, blocks)
+	svc.auth, err = fauth.NewAuth(jwtHeader, publicKey, secretKey, tokens, blocks)
+	if err != nil {
+		return svc, err
+	}
 
 	log.Debugf("configured authorization environment %+v", svc.auth)
 

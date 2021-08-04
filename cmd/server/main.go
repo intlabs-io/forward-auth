@@ -53,7 +53,7 @@ func init() {
 	flag.BoolVar(&disableFlg, "disable", false, "disable authorization")
 	flag.Var(&levelFlg, "level", "set log level to one of debug, info, warning, error")
 
-	flag.StringVar(&storageFlg, "storage", "MOCK", "the user storage type")
+	flag.StringVar(&storageFlg, "storage", "MOCK", "the rule storage type")
 
 	var err error
 	info, err = build.Info()
