@@ -25,7 +25,7 @@ type Service struct {
 	blockedUsers map[string]bool
 	runMode      string
 	lock         sync.RWMutex
-	version      string
+	info         map[string]string
 }
 
 // Config holds the configuration read from a config file
@@ -71,6 +71,11 @@ func New(configPath, runMode string) (svc *Service, err error) {
 		}
 	}
 
+	svc.info = make(map[string]string)
+	svc.info["type"] = "file"
+	svc.info["hostname"] = os.Getenv("HOSTNAME")
+	svc.info["directory"] = svc.directory
+
 	// TODO: institution bearer tokens are hard-coded for now
 	// when we get real multi-tenant access to the APIs this map should be populated from institutions-api
 	// and should subscribe to changes to institutions-config
@@ -78,18 +83,28 @@ func New(configPath, runMode string) (svc *Service, err error) {
 	//
 	// add token mappings from tenant token value to tenantID
 	for _, t := range conf.Tenants {
-		tenantID := t + "_ID"
-		token := t + "_API_TOKEN"
+		tenantID := t + "_ID"     // eg ACME_ID
+		token := t + "_API_TOKEN" // eg ACME_API_TOKEN
 		tokens[config.MustGetConfig(token)] = config.MustGetConfig(tenantID)
 	}
-
-	jwtKey := []byte(config.MustGetConfig("JWT_SECRET_KEY"))
-	// TODO jwtRefreshKey := []byte(config.MustGetConfig("JWT_REFRESH_SECRET_KEY"))
 
 	// block list of usernames, hostnames, IP addresses
 	blocks := make(map[string]bool)
 
-	svc.auth = fauth.NewAuth(conf.JWTHeader, jwtKey, tokens, blocks)
+	// RSA Public Key
+	publicKey, err := config.GetRawSecret("IDENTITY_PROVIDER_PUBLIC_KEY")
+	if err != nil {
+		return svc, err
+	}
+
+	// Symmetric secret key
+	secretKey := []byte(config.MustGetConfig("JWT_SECRET_KEY"))
+	// TODO jwtRefreshKey := []byte(config.MustGetConfig("JWT_REFRESH_SECRET_KEY"))
+
+	svc.auth, err = fauth.NewAuth(conf.JWTHeader, publicKey, secretKey, tokens, blocks)
+	if err != nil {
+		return svc, err
+	}
 
 	log.Debugf("configured authorization environment %+v", svc.auth)
 
@@ -260,16 +275,8 @@ func (svc *Service) Health() error {
 }
 
 // Info return information about the Service.
-func (svc *Service) Info() string {
-	info := &info{}
-	info.Hostname = os.Getenv("HOSTNAME")
-	info.Directory = svc.directory
-	info.LogLevel = log.GetLevel().String()
-	infoJSON, err := json.Marshal(info)
-	if err != nil {
-		return fmt.Sprintf("failed to marshal info from %+v", info)
-	}
-	return string(infoJSON)
+func (svc *Service) Info() map[string]string {
+	return svc.info
 }
 
 // Muxer returns the pattern mux for host
@@ -295,9 +302,4 @@ func (svc *Service) HostChecks() (hostChecksJSON string, err error) {
 func (svc *Service) Stats() string {
 	js := fmt.Sprintf("{\"Requests\": %d, \"Allowed\" : %d, \"Denied\": %d}", 100, 50, 50)
 	return js
-}
-
-// Version returns the database version
-func (svc *Service) Version() string {
-	return svc.version
 }

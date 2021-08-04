@@ -10,14 +10,14 @@ import (
 	fauth "bitbucket.org/_metalogic_/forward-auth"
 	"bitbucket.org/_metalogic_/forward-auth/adapters/file"
 	"bitbucket.org/_metalogic_/forward-auth/adapters/mssql"
+	"bitbucket.org/_metalogic_/forward-auth/build"
 	"bitbucket.org/_metalogic_/forward-auth/http"
 	"bitbucket.org/_metalogic_/log"
 	"github.com/fsnotify/fsnotify"
 )
 
 var (
-	version string
-	build   string
+	info *build.ProjectInfo
 
 	rules []fauth.HostChecks
 
@@ -48,13 +48,35 @@ var (
 
 func init() {
 
-	// one of dev, tst, pvw, stg or prd
-	env = config.MustGetenv("ENV")
-
 	flag.StringVar(&adapterFlg, "adapter", "file", "adapter type - one of file, mssql, mock")
 	flag.StringVar(&configFlg, "config", "", "config file")
 	flag.BoolVar(&disableFlg, "disable", false, "disable authorization")
 	flag.Var(&levelFlg, "level", "set log level to one of debug, info, warning, error")
+
+	flag.StringVar(&storageFlg, "storage", "MOCK", "the rule storage type")
+
+	var err error
+	info, err = build.Info()
+	if err != nil {
+		log.Fatalf("get project info failed: %s", err)
+	}
+
+	version := info.String()
+	command := info.Name()
+
+	flag.Usage = func() {
+		fmt.Printf("Project %s:\n\n", version)
+		fmt.Printf("Usage: %s -help (this message) | %s [options]:\n\n", command, command)
+		flag.PrintDefaults()
+	}
+
+}
+
+func main() {
+	flag.Parse()
+
+	// one of dev, tst, pvw, stg or prd
+	env = config.MustGetenv("ENV")
 
 	runMode = config.IfGetenv("RUN_MODE", "")
 	// get config from Docker secrets or environment
@@ -70,18 +92,6 @@ func init() {
 	jwtHeader = config.IfGetenv("JWT_HEADER_NAME", "X-Jwt-Header")
 	userHeader = config.IfGetenv("USER_HEADER_NAME", "X-User-Header")
 	traceHeader = config.IfGetenv("TRACE_HEADER_NAME", "X-Trace-Header")
-
-	flag.StringVar(&storageFlg, "storage", "MOCK", "the user storage type")
-
-	flag.Usage = func() {
-		fmt.Printf("Usage (forward-auth version %s, build %s):\n\n", version, build)
-		fmt.Printf("forward-auth -help (this message) | forward-auth [options] RULES-FILE:\n\n")
-		flag.PrintDefaults()
-	}
-}
-
-func main() {
-	flag.Parse()
 
 	if levelFlg == log.None {
 		loglevel := os.Getenv("LOG_LEVEL")

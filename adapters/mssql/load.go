@@ -8,6 +8,7 @@ import (
 	"time"
 
 	fauth "bitbucket.org/_metalogic_/forward-auth"
+	. "bitbucket.org/_metalogic_/glib/sql" // dot import fo avoid package prefix in reference (shutup lint)
 	"bitbucket.org/_metalogic_/log"
 	_ "github.com/denisenkom/go-mssqldb"
 )
@@ -225,7 +226,7 @@ func (loader *Loader) createHostCheck(sessionGUID string, hostID int, defaultAcc
 		sql.Named("SessionGUID", sessionGUID),
 		sql.Named("HostID", hostID),
 		sql.Named("DefaultAccess", defaultAccess),
-		sql.Named("CheckID", ifnullInt(checkID, 0)))
+		sql.Named("CheckID", IfNullInt(checkID, 0)))
 
 	if err != nil {
 		return err
