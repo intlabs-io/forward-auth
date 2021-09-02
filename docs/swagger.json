@@ -1,0 +1,277 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "contact": {}
+    },
+    "paths": {
+        "/forward-auth/v1/admin/loglevel": {
+            "get": {
+                "description": "gets the service log level (one of Trace, Debug, Info, Warn or Error)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin endpoints"
+                ],
+                "summary": "gets the current service log level",
+                "operationId": "get-loglevel",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/types.Message"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/http.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/http.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/http.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "dynamically sets the service log level to one of Trace, Debug, Info, Warn or Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin endpoints"
+                ],
+                "summary": "sets the service log level",
+                "operationId": "set-loglevel",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Log Level",
+                        "name": "verbosity",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/types.Message"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/http.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/http.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/http.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/forward-auth/v1/health": {
+            "get": {
+                "description": "checks health of forward-auth service, currently uses a database ping",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Common endpoints"
+                ],
+                "summary": "check health of forward-auth service",
+                "operationId": "get-health",
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/http.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/http.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/http.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/forward-auth/v1/info": {
+            "get": {
+                "description": "get forward-auth service info, including version, log level",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Common endpoints"
+                ],
+                "summary": "get forward-auth service info",
+                "operationId": "get-info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/build.Runtime"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/http.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/http.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/http.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/forward-auth/v1/stats": {
+            "get": {
+                "description": "authorizes a request based on configured access control rules;\njwtHeader, traceHeader and userHeader are added to the forwarded request headers",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth endpoints"
+                ],
+                "summary": "authorizes a request based on configured access control rules",
+                "operationId": "get-auth",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/http.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/http.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/http.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "build.ProjectInfo": {
+            "type": "object",
+            "properties": {
+                "branch": {
+                    "type": "string"
+                },
+                "command": {
+                    "type": "string"
+                },
+                "commit": {
+                    "type": "string"
+                },
+                "dependencies": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "project": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "integer"
+                }
+            }
+        },
+        "build.Runtime": {
+            "type": "object",
+            "properties": {
+                "logLevel": {
+                    "type": "string"
+                },
+                "projectInfo": {
+                    "$ref": "#/definitions/build.ProjectInfo"
+                },
+                "serviceInfo": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "fauth.Stats": {
+            "type": "object"
+        },
+        "http.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "integer"
+                }
+            }
+        },
+        "types.Message": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

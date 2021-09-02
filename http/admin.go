@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"strings"
 
-	fa "bitbucket.org/_metalogic_/forward-auth"
+	fauth "bitbucket.org/_metalogic_/forward-auth"
 	"bitbucket.org/_metalogic_/forward-auth/build"
 	. "bitbucket.org/_metalogic_/glib/http" // dot import fo avoid package prefix in reference (shutup lint)
+	_ "bitbucket.org/_metalogic_/glib/types"
 	"bitbucket.org/_metalogic_/log"
 )
 
@@ -18,17 +19,17 @@ func init() {
 	runMode = "enforcing"
 }
 
-// APIInfo gets forward-auth-service info
+// @Tags Common endpoints
 // @Summary get forward-auth service info
 // @Description get forward-auth service info, including version, log level
 // @ID get-info
 // @Produce json
-// @Success 200 {object} fa.Info
-// @Failure 400 {object} fa.BadRequestError
-// @Failure 404 {object} fa.NotFoundError
-// @Failure 500 {object} fa.ServerError
+// @Success 200 {object} build.Runtime
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
 // @Router /forward-auth/v1/info [get]
-func APIInfo(svc fa.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func APIInfo(svc fauth.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		projectInfo, err := build.Info()
 		if err != nil {
@@ -56,17 +57,17 @@ func APIInfo(svc fa.Service) func(w http.ResponseWriter, r *http.Request, params
 	}
 }
 
-// Health returns 200 ok if database is responding to pings
+// @Tags Common endpoints
 // @Summary check health of forward-auth service
 // @Description checks health of forward-auth service, currently uses a database ping
 // @ID get-health
-// @Produce  plain
+// @Produce plain
 // @Success 200 {string} string "ok"
-// @Failure 400 {object} fa.BadRequestError
-// @Failure 404 {object} fa.NotFoundError
-// @Failure 500 {object} fa.ServerError
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
 // @Router /forward-auth/v1/health [get]
-func Health(svc fa.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Health(svc fauth.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		w.Header().Set("Content-Type", "text/plain")
 		err := svc.Health()
@@ -79,17 +80,17 @@ func Health(svc fa.Service) func(w http.ResponseWriter, r *http.Request, params 
 	}
 }
 
-// Stats returns API statistics (currently only DB stats)
+// @Tags Common endpoints
 // @Summary get forward-auth service statistics
 // @Description get forward-auth service statistics, currently database stats only
 // @ID get-stats
 // @Produce  json
-// @Success 200 {object} fa.Stats
-// @Failure 400 {object} fa.BadRequestError
-// @Failure 404 {object} fa.NotFoundError
-// @Failure 500 {object} fa.ServerError
+// @Success 200 {object} fauth.Stats
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
 // @Router /forward-auth/v1/stats [get]
-func Stats(svc fa.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Stats(svc fauth.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		w.Header().Set("Content-Type", "application/json")
 		stats := svc.Stats()
@@ -98,35 +99,34 @@ func Stats(svc fa.Service) func(w http.ResponseWriter, r *http.Request, params m
 	}
 }
 
-// LogLevel returns the current log level
+// @Tags Admin endpoints
 // @Summary gets the current service log level
 // @Description gets the service log level (one of Trace, Debug, Info, Warn or Error)
-// @ID get-get-loglevel
+// @ID get-loglevel
 // @Produce json
-// @Success 200 {object} fa.Message
-// @Failure 400 {object} fa.BadRequestError
-// @Failure 404 {object} fa.NotFoundError
-// @Failure 500 {object} fa.ServerError
+// @Success 200 {object} types.Message
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
 // @Router /forward-auth/v1/admin/loglevel [get]
-func LogLevel(svc fa.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func LogLevel(svc fauth.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		msgJSON(w, log.GetLevel().String())
+		MsgJSON(w, log.GetLevel().String())
 	}
 }
 
-// SetLogLevel sets the service log level
+// @Tags Admin endpoints
 // @Summary sets the service log level
 // @Description dynamically sets the service log level to one of Trace, Debug, Info, Warn or Error
-// @ID get-set-loglevel
-// @Accept json
+// @ID set-loglevel
 // @Produce json
 // @Param verbosity path string true "Log Level"
-// @Success 200 {object} fa.Message
-// @Failure 400 {object} fa.BadRequestError
-// @Failure 404 {object} fa.NotFoundError
-// @Failure 500 {object} fa.ServerError
+// @Success 200 {object} types.Message
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
 // @Router /forward-auth/v1/admin/loglevel [put]
-func SetLogLevel(svc fa.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func SetLogLevel(svc fauth.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		var (
 			verbosity string
@@ -146,68 +146,117 @@ func SetLogLevel(svc fa.Service) func(w http.ResponseWriter, r *http.Request, pa
 		case "trace":
 			v = log.TraceLevel
 		default:
-			errJSON(w, NewBadRequestError(fmt.Sprintf("invalid log level: %s", verbosity)))
+			ErrJSON(w, NewBadRequestError(fmt.Sprintf("invalid log level: %s", verbosity)))
 			return
 		}
 
 		log.SetLevel(v)
-		msgJSON(w, v.String())
+		MsgJSON(w, v.String())
 	}
 }
 
-// RunMode sets the mode for authorization, currently either enforcing or none
-func RunMode(svc fa.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+// @Summary gets the mode for authorization, currently either enforcing or none
+// @Description sets the mode for authorization, currently either enforcing or none
+// @ID set-runmode
+// @Produce json
+// @Param verbosity path string true "Log Level"
+// @Success 200 {object} types.Message
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+func RunMode(svc fauth.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		w.Header().Set("Content-Type", "application/json")
-		msgJSON(w, fmt.Sprintf("run mode is set to '%s'", runMode))
+		MsgJSON(w, fmt.Sprintf("run mode is set to '%s'", runMode))
 	}
 }
 
-// SetRunMode sets the mode for authorization, currently either enforcing or none
-func SetRunMode(svc fa.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+// @Tags Admin endpoints
+// @Summary sets the mode for authorization, currently either enforcing or none
+// @Description sets the mode for authorization, currently either enforcing or none
+// @ID set-runmode
+// @Produce json
+// @Param verbosity path string true "Log Level"
+// @Success 200 {object} types.Message
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+func SetRunMode(svc fauth.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		w.Header().Set("Content-Type", "application/json")
 		mode := params["mode"]
 		mode = strings.ToLower(mode)
-		msgJSON(w, fmt.Sprintf("set run mode to '%s'", runMode))
+		MsgJSON(w, fmt.Sprintf("set run mode to '%s'", runMode))
 	}
 }
 
-// Blocked returns an array of blocked users
-func Blocked(svc fa.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+// @Tags Admin endpoints
+// @Summary returns an array of blocked users
+// @Description returns an array of blocked users
+// @ID get-blocked
+// @Produce json
+// @Success 200 {object} types.Message
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+func Blocked(svc fauth.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		w.Header().Set("Content-Type", "application/json")
 		msgJSONList(w, svc.Blocked())
 	}
 }
 
-// Block adds userGUID to the user blacklist
-func Block(svc fa.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+// @Tags Admin endpoints
+// @Summary adds userGUID to the user blocklist
+// @Description adds userGUID to the user blocklist
+// @ID block
+// @Produce json
+// @Success 200 {object} types.Message
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+func Block(svc fauth.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		w.Header().Set("Content-Type", "application/json")
 		userGUID := params["userGUID"]
 		svc.Block(userGUID)
 		b := fmt.Sprintf("{ \"blocked\" : \"%s\" }", userGUID)
-		msgJSON(w, b)
+		MsgJSON(w, b)
 	}
 }
 
-// Unblock removes userGUID from the user blacklist
-func Unblock(svc fa.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+// @Tags Admin endpoints
+// @Summary removes userGUID from the user blocklist
+// @Description removes userGUID from the user blocklist
+// @ID unblock
+// @Produce json
+// @Success 200 {object} types.Message
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+func Unblock(svc fauth.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		userGUID := params["userGUID"]
 		svc.Unblock(userGUID)
 		b := fmt.Sprintf("{ \"unblocked\" : \"%s\" }", userGUID)
-		msgJSON(w, b)
+		MsgJSON(w, b)
 	}
 }
 
 // Tree returns a text representation of the access tree
-// TODO
-func Tree(svc fa.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+// @Tags Admin endpoints
+// @Summary TODO: returns a text representation of the access tree
+// @Description TODO: returns a text representation of the access tree
+// @ID get-tree
+// @Produce json
+// @Success 200 {object} types.Message
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+func Tree(svc fauth.Service) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		w.Header().Set("Content-Type", "application/json")
 		tree := ""
-		msgJSON(w, tree)
+		MsgJSON(w, tree)
 	}
 }

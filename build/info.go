@@ -8,3 +8,9 @@ import buildInfo "bitbucket.org/_metalogic_/build"
 type ProjectInfo struct {
 	buildInfo.Info
 }
+
+type Runtime struct {
+	ProjectInfo *ProjectInfo      `json:"projectInfo"`
+	ServiceInfo map[string]string `json:"serviceInfo"`
+	LogLevel    string            `json:"logLevel"`
+}

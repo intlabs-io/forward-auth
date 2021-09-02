@@ -14,8 +14,18 @@ import (
 
 var ok = []byte("ok")
 
-// Auth authorizes a request based on configured access control rules;
 // jwtHeader, traceHeader and userHeader are added to the forwarded request headers
+// @Tags Auth endpoints
+// @Summary authorizes a request based on configured access control rules
+// @Description authorizes a request based on configured access control rules;
+// @Description jwtHeader, traceHeader and userHeader are added to the forwarded request headers
+// @ID get-auth
+// @Produce  json
+// @Success 200 {string} ok
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /forward-auth/v1/stats [get]
 func Auth(svc fauth.Service, userHeader, traceHeader string) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
@@ -34,7 +44,7 @@ func Auth(svc fauth.Service, userHeader, traceHeader string) func(w http.Respons
 		if log.Loggable(log.DebugLevel) {
 			data, err := httputil.DumpRequest(r, false)
 			if err != nil {
-				errJSON(w, NewUnauthorizedError("authorization failed to unpack request"))
+				ErrJSON(w, NewUnauthorizedError("authorization failed to unpack request"))
 				return
 			}
 			raw := strconv.Quote(strings.ReplaceAll(strings.ReplaceAll(string(data), "\r", ""), "\n", "; "))
@@ -60,7 +70,7 @@ func Auth(svc fauth.Service, userHeader, traceHeader string) func(w http.Respons
 			if testing {
 				tstJSON(w, http.StatusOK, "allow override for host "+host)
 			} else {
-				okJSON(w, "allow override for host "+host)
+				OkJSON(w, "allow override for host "+host)
 			}
 			log.Debug("allow override for host " + host)
 			return
@@ -68,7 +78,7 @@ func Auth(svc fauth.Service, userHeader, traceHeader string) func(w http.Respons
 			if testing {
 				tstJSON(w, http.StatusForbidden, "deny override for host "+host)
 			} else {
-				errJSON(w, NewForbiddenError("deny override for host "+host))
+				ErrJSON(w, NewForbiddenError("deny override for host "+host))
 			}
 			log.Debug("deny override for host " + host)
 			return
@@ -76,7 +86,7 @@ func Auth(svc fauth.Service, userHeader, traceHeader string) func(w http.Respons
 
 		mux, err := svc.Muxer(host)
 		if err != nil { // shouldn't happen
-			errJSON(w, NewForbiddenError(err.Error()))
+			ErrJSON(w, NewForbiddenError(err.Error()))
 			return
 		}
 
@@ -90,9 +100,9 @@ func Auth(svc fauth.Service, userHeader, traceHeader string) func(w http.Respons
 
 		switch status {
 		case 401: // TODO send WWW-Authenticate in response header
-			errJSON(w, NewUnauthorizedError(message))
+			ErrJSON(w, NewUnauthorizedError(message))
 		case 403:
-			errJSON(w, NewForbiddenError(message))
+			ErrJSON(w, NewForbiddenError(message))
 		case 200:
 			if username != "" {
 				log.Debugf("Adding HTTP header %s %s", userHeader, username)
@@ -108,9 +118,9 @@ func HostChecks(svc fauth.Service) func(w http.ResponseWriter, r *http.Request, 
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		hostChecks, err := svc.HostChecks()
 		if err != nil {
-			errJSON(w, NewServerError(err.Error()))
+			ErrJSON(w, NewServerError(err.Error()))
 			return
 		}
-		okJSON(w, hostChecks)
+		OkJSON(w, hostChecks)
 	}
 }
