@@ -30,23 +30,26 @@ func router(svc fa.Service, userHeader, traceHeader string) *httptreemux.TreeMux
 	// initialize HTTP router
 	treemux := httptreemux.New()
 	api := treemux.NewGroup("/")
-	api.GET("/admin/loglevel", LogLevel(svc))
-	api.PUT("/admin/loglevel/:verbosity", SetLogLevel(svc))
+	// Common endpoints
 	api.GET("/health", Health(svc))
 	api.GET("/info", APIInfo(svc))
 	api.GET("/stats", Stats(svc))
+	// Admin endpoints
+	api.GET("/admin/loglevel", LogLevel(svc))
+	api.PUT("/admin/loglevel/:verbosity", SetLogLevel(svc))
 	api.GET("/admin/run", RunMode(svc))
 	api.PUT("/admin/run/:mode", SetRunMode(svc))
 	api.GET("/admin/tree", Tree(svc))
-	api.GET("/block", Blocked(svc))
-	api.POST("/block/:userGUID", Block(svc))
-	api.DELETE("/block/:userGUID", Unblock(svc))
-	api.GET("/auth", Auth(svc, userHeader, traceHeader))
-	api.GET("/rules", HostChecks(svc))
-	api.GET("/swagger/*", httpSwagger.Handler(
+	api.GET("/openapi/*", httpSwagger.Handler(
 		httpSwagger.URL("doc.json"), // The url pointing to API definition
 		httpSwagger.DeepLinking(true),
 		httpSwagger.DocExpansion("none"),
 		httpSwagger.DomID("#swagger-ui")))
+	// Auth endpoints
+	api.GET("/auth", Auth(svc, userHeader, traceHeader))
+	api.GET("/block", Blocked(svc))
+	api.POST("/block/:userGUID", Block(svc))
+	api.DELETE("/block/:userGUID", Unblock(svc))
+	api.GET("/rules", HostChecks(svc))
 	return treemux
 }

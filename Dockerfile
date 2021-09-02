@@ -6,8 +6,6 @@ COPY ./ /build
 
 WORKDIR /build/cmd/server
 
-RUN swag init --output ../../docs
-
 RUN go generate bitbucket.org/_metalogic_/forward-auth/build && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o forward-auth .
 
 FROM metalogic/alpine:latest

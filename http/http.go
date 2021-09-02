@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	. "bitbucket.org/_metalogic_/glib/http" // dot import fo avoid package prefix in reference (shutup lint)
 	"bitbucket.org/_metalogic_/log"
@@ -48,17 +47,6 @@ func intParam(r *http.Request, name string, dflt int) (int, error) {
 	return strconv.Atoi(value)
 }
 
-func okJSON(w http.ResponseWriter, json string) {
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprint(w, json)
-}
-
-func msgJSON(w http.ResponseWriter, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	json := fmt.Sprintf("{\"message\" : \"%s\"}", message)
-	fmt.Fprint(w, json)
-}
-
 func msgJSONList(w http.ResponseWriter, list []string) {
 	w.Header().Set("Content-Type", "application/json")
 	json := fmt.Sprintf("{\"message\" : \"%v\"}", list)
@@ -69,28 +57,6 @@ func tstJSON(w http.ResponseWriter, status int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	json := fmt.Sprintf("{\"status\" : %d, \"message\" : \"%s\"}", status, message)
 	http.Error(w, json, http.StatusPreconditionRequired)
-}
-
-func errJSON(w http.ResponseWriter, err error) {
-	w.Header().Set("Content-Type", "application/json")
-
-	json := fmt.Sprintf("{\"message\" : \"%s\", \"timestamp\" : %d}", err, time.Now().UnixNano())
-
-	switch err.(type) {
-	case *DBError, *ServerError:
-		http.Error(w, json, http.StatusInternalServerError)
-	case *BadRequestError:
-		http.Error(w, json, http.StatusBadRequest)
-	case *ForbiddenError:
-		http.Error(w, json, http.StatusForbidden)
-	case *NotFoundError:
-		http.Error(w, json, http.StatusNotFound)
-	case *UnauthorizedError:
-		http.Error(w, json, http.StatusUnauthorized)
-	default:
-		http.Error(w, json, http.StatusBadRequest)
-	}
-	return
 }
 
 func headers(r *http.Request) string {

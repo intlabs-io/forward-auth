@@ -1,0 +1,187 @@
+definitions:
+  build.ProjectInfo:
+    properties:
+      branch:
+        type: string
+      command:
+        type: string
+      commit:
+        type: string
+      dependencies:
+        items:
+          type: string
+        type: array
+      project:
+        type: string
+      timestamp:
+        type: integer
+    type: object
+  build.Runtime:
+    properties:
+      logLevel:
+        type: string
+      projectInfo:
+        $ref: '#/definitions/build.ProjectInfo'
+      serviceInfo:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
+  fauth.Stats:
+    type: object
+  http.ErrorResponse:
+    properties:
+      message:
+        type: string
+      timestamp:
+        type: integer
+    type: object
+  types.Message:
+    properties:
+      message:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /forward-auth/v1/admin/loglevel:
+    get:
+      description: gets the service log level (one of Trace, Debug, Info, Warn or
+        Error)
+      operationId: get-loglevel
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.Message'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      summary: gets the current service log level
+      tags:
+      - Admin endpoints
+    put:
+      description: dynamically sets the service log level to one of Trace, Debug,
+        Info, Warn or Error
+      operationId: set-loglevel
+      parameters:
+      - description: Log Level
+        in: path
+        name: verbosity
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.Message'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      summary: sets the service log level
+      tags:
+      - Admin endpoints
+  /forward-auth/v1/health:
+    get:
+      description: checks health of forward-auth service, currently uses a database
+        ping
+      operationId: get-health
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      summary: check health of forward-auth service
+      tags:
+      - Common endpoints
+  /forward-auth/v1/info:
+    get:
+      description: get forward-auth service info, including version, log level
+      operationId: get-info
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/build.Runtime'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      summary: get forward-auth service info
+      tags:
+      - Common endpoints
+  /forward-auth/v1/stats:
+    get:
+      description: |-
+        authorizes a request based on configured access control rules;
+        jwtHeader, traceHeader and userHeader are added to the forwarded request headers
+      operationId: get-auth
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      summary: authorizes a request based on configured access control rules
+      tags:
+      - Auth endpoints
+swagger: "2.0"
