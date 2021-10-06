@@ -188,11 +188,17 @@ func (svc *Service) LoadAccess(reload bool) (err error) {
 				if r, ok := path.Rules["PUT"]; ok {
 					pathPrefix.Put(path.Path, fauth.Handler(r, svc.auth))
 				}
+				if r, ok := path.Rules["PATCH"]; ok {
+					pathPrefix.Patch(path.Path, fauth.Handler(r, svc.auth))
+				}
 				if r, ok := path.Rules["DELETE"]; ok {
 					pathPrefix.Del(path.Path, fauth.Handler(r, svc.auth))
 				}
 				if r, ok := path.Rules["HEAD"]; ok {
 					pathPrefix.Head(path.Path, fauth.Handler(r, svc.auth))
+				}
+				if r, ok := path.Rules["OPTIONS"]; ok {
+					pathPrefix.Options(path.Path, fauth.Handler(r, svc.auth))
 				}
 			}
 		}
