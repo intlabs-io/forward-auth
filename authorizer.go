@@ -27,6 +27,7 @@ const (
 	READ   = "READ"
 	UPDATE = "UPDATE"
 	DELETE = "DELETE"
+	EXISTS = "EXISTS"
 )
 
 // Auth type holds data for authorization
@@ -219,7 +220,7 @@ func jwtIdentity(tknStr string, auth *Auth) (identity *Identity, err error) {
 // Action returns an action from an HTTP method
 func Action(method string) string {
 	switch method {
-	case "GET", "HEAD", "OPTIONS":
+	case "GET", "OPTIONS":
 		return READ
 	case "POST":
 		return CREATE
@@ -227,6 +228,8 @@ func Action(method string) string {
 		return UPDATE
 	case "DELETE":
 		return DELETE
+	case "HEAD":
+		return EXISTS
 	default:
 		return "UNDEFINED"
 	}
