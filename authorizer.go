@@ -219,11 +219,11 @@ func jwtIdentity(tknStr string, auth *Auth) (identity *Identity, err error) {
 // Action returns an action from an HTTP method
 func Action(method string) string {
 	switch method {
-	case "GET":
+	case "GET", "HEAD", "OPTIONS":
 		return READ
 	case "POST":
 		return CREATE
-	case "PUT":
+	case "PUT", "PATCH":
 		return UPDATE
 	case "DELETE":
 		return DELETE
