@@ -326,12 +326,12 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 			log.Debug("calling root()")
 			return auth.Root(credentials.JWT), nil
 		},
-		// return true if the user JWT in the request matches the user guid in path
+		// return true if identity matches the user guid in path
 		// eg: user(guid)
 		"user": func(args ...interface{}) (interface{}, error) {
 			guid, _ := args[0].(string)
 			log.Debugf("calling user(%s)", guid)
-			return (auth.User(credentials.JWT) == guid), nil
+			return strings.EqualFold(auth.User(credentials.JWT), guid), nil
 		},
 	}
 
