@@ -1,0 +1,32 @@
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [authz].[HOST_GROUPS]
+(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[GUID] [varchar](36) NOT NULL,
+	[Name] [varchar](32) NOT NULL,
+	[Host] [varchar](256) NOT NULL,
+	[Description] [varchar](1024) NULL,
+	[Created] [datetime] NOT NULL,
+	[CreateUser] [varchar](36) NOT NULL,
+	[Updated] [datetime] NOT NULL,
+	[UpdateUser] [varchar](36) NOT NULL,
+) ON [PRIMARY]
+GO
+ALTER TABLE [authz].[HOST_GROUPS] ADD PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ONLINE = OFF, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+ALTER TABLE [authz].[HOST_GROUPS] ADD  DEFAULT (newid()) FOR [GUID]
+GO
+ALTER TABLE [authz].[HOST_GROUPS] ADD  DEFAULT (getdate()) FOR [Created]
+GO
+ALTER TABLE [authz].[HOST_GROUPS] ADD  DEFAULT ('ROOT') FOR [CreateUser]
+GO
+ALTER TABLE [authz].[HOST_GROUPS] ADD  DEFAULT (getdate()) FOR [Updated]
+GO
+ALTER TABLE [authz].[HOST_GROUPS] ADD  DEFAULT ('ROOT') FOR [UpdateUser]
+GO
