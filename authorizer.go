@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	"bitbucket.org/_metalogic_/eval"
 	"bitbucket.org/_metalogic_/ident"
@@ -16,7 +17,7 @@ import (
 const (
 	// ANY wildcard category matches any individual category (eg ADM, FEE, INST, etc)
 	ANY = "ANY"
-	// ALL wildcard action matches any of GET, PUT, POST, DELETE
+	// ALL wildcard action matches any of GET, PUT, POST, DELETE, PATCH
 	ALL = "ALL"
 )
 
@@ -38,24 +39,34 @@ const (
 // - keyFunc is a function passed to JWT parse function to return the key for decrypting the JWT token
 // - tokens maps token values passed in a request to token names referenced in
 //   access control functions; eg: bearer(ROOT_TOKEN) returns true if the bearer
-//   auth token in the request maps to the name ROOT_TOKEN
+//   auth token in the request maps to the token name ROOT_TOKEN
 // - blocks is a map of subjects (usernames, hostnames, IP addresses) to be denied
 //   access; subject names must be unique for all subjects
 // an instance of Auth is passed to handlers to drive authorization calculations
 type Auth struct {
-	jwtHeader string
-	keyFunc   func(token *jwt.Token) (interface{}, error)
-	tokens    map[string]string
-	blocks    map[string]bool
+	runMode    string
+	jwtHeader  string
+	keyFunc    func(token *jwt.Token) (interface{}, error)
+	tokens     map[string]string
+	blocks     map[string]bool
+	overrides  map[string]string
+	muxLock    sync.RWMutex
+	hostMuxers map[string]*pat.HostMux
 }
 
 // NewAuth returns a new RSA Auth
-func NewAuth(jwtHeader string, publicKey, secret []byte, tokens map[string]string, blocks map[string]bool) (auth *Auth, err error) {
+func NewAuth(acs *AccessControls, jwtHeader string, publicKey, secret []byte, tokens map[string]string, blocks map[string]bool) (auth *Auth, err error) {
 	auth = &Auth{
-		jwtHeader: jwtHeader,
-		tokens:    tokens,
-		blocks:    blocks,
+		jwtHeader:  jwtHeader,
+		tokens:     tokens,
+		blocks:     blocks,
+		hostMuxers: make(map[string]*pat.HostMux),
 	}
+	err = auth.setAccess(acs, false)
+	if err != nil {
+		return auth, err
+	}
+
 	rsaKey, err := jwt.ParseRSAPublicKeyFromPEM(publicKey)
 	if err != nil {
 		return auth, err
@@ -284,6 +295,58 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 	}
 }
 
+func (auth *Auth) setAccess(acs *AccessControls, refresh bool) error {
+	auth.overrides = acs.Overrides
+
+	// create Pat Host Muxers from Checks
+	for _, group := range acs.HostGroups {
+		// default to deny
+		hostMux := pat.NewDenyMux()
+		if group.Default == "allow" {
+			hostMux = pat.NewAllowMux()
+		}
+		// each host in a group shares the hostMux
+		for _, host := range group.Hosts {
+			if v, ok := auth.overrides[host]; ok {
+				log.Warningf("%s override on host %s disables defined host checks", v, host)
+			}
+			if _, ok := auth.getMux(host); !refresh && ok {
+				log.Errorf("ignoring duplicate host checks for %s", host)
+				continue
+			}
+			auth.setMux(host, hostMux)
+		}
+		// add path prefixes to hostMux
+		for _, check := range group.Checks {
+			pathPrefix := hostMux.AddPrefix(check.Base, pat.DenyHandler)
+			for _, path := range check.Paths {
+				if r, ok := path.Rules["GET"]; ok {
+					pathPrefix.Get(path.Path, Handler(r, auth))
+				}
+				if r, ok := path.Rules["POST"]; ok {
+					pathPrefix.Post(path.Path, Handler(r, auth))
+				}
+				if r, ok := path.Rules["PUT"]; ok {
+					pathPrefix.Put(path.Path, Handler(r, auth))
+				}
+				if r, ok := path.Rules["PATCH"]; ok {
+					pathPrefix.Patch(path.Path, Handler(r, auth))
+				}
+				if r, ok := path.Rules["DELETE"]; ok {
+					pathPrefix.Del(path.Path, Handler(r, auth))
+				}
+				if r, ok := path.Rules["HEAD"]; ok {
+					pathPrefix.Head(path.Path, Handler(r, auth))
+				}
+				if r, ok := path.Rules["OPTIONS"]; ok {
+					pathPrefix.Options(path.Path, Handler(r, auth))
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials *ident.Credentials) (result bool, err error) {
 	log.Debugf("evaluating expr '%s' with params %v, auth %v, credentials %v", expr, paramMap, auth, credentials)
 	// define builtins
@@ -346,8 +409,6 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 		parameters[k] = v
 	}
 
-	parameters["EPBC_API_TOKEN"] = "733acb21-3ca3-4f54-a9b0-1d219c659d1c"
-
 	log.Debugf("evaluating expression %s", expr)
 	val, err := expression.Evaluate(parameters)
 	if err != nil {
@@ -364,4 +425,67 @@ func redact(secret string) string {
 		return "*REDACTED*"
 	}
 	return secret[:4] + " *REDACTED* " + secret[l-4:]
+}
+
+func (auth *Auth) setMux(host string, mux *pat.HostMux) {
+	auth.muxLock.Lock()
+	defer auth.muxLock.Unlock()
+	auth.hostMuxers[host] = mux
+}
+
+func (auth *Auth) getMux(host string) (mux *pat.HostMux, ok bool) {
+	auth.muxLock.RLock()
+	defer auth.muxLock.RUnlock()
+	mux, ok = auth.hostMuxers[host]
+	return mux, ok
+}
+
+func (auth *Auth) Blocked() (blocked []string) {
+	for k := range auth.blocks {
+		if auth.blocks[k] {
+			blocked = append(blocked, k)
+		}
+	}
+	return blocked
+}
+
+func (auth *Auth) Block(user string) {
+	auth.blocks[user] = true
+}
+
+func (auth *Auth) Unblock(user string) {
+	auth.blocks[user] = false
+}
+
+func (auth *Auth) Override(host string) string {
+	return auth.overrides[host]
+}
+
+func (auth *Auth) RunMode() string {
+	return auth.runMode
+}
+
+// Muxer returns the pattern mux for host
+func (auth *Auth) Muxer(host string) (mux *pat.HostMux, err error) {
+	var ok bool
+	if mux, ok = auth.getMux(host); ok {
+		return mux, nil
+	}
+	return mux, fmt.Errorf("host checks not defined for %s", host)
+}
+
+// HostChecks returns JSON formatted host checks
+func (auth *Auth) HostChecks() (hostChecksJSON string, err error) {
+	data, err := json.Marshal(auth.HostChecks)
+	if err != nil {
+		return hostChecksJSON, err
+	}
+	return string(data), nil
+}
+
+// UpdateFunc returns a function to call with AccessControl
+func (auth *Auth) UpdateFunc() (f func(*AccessControls) error) {
+	return func(acs *AccessControls) error {
+		return auth.setAccess(acs, true)
+	}
 }
