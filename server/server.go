@@ -17,6 +17,8 @@ import (
 	"github.com/dimfeld/httptreemux/v5"
 )
 
+const rootGUID = "ROOT"
+
 // AuthzServer ...
 type AuthzServer struct {
 	server *http.Server
@@ -170,12 +172,40 @@ func router(auth *fauth.Auth, store fauth.Store, userHeader, traceHeader string)
 
 	// Auth endpoints
 	api.GET("/auth", Auth(auth, userHeader, traceHeader))
-	api.POST("/auth/update", Update(auth, store))
+	api.POST("/auth/update", Update(auth, store)) // called by deployment-api broadcast to update from store
 	api.GET("/block", Blocked(auth))
 	api.POST("/block/:userGUID", Block(auth))
 	api.DELETE("/block/:userGUID", Unblock(auth))
-	api.GET("/rules", HostChecks(auth))
-	api.POST("/reload", Reload(auth))
+
+	database, err := store.Database()
+	if err != nil {
+		log.Fatal(err)
+	}
+	// ACS endpoints
+	api.GET("/hostgroups", HostGroups(database))
+	api.POST("/hostgroups", CreateHostGroup(userHeader, database))
+	api.GET("/hostgroups/:groupGUID", HostGroup(database))
+	api.PUT("/hostgroups/:groupGUID", UpdateHostGroup(userHeader, database))
+	api.DELETE("/hostgroups/:groupGUID", DeleteHostGroup(database))
+
+	api.GET("/hostgroups/:groupGUID/hosts", Hosts(database))
+	api.POST("/hostgroups/:groupGUID/hosts", CreateHost(userHeader, database))
+	api.GET("/hostgroups/:groupGUID/hosts/:hostGUID", Host(database))
+	api.PUT("/hostgroups/:groupGUID/hosts/:hostGUID", UpdateHost(userHeader, database))
+	api.DELETE("/hostgroups/:groupGUID/hosts/:hostGUID", DeleteHost(database))
+
+	api.GET("/hostgroups/:groupGUID/checks", Checks(database))
+	api.POST("/hostgroups/:groupGUID/checks", CreateCheck(userHeader, database))
+	api.GET("/hostgroups/:groupGUID/checks/:checkGUID", Check(database))
+	api.PUT("/hostgroups/:groupGUID/checks/:checkGUID", UpdateCheck(userHeader, database))
+	api.DELETE("/hostgroups/:groupGUID/checks/:checkGUID", DeleteCheck(database))
+
+	api.GET("/hostgroups/:groupGUID/checks/:checkGUID/paths", Paths(database))
+	api.POST("/hostgroups/:groupGUID/checks/:checkGUID/paths", CreatePath(userHeader, database))
+	api.GET("/hostgroups/:groupGUID/checks/:checkGUID/paths/:pathGUID", Path(database))
+	api.PUT("/hostgroups/:groupGUID/checks/:checkGUID/paths/:pathGUID", UpdatePath(userHeader, database))
+	api.DELETE("/hostgroups/:groupGUID/checks/:checkGUID/paths/:pathGUID", DeletePath(database))
+
 	return treemux
 }
 

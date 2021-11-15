@@ -27,6 +27,7 @@ require (
 	bitbucket.org/_metalogic_/gogit v0.0.0-20210207005759-7fdb8c8ed0f4 // indirect
 	bitbucket.org/_metalogic_/isatty v1.0.4 // indirect
 	bitbucket.org/_metalogic_/mmap v0.0.0-20210207003405-1e2136f1733c // indirect
+	bitbucket.org/_metalogic_/validation v0.0.0-20210601150612-ed58a6ac8ba6 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/Microsoft/go-winio v0.5.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect

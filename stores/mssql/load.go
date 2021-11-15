@@ -24,9 +24,7 @@ type Loader struct {
 // NewLoader creates a new database loader
 func NewLoader(database, server string, port int, user, password string) (loader *Loader, err error) {
 
-	loader = &Loader{
-		context: context.TODO(),
-	}
+	loader = &Loader{}
 
 	// configure MSSql Server
 	values := url.Values{}
@@ -82,34 +80,35 @@ func (loader *Loader) Import(file string) (n int, err error) {
 	}
 
 	for i, group := range ac.HostGroups {
-		groupGUID, err := loader.createHostGroup(txn, sessionGUID, group)
+		groupGUID, groupJSON, err := createHostGroup(txn, sessionGUID, group)
 		if err != nil {
 			return n, err
 		}
-		n = i
+		log.Debugf("importing host group %s: %s", groupGUID, groupJSON)
+		n = i + 1
 		log.Debugf("processing check hosts: %v", group.Hosts)
 		for _, host := range group.Hosts {
-			hostGUID, err := loader.createHost(txn, sessionGUID, groupGUID, host)
+			hostGUID, hostJSON, err := createHost(txn, sessionGUID, groupGUID, host)
 			if err != nil {
 				txn.Rollback()
 				return n, err
 			}
-			log.Debugf("created host %s", hostGUID)
+			log.Debugf("created host %s: %s", hostGUID, hostJSON)
 		}
 		for _, check := range group.Checks {
-			checkGUID, err := loader.createCheck(txn, sessionGUID, groupGUID, check)
+			checkGUID, checkJSON, err := createCheck(txn, sessionGUID, groupGUID, check)
 			if err != nil {
 				txn.Rollback()
 				return n, err
 			}
-			log.Debugf("created check %s", checkGUID)
+			log.Debugf("created check %s: %s", checkGUID, checkJSON)
 			for _, path := range check.Paths {
-				pathGUID, err := loader.createPath(txn, sessionGUID, checkGUID, path)
+				pathGUID, pathJSON, err := createPath(txn, sessionGUID, checkGUID, path)
 				if err != nil {
 					txn.Rollback()
 					return n, err
 				}
-				log.Debugf("created path %s", pathGUID)
+				log.Debugf("created path %s: %s", pathGUID, pathJSON)
 			}
 		}
 	}
@@ -118,98 +117,141 @@ func (loader *Loader) Import(file string) (n int, err error) {
 	return n, nil
 }
 
-// createHostGroup creates a new host group
-func (loader *Loader) createHostGroup(txn *sql.Tx, sessionGUID string, group fauth.HostGroup) (groupID string, err error) {
+func createHostGroup(txn *sql.Tx, sessionGUID string, group fauth.HostGroup) (groupGUID, groupJSON string, err error) {
 	var (
 		rows *sql.Rows
 	)
 	log.Debugf("[Session GUID: %s]: group name %s", sessionGUID, group.Name)
 
-	rows, err = txn.QueryContext(loader.context, "[authz].[CreateHostGroup]",
+	ctx := context.TODO()
+	rows, err = txn.QueryContext(ctx, "[authz].[CreateHostGroup]",
 		sql.Named("SessionGUID", sessionGUID),
 		sql.Named("Name", group.Name),
 		sql.Named("Description", IfNullString(group.Description)),
-		sql.Named("Default", group.Default))
+		sql.Named("Default", group.Default),
+		sql.Named("GUID", sql.Out{Dest: &groupGUID}))
 
 	if err != nil {
-		return groupID, err
+		return groupGUID, groupJSON, err
 	}
 
 	defer rows.Close()
 
 	for rows.Next() {
-		err = rows.Scan(&groupID)
+		err = rows.Scan(&groupJSON)
 	}
 
 	if err != nil {
 		log.Errorf("%s", err)
-		return groupID, err
+		return groupGUID, groupJSON, err
 	}
 
-	return groupID, err
+	return groupGUID, groupJSON, err
 }
 
 // createHost creates a new check host
-func (loader *Loader) createHost(txn *sql.Tx, sessionGUID, groupGUID, hostname string) (hostGUID string, err error) {
+func createHost(txn *sql.Tx, sessionGUID, groupGUID, hostname string) (hostGUID, hostJSON string, err error) {
 	var (
 		rows *sql.Rows
 	)
 	log.Debugf("[Session GUID: %s]: hostname %s", sessionGUID, hostname)
 
-	rows, err = txn.QueryContext(loader.context, "[authz].[CreateHost]",
+	ctx := context.TODO()
+	rows, err = txn.QueryContext(ctx, "[authz].[CreateHost]",
 		sql.Named("SessionGUID", sessionGUID),
 		sql.Named("GroupGUID", groupGUID),
-		sql.Named("Hostname", hostname))
+		sql.Named("Hostname", hostname),
+		sql.Named("GUID", sql.Out{Dest: &hostGUID}))
 
 	if err != nil {
-		return hostGUID, err
+		return hostGUID, hostJSON, err
 	}
 
 	defer rows.Close()
 
 	for rows.Next() {
-		err = rows.Scan(&hostGUID)
+		err = rows.Scan(&hostJSON)
 	}
 
 	if err != nil {
 		log.Errorf("%s", err)
-		return hostGUID, err
+		return hostGUID, hostJSON, err
 	}
 
-	return hostGUID, err
+	return hostGUID, hostJSON, err
 }
 
 // createCheck ...
-func (loader *Loader) createCheck(txn *sql.Tx, sessionGUID, groupGUID string, check fauth.Check) (checkGUID string, err error) {
+func createCheck(txn *sql.Tx, sessionGUID, groupGUID string, check fauth.Check) (checkGUID, checkJSON string, err error) {
 	var (
 		rows *sql.Rows
 	)
 	log.Debugf("[Session GUID: %s]: create check %s, access: %s", sessionGUID, check.Name, check.Base)
 
-	rows, err = txn.QueryContext(loader.context, "[authz].[CreateCheck]",
+	ctx := context.TODO()
+	rows, err = txn.QueryContext(ctx, "[authz].[CreateCheck]",
 		sql.Named("SessionGUID", sessionGUID),
 		sql.Named("GroupGUID", groupGUID),
 		sql.Named("Name", check.Name),
 		sql.Named("Description", IfNullString(check.Description)),
 		sql.Named("Version", IfNullInt(check.Version, 0)),
-		sql.Named("Base", check.Base))
+		sql.Named("Base", check.Base),
+		sql.Named("GUID", sql.Out{Dest: &checkGUID}))
 
 	if err != nil {
-		return checkGUID, err
+		return checkGUID, checkJSON, err
 	}
 
 	defer rows.Close()
 
 	for rows.Next() {
-		err = rows.Scan(&checkGUID)
+		err = rows.Scan(&checkJSON)
 	}
 
 	if err != nil {
 		log.Errorf("%s", err)
-		return checkGUID, err
+		return checkGUID, checkJSON, err
 	}
 
-	return checkGUID, err
+	return checkGUID, checkJSON, err
+}
+
+func createPath(txn *sql.Tx, sessionGUID, checkGUID string, path fauth.Path) (pathGUID, pathJSON string, err error) {
+	var (
+		rows *sql.Rows
+	)
+
+	rules, err := json.Marshal(path.Rules)
+	if err != nil {
+		return pathGUID, pathJSON, err
+	}
+
+	log.Debugf("[Session GUID: %s]: create check %s, path: %s, rules %s", sessionGUID, checkGUID, path.Path, string(rules))
+
+	ctx := context.TODO()
+	rows, err = txn.QueryContext(ctx, "[authz].[CreatePath]",
+		sql.Named("SessionGUID", sessionGUID),
+		sql.Named("CheckGUID", checkGUID),
+		sql.Named("Path", path.Path),
+		sql.Named("Rules", string(rules)),
+		sql.Named("GUID", sql.Out{Dest: &pathGUID}))
+
+	if err != nil {
+		return pathGUID, pathJSON, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		err = rows.Scan(&pathJSON)
+	}
+
+	if err != nil {
+		log.Errorf("%s", err)
+		return pathGUID, pathJSON, err
+	}
+
+	return pathGUID, pathJSON, err
 }
 
 // getCheck ...
@@ -237,42 +279,6 @@ func (loader *Loader) getCheck(txn *sql.Tx, checkGUID string) (checkJSON string,
 	}
 
 	return checkJSON, err
-}
-
-func (loader *Loader) createPath(txn *sql.Tx, sessionGUID, checkGUID string, path fauth.Path) (pathGUID string, err error) {
-	var (
-		rows *sql.Rows
-	)
-
-	rules, err := json.Marshal(path.Rules)
-	if err != nil {
-		return pathGUID, err
-	}
-
-	log.Debugf("[Session GUID: %s]: create check %s, path: %s, rules %s", sessionGUID, checkGUID, path.Path, string(rules))
-
-	rows, err = txn.QueryContext(loader.context, "[authz].[CreatePath]",
-		sql.Named("SessionGUID", sessionGUID),
-		sql.Named("CheckGUID", checkGUID),
-		sql.Named("Path", path.Path),
-		sql.Named("Rules", string(rules)))
-
-	if err != nil {
-		return pathGUID, err
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		err = rows.Scan(&pathGUID)
-	}
-
-	if err != nil {
-		log.Errorf("%s", err)
-		return pathGUID, err
-	}
-
-	return pathGUID, err
 }
 
 func (loader *Loader) validateRuleS(txn *sql.Tx, rules string) (err error) {

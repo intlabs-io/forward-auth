@@ -2,6 +2,7 @@ package file
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 
@@ -10,15 +11,15 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-// Store implements the forward-auth storage interface
-type Store struct {
+// File implements the forward-auth file storage interface
+type File struct {
 	directory string
 	file      string
 	watcher   *fsnotify.Watcher
 }
 
 // New creates a new forward-auth Service from file
-func New(path string) (store *Store, err error) {
+func New(path string) (store *File, err error) {
 	// configure file change watcher
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -30,7 +31,7 @@ func New(path string) (store *Store, err error) {
 		log.Fatal(err)
 	}
 
-	store = &Store{
+	store = &File{
 		directory: path,
 		file:      filepath.Join(path, "checks.json"),
 		watcher:   watcher,
@@ -41,12 +42,16 @@ func New(path string) (store *Store, err error) {
 	return store, err
 }
 
-func (store *Store) ID() string {
+func (store *File) ID() string {
 	return "file"
 }
 
+func (store *File) Database() (db fauth.Database, err error) {
+	return db, fmt.Errorf("file store doesn't implement the database interface")
+}
+
 // Load loads access rules from a JSON checks file
-func (store *Store) Load() (acs *fauth.AccessControls, err error) {
+func (store *File) Load() (acs *fauth.AccessControls, err error) {
 	// load checks from file
 	data, err := ioutil.ReadFile(store.file)
 	if err != nil {
@@ -65,19 +70,19 @@ func (store *Store) Load() (acs *fauth.AccessControls, err error) {
 }
 
 // Close has nothing to do - file is only opened when loading/reloading
-func (store *Store) Close() error {
+func (store *File) Close() error {
 	return store.watcher.Close()
 }
 
 // Health checks to see if the file service is available.
-func (store *Store) Health() error {
+func (store *File) Health() error {
 	return nil
 }
 
-func (store *Store) Info() (info map[string]string) {
+func (store *File) Info() (info map[string]string) {
 	return make(map[string]string)
 }
 
-func (store *Store) Stats() (stats string) {
+func (store *File) Stats() (stats string) {
 	return stats
 }

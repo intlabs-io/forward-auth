@@ -210,15 +210,3 @@ func Update(auth *fauth.Auth, store fauth.Store) func(w http.ResponseWriter, r *
 		MsgJSON(w, "access rules update succeeded")
 	}
 }
-
-// HostChecks returns a handler for returning the configured access control rules
-func HostChecks(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		hostChecks, err := svc.HostChecks()
-		if err != nil {
-			ErrJSON(w, NewServerError(err.Error()))
-			return
-		}
-		OkJSON(w, hostChecks)
-	}
-}

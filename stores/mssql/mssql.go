@@ -14,16 +14,16 @@ import (
 	mssql "github.com/denisenkom/go-mssqldb"
 )
 
-// Store implements the forward-auth storage interface against Microsoft SQLServer
-type Store struct {
+// MSSql implements the forward-auth database interface against Microsoft SQLServer
+type MSSql struct {
 	database *sql.DB
 	context  context.Context
 	info     map[string]string
 }
 
 // New creates a new Service and sets the database
-func New(jwtHeader, configPath, runMode string, database, server string, port int, user, password string) (store *Store, err error) {
-	store = &Store{
+func New(jwtHeader, configPath, runMode string, database, server string, port int, user, password string) (store *MSSql, err error) {
+	store = &MSSql{
 		context: context.TODO(),
 	}
 	// configure MSSql Server
@@ -60,25 +60,29 @@ func New(jwtHeader, configPath, runMode string, database, server string, port in
 	return store, err
 }
 
-func (store *Store) ID() string {
+func (store *MSSql) ID() string {
 	return "mssql"
 }
 
-func (store *Store) Close() error {
+func (store *MSSql) Database() (db fauth.Database, err error) {
+	return store, nil
+}
+
+func (store *MSSql) Close() error {
 	return store.database.Close()
 }
 
 // Health checks to see if the DB is available.
-func (store *Store) Health() error {
+func (store *MSSql) Health() error {
 	return store.database.Ping()
 }
 
 // Info returns information about the Service.
-func (store *Store) Info() (info map[string]string) {
+func (store *MSSql) Info() (info map[string]string) {
 	return store.info
 }
 
-func (store *Store) Load() (acs *fauth.AccessControls, err error) {
+func (store *MSSql) Load() (acs *fauth.AccessControls, err error) {
 	var (
 		rows *sql.Rows
 	)
@@ -110,7 +114,7 @@ func (store *Store) Load() (acs *fauth.AccessControls, err error) {
 }
 
 // Stats returns Service  statistics
-func (store *Store) Stats() string {
+func (store *MSSql) Stats() string {
 	dbstats := store.database.Stats()
 	js := fmt.Sprintf("{\"MaxOpenConnections\": %d, \"OpenConnections\" : %d, \"InUse\": %d, \"Idle\": %d, \"WaitCount\": %d, \"WaitDuration\": %d, \"MaxIdleClosed\": %d, \"MaxLifetimeClosed\": %d}",
 		dbstats.MaxOpenConnections,
@@ -124,7 +128,7 @@ func (store *Store) Stats() string {
 	return js
 }
 
-func (store *Store) getVersion() (version string, err error) {
+func (store *MSSql) getVersion() (version string, err error) {
 	_, err = store.database.QueryContext(store.context, "[dbo].[Version]", sql.Named("Version", sql.Out{Dest: &(version)}))
 	if err != nil {
 		log.Errorf("%s", err)

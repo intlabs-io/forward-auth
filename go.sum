@@ -25,6 +25,9 @@ bitbucket.org/_metalogic_/mmap v0.0.0-20210207003405-1e2136f1733c h1:jakeuD7FrP8
 bitbucket.org/_metalogic_/mmap v0.0.0-20210207003405-1e2136f1733c/go.mod h1:dz2kDJAMANtLsj++XZYyc6VkwDmOWIla3Uzadg0R2pY=
 bitbucket.org/_metalogic_/pat v0.9.1 h1:HdUioTgXoYXUPknnL3jxI8FfAjNmRfGIpabfYjQu028=
 bitbucket.org/_metalogic_/pat v0.9.1/go.mod h1:REH1IDr/pn6hv0J5kn84gbmNgYPq1GYKHBCO3g8zWH0=
+bitbucket.org/_metalogic_/validation v0.0.0-20210601150612-ed58a6ac8ba6 h1:51kM/lPdIfUP08PDyPgbzqrvRNlnTlZ3Crog8dRQA/c=
+bitbucket.org/_metalogic_/validation v0.0.0-20210601150612-ed58a6ac8ba6/go.mod h1:ydQk01rdfURse/T4G+HBNDNltW23pVJlCnpHtt9IAsE=
+bitbucket.org/_metalogic_/validator v0.0.0-20210601150159-9df48f02c435/go.mod h1:6p5dkCJQ4fYtoGtx/p/mBycF/iX4ckXRIv1OA6DOSgI=
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.38.0/go.mod h1:990N+gfupTy94rShfmMCWGDn0LpTmnzTp2qbd1dvSRU=

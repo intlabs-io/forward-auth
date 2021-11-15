@@ -8,7 +8,7 @@ import (
 
 // Listen listens for changes to the access checks file calling
 // update to refresh its cache on change
-func (store *Store) Listen(update func(*fauth.AccessControls) error) {
+func (store *File) Listen(update func(*fauth.AccessControls) error) {
 
 	go func() {
 		for {
