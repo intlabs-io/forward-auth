@@ -43,5 +43,5 @@ ALTER TABLE [authz].[CHECKS] WITH CHECK ADD CONSTRAINT [FK_CHECKS_HostGroup] FOR
 REFERENCES [authz].[HOST_GROUPS] ([ID])
 GO
 
-ALTER TABLE [authz].[CHECKS] ADD CONSTRAINT UK_CHECKS_Name_Version_Base UNIQUE ("Name", "Base", "Version")
+ALTER TABLE [authz].[CHECKS] ADD CONSTRAINT UK_CHECKS_Name_Version_Base UNIQUE ("GroupID", "Name", "Base", "Version")
 GO
