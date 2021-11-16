@@ -3,18 +3,18 @@
 cmd=$(basename $0)
 
 usage() {
-  echo -e usage: $cmd 'dev|tst|pvw|stg|prd'
+  echo -e usage: "$cmd 'dev|tst|pvw|stg|prd' [-level LEVEL] FILE"
   echo -e "  $1"
   exit 1
 }
 
-if [ $# != 1 ]; then
-  usage "platform must be provided"
+if [ $# != 2 ]; then
+  usage 
 fi
 
 export ENV="$1"
 if [ "$ENV" != "dev" -a "$ENV" != "tst" -a "$ENV" != "pvw" -a "$ENV" != "stg" -a "$ENV" != "prd" ]; then
-  usage
+  usage "invalid platform $ENV"
 fi
 
 if [ ! -f $ENV.in ]; then
@@ -23,5 +23,7 @@ fi
 
 source $ENV.in
 
-./load  -level DEBUG
+file=$2
+
+./load  -level DEBUG -file $file
 

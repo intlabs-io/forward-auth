@@ -1,43 +1,40 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
 
 	"bitbucket.org/_metalogic_/config"
 	fauth "bitbucket.org/_metalogic_/forward-auth"
-	"bitbucket.org/_metalogic_/forward-auth/adapters/file"
-	"bitbucket.org/_metalogic_/forward-auth/adapters/mssql"
 	"bitbucket.org/_metalogic_/forward-auth/build"
-	"bitbucket.org/_metalogic_/forward-auth/http"
+	"bitbucket.org/_metalogic_/forward-auth/docs"
+	"bitbucket.org/_metalogic_/forward-auth/server"
+	"bitbucket.org/_metalogic_/forward-auth/stores/file"
+	"bitbucket.org/_metalogic_/forward-auth/stores/mssql"
 	"bitbucket.org/_metalogic_/log"
-	"github.com/fsnotify/fsnotify"
 )
 
 var (
 	info *build.ProjectInfo
 
-	rules []fauth.HostChecks
-
 	configFlg  string
 	disableFlg bool
 	runMode    string
-	storageFlg string
 	levelFlg   log.Level
-	adapterFlg string
+	portFlg    string
+	storageFlg string
 
-	env        string
-	prefix     string
 	dbname     string
 	dbhost     string
 	dbport     int
 	dbuser     string
 	dbpassword string
-
-	jwtKey        []byte
-	jwtRefreshKey []byte
 
 	jwtHeader   string
 	userHeader  string
@@ -48,12 +45,11 @@ var (
 
 func init() {
 
-	flag.StringVar(&adapterFlg, "adapter", "file", "adapter type - one of file, mssql, mock")
 	flag.StringVar(&configFlg, "config", "", "config file")
 	flag.BoolVar(&disableFlg, "disable", false, "disable authorization")
-	flag.Var(&levelFlg, "level", "set log level to one of debug, info, warning, error")
-
-	flag.StringVar(&storageFlg, "storage", "MOCK", "the rule storage type")
+	flag.Var(&levelFlg, "level", "set log level to one of trace, debug, info, warning, error")
+	flag.StringVar(&portFlg, "port", ":8080", "HTTP listen port")
+	flag.StringVar(&storageFlg, "store", config.IfGetenv("FORWARD_AUTH_STORAGE", "file"), "storage adapter type - one of file, mssql, mock")
 
 	var err error
 	info, err = build.Info()
@@ -70,13 +66,19 @@ func init() {
 		flag.PrintDefaults()
 	}
 
+	docs.SwaggerInfo.Host = config.MustGetenv("APIS_HOST")
+	projTemplate := config.IfGetenv("OPENAPI_PROJECT_TEMPLATE", "<pre>((Project))\n(branch ((Branch)), commit ((Commit)))\nbuilt at ((Built))</pre>\n\n")
+	version, err = info.Format(projTemplate)
+	if err != nil {
+		log.Warning("failed to format openapi version from template %s: %s", projTemplate, err)
+	} else {
+		docs.SwaggerInfo.Description = fmt.Sprintf("%s%s", version, docs.SwaggerInfo.Description)
+	}
+
 }
 
 func main() {
 	flag.Parse()
-
-	// one of dev, tst, pvw, stg or prd
-	env = config.MustGetenv("ENV")
 
 	runMode = config.IfGetenv("RUN_MODE", "")
 	// get config from Docker secrets or environment
@@ -85,8 +87,6 @@ func main() {
 	dbname = config.MustGetenv("DB_NAME")
 	dbuser = config.MustGetConfig("API_DB_USER")
 	dbpassword = config.MustGetConfig("API_DB_PASSWORD")
-	jwtKey = []byte(config.MustGetConfig("JWT_SECRET_KEY"))
-	jwtRefreshKey = []byte(config.MustGetConfig("JWT_REFRESH_SECRET_KEY"))
 
 	tenantParam = config.IfGetenv("TENANT_PARAM_NAME", ":tenantID")
 	jwtHeader = config.IfGetenv("JWT_HEADER_NAME", "X-Jwt-Header")
@@ -111,62 +111,48 @@ func main() {
 		configPath = config.IfGetenv("CONFIG_PATH", "/usr/local/etc/forward-auth")
 	}
 
-	checksFile := filepath.Join(configPath, "checks.json")
-
-	var handler *http.Handler
-	switch adapterFlg {
+	var store fauth.Store
+	var err error
+	switch storageFlg {
 	case "file":
-		svc, err := file.New(configPath, runMode)
-
-		if err != nil {
-			log.Fatalf("failed to create forward-auth Service: %s", err)
-		}
-		defer svc.Close()
-
-		watcher, err := fsnotify.NewWatcher()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer watcher.Close()
-
-		go func() {
-			for {
-				select {
-				case event, ok := <-watcher.Events:
-					if !ok {
-						return
-					}
-					log.Debugf("checks file watch: %s", event)
-					if event.Name == checksFile && (event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write) {
-						log.Infof("checks file %s has changed; reloading", checksFile)
-						svc.LoadAccess(true)
-					}
-				case err, ok := <-watcher.Errors:
-					if !ok {
-						return
-					}
-					log.Error(err)
-				}
-			}
-		}()
-
-		err = watcher.Add(configPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		handler = http.NewHandler(svc, userHeader, traceHeader)
+		store, err = file.New(configPath)
 	case "mssql":
-		svc, err := mssql.New(jwtHeader, configPath, runMode, dbname, dbhost, dbport, dbuser, dbpassword)
-
-		if err != nil {
-			log.Fatalf("failed to create forward-auth Service: %s", err)
-		}
-		defer svc.Close()
-
-		handler = http.NewHandler(svc, userHeader, traceHeader)
+		store, err = mssql.New(jwtHeader, configPath, runMode, dbname, dbhost, dbport, dbuser, dbpassword)
 	}
 
-	log.Fatal(handler.ServeHTTP(":8080"))
+	if err != nil {
+		log.Fatalf("failed to create forward-auth %s Service: %s", store.ID(), err)
+	}
+	defer store.Close()
+
+	exitDone := &sync.WaitGroup{}
+	exitDone.Add(2)
+
+	authzSrv := server.Start(portFlg, runMode, tenantParam, userHeader, traceHeader, store, exitDone)
+
+	log.Infof("forward-auth started with %s storage adapter", store.ID())
+
+	// Wait for a SIGINT (perhaps triggered by user with CTRL-C) or SIGTERM (from Docker)
+	// Run cleanup when signal is received
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	<-stop
+
+	log.Warning("forward-auth received stop signal - shutting down")
+
+	// now close the servers gracefully ("shutdown")
+	var ctx context.Context
+	var cancel context.CancelFunc
+
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	log.Warning("stopping forward-auth")
+	authzSrv.Shutdown(ctx)
+
+	// wait for goroutines started in StartEventServer() to stop
+	exitDone.Wait()
+
+	log.Warning("forward-auth shutdown complete - exiting")
 
 }

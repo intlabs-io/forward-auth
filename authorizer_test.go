@@ -52,7 +52,7 @@ func init() {
 		log.Fatal(err)
 	}
 	secret = []byte("RyxDWzqg8AaDAHxGt989tEPdfG42dr6e5QqCxJ4mwGKYavtLbj")
-	auth, err = NewAuth(jwtHeader, publicKey, secret, tokens, blocks)
+	// TODO	auth, err = NewAuth(jwtHeader, publicKey, secret, tokens, blocks)
 	if err != nil {
 		log.Fatal(err)
 	}

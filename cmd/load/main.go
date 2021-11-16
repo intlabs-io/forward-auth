@@ -6,14 +6,13 @@ import (
 	"os"
 
 	"bitbucket.org/_metalogic_/config"
-	"bitbucket.org/_metalogic_/forward-auth/adapters/file"
-	"bitbucket.org/_metalogic_/forward-auth/adapters/mssql"
+	"bitbucket.org/_metalogic_/forward-auth/build"
+	"bitbucket.org/_metalogic_/forward-auth/stores/mssql"
 	"bitbucket.org/_metalogic_/log"
 )
 
 var (
-	version string
-	build   string
+	info *build.ProjectInfo
 
 	fileFlg    string
 	disableFlg bool
@@ -32,21 +31,35 @@ func init() {
 	flag.Var(&levelFlg, "level", "set log level to one of debug, info, warning, error")
 
 	// get config from Docker secrets or environment
-	dbhost = config.MustGetenv("DB_HOST")
+	dbhost = config.MustGetConfig("DB_HOST")
 	dbport = config.MustGetInt("DB_PORT")
-	dbname = config.MustGetenv("DB_NAME")
+	dbname = config.MustGetConfig("DB_NAME")
 	dbuser = config.MustGetConfig("API_DB_USER")
 	dbpassword = config.MustGetConfig("API_DB_PASSWORD")
 
+	var err error
+	info, err = build.Info()
+	if err != nil {
+		log.Fatalf("get project info failed: %s", err)
+	}
+
+	version := info.String()
+	command := info.Name()
+
 	flag.Usage = func() {
-		fmt.Printf("Usage (load version %s, build %s):\n\n", version, build)
-		fmt.Printf("load -help (this message) | forward-auth [options] RULES-FILE:\n\n")
+		fmt.Printf("Project %s:\n\n", version)
+		fmt.Printf("%s -help (this message) | %s [options] FILE:\n\n", command, command)
 		flag.PrintDefaults()
 	}
 }
 
 func main() {
 	flag.Parse()
+
+	if fileFlg == "" {
+		flag.Usage()
+		os.Exit(1)
+	}
 
 	if levelFlg != log.None {
 		log.SetLevel(levelFlg)
@@ -57,22 +70,17 @@ func main() {
 		}
 	}
 
-	acs, err := file.AccessControls(fileFlg)
-	if err != nil {
-		log.Fatalf("failed to load checks from file: %s", err)
-	}
-
 	loader, err := mssql.NewLoader(dbname, dbhost, dbport, dbuser, dbpassword)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	count, err := loader.Load(acs)
+	count, err := loader.Import(fileFlg)
 
 	if err != nil {
-		log.Fatalf("failed to load checks file %s to database: %s", fileFlg, err)
+		log.Fatalf("failed to load access control system to database from %s: %s", fileFlg, err)
 	}
 
-	log.Debugf("loaded %d checks to database", count)
+	log.Debugf("loaded %d host groups to database", count)
 
 }
