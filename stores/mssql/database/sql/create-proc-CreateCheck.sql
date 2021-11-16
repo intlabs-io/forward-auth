@@ -92,7 +92,7 @@ BEGIN
         [c].UpdateUser AS "updateUser"
     FROM [authz].CHECKS [c]
     WHERE [c].ID = @ID
-    FOR JSON PATH, INCLUDE_NULL_VALUES)
+    FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)
        
     SELECT @json
 

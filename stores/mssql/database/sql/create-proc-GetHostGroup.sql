@@ -35,7 +35,7 @@ BEGIN
         [hg].UpdateUser AS "updateUser"
     FROM [authz].HOST_GROUPS [hg]
     WHERE [hg].ID = @GroupID
-    FOR JSON PATH, INCLUDE_NULL_VALUES)
+    FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)
        
     SELECT @json
 

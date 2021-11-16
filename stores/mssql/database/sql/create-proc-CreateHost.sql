@@ -56,7 +56,7 @@ BEGIN
         [h].UpdateUser AS "updateUser"
     FROM [authz].HOSTS [h]
     WHERE [h].ID = @ID
-    FOR JSON PATH, INCLUDE_NULL_VALUES)
+    FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)
        
     SELECT @json
 
