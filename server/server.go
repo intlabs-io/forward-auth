@@ -172,7 +172,7 @@ func router(auth *fauth.Auth, store fauth.Store, userHeader, traceHeader string)
 
 	// Auth endpoints
 	api.GET("/auth", Auth(auth, userHeader, traceHeader))
-	api.POST("/auth/update", Update(auth, store)) // called by deployment-api broadcast to update from store
+	api.POST("/auth/update", Update(auth, store)) // called by deployment-api broadcast to trigger update from store
 	api.GET("/block", Blocked(auth))
 	api.POST("/block/:userGUID", Block(auth))
 	api.DELETE("/block/:userGUID", Unblock(auth))
