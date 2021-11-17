@@ -45,7 +45,7 @@ BEGIN
         THROW @ReturnCode, @Message, 1;
     END
 
-		DELETE FROM [authz].[PATHS] WHERE ID = @PathGUID
+		DELETE FROM [authz].[PATHS] WHERE ID = @PathID
 
     SELECT 'path deleted for GUID ' + @PathGUID
 

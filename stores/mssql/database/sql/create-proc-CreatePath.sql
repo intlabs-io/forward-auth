@@ -1,5 +1,6 @@
 ALTER PROCEDURE [authz].[CreatePath]
     @SessionGUID VARCHAR(36),
+    @GroupGUID VARCHAR(36),
     @CheckGUID VARCHAR(36),
     @Path VARCHAR(1024),
     @Rules NVARCHAR(max),
@@ -14,10 +15,21 @@ BEGIN
 
     BEGIN TRY
     
+    DECLARE @GroupID INT
+    SELECT @GroupID = ID
+    FROM [authz].[HOST_GROUPS]
+    WHERE GUID = @GroupGUID
+    IF @GroupID IS NULL
+    BEGIN
+        SET @ReturnCode = @BaseCode + 404;
+        SET @Message = 'host group does not exist for GUID: ' + @GroupGUID;
+        THROW @ReturnCode, @Message, 1;
+    END
+    
     DECLARE @CheckID INT
     SELECT @CheckID = ID
     FROM [authz].[CHECKS]
-    WHERE GUID = @CheckGUID
+    WHERE GroupID = @GroupID AND GUID = @CheckGUID
     IF @CheckID IS NULL
     BEGIN
         SET @ReturnCode = @BaseCode + 404;
@@ -26,7 +38,7 @@ BEGIN
     END
 
 
-  		INSERT INTO [authz].[PATHS]
+  	INSERT INTO [authz].[PATHS]
         (
         [GUID],
         [CheckID],
