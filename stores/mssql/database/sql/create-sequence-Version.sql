@@ -1,0 +1,1 @@
+CREATE SEQUENCE [authz].Version AS INT INCREMENT BY 1  
