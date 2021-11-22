@@ -82,6 +82,7 @@ func (store *MSSql) Info() (info map[string]string) {
 	return store.info
 }
 
+// Load loads an access control system from the database
 func (store *MSSql) Load() (acs *fauth.AccessControls, err error) {
 	var (
 		rows *sql.Rows
