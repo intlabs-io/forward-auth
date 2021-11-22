@@ -177,34 +177,30 @@ func router(auth *fauth.Auth, store fauth.Store, userHeader, traceHeader string)
 	api.POST("/block/:userGUID", Block(auth))
 	api.DELETE("/block/:userGUID", Unblock(auth))
 
-	database, err := store.Database()
-	if err != nil {
-		log.Fatal(err)
-	}
-	// ACS endpoints
-	api.GET("/hostgroups", HostGroups(database))
-	api.POST("/hostgroups", CreateHostGroup(userHeader, database))
-	api.GET("/hostgroups/:groupGUID", HostGroup(database))
-	api.PUT("/hostgroups/:groupGUID", UpdateHostGroup(userHeader, database))
-	api.DELETE("/hostgroups/:groupGUID", DeleteHostGroup(database))
+	// ACS endpoints - only the MSSql adapter implements these endpoints
+	api.GET("/hostgroups", HostGroups(store))
+	api.POST("/hostgroups", CreateHostGroup(userHeader, store))
+	api.GET("/hostgroups/:groupGUID", HostGroup(store))
+	api.PUT("/hostgroups/:groupGUID", UpdateHostGroup(userHeader, store))
+	api.DELETE("/hostgroups/:groupGUID", DeleteHostGroup(store))
 
-	api.GET("/hostgroups/:groupGUID/hosts", Hosts(database))
-	api.POST("/hostgroups/:groupGUID/hosts", CreateHost(userHeader, database))
-	api.GET("/hostgroups/:groupGUID/hosts/:hostGUID", Host(database))
-	api.PUT("/hostgroups/:groupGUID/hosts/:hostGUID", UpdateHost(userHeader, database))
-	api.DELETE("/hostgroups/:groupGUID/hosts/:hostGUID", DeleteHost(database))
+	api.GET("/hostgroups/:groupGUID/hosts", Hosts(store))
+	api.POST("/hostgroups/:groupGUID/hosts", CreateHost(userHeader, store))
+	api.GET("/hostgroups/:groupGUID/hosts/:hostGUID", Host(store))
+	api.PUT("/hostgroups/:groupGUID/hosts/:hostGUID", UpdateHost(userHeader, store))
+	api.DELETE("/hostgroups/:groupGUID/hosts/:hostGUID", DeleteHost(store))
 
-	api.GET("/hostgroups/:groupGUID/checks", Checks(database))
-	api.POST("/hostgroups/:groupGUID/checks", CreateCheck(userHeader, database))
-	api.GET("/hostgroups/:groupGUID/checks/:checkGUID", Check(database))
-	api.PUT("/hostgroups/:groupGUID/checks/:checkGUID", UpdateCheck(userHeader, database))
-	api.DELETE("/hostgroups/:groupGUID/checks/:checkGUID", DeleteCheck(database))
+	api.GET("/hostgroups/:groupGUID/checks", Checks(store))
+	api.POST("/hostgroups/:groupGUID/checks", CreateCheck(userHeader, store))
+	api.GET("/hostgroups/:groupGUID/checks/:checkGUID", Check(store))
+	api.PUT("/hostgroups/:groupGUID/checks/:checkGUID", UpdateCheck(userHeader, store))
+	api.DELETE("/hostgroups/:groupGUID/checks/:checkGUID", DeleteCheck(store))
 
-	api.GET("/hostgroups/:groupGUID/checks/:checkGUID/paths", Paths(database))
-	api.POST("/hostgroups/:groupGUID/checks/:checkGUID/paths", CreatePath(userHeader, database))
-	api.GET("/hostgroups/:groupGUID/checks/:checkGUID/paths/:pathGUID", Path(database))
-	api.PUT("/hostgroups/:groupGUID/checks/:checkGUID/paths/:pathGUID", UpdatePath(userHeader, database))
-	api.DELETE("/hostgroups/:groupGUID/checks/:checkGUID/paths/:pathGUID", DeletePath(database))
+	api.GET("/hostgroups/:groupGUID/checks/:checkGUID/paths", Paths(store))
+	api.POST("/hostgroups/:groupGUID/checks/:checkGUID/paths", CreatePath(userHeader, store))
+	api.GET("/hostgroups/:groupGUID/checks/:checkGUID/paths/:pathGUID", Path(store))
+	api.PUT("/hostgroups/:groupGUID/checks/:checkGUID/paths/:pathGUID", UpdatePath(userHeader, store))
+	api.DELETE("/hostgroups/:groupGUID/checks/:checkGUID/paths/:pathGUID", DeletePath(store))
 
 	return treemux
 }
