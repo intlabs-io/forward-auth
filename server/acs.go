@@ -19,9 +19,14 @@ import (
 // @Failure 403 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /forward-auth/v1/hostgroups [post]
-func HostGroups(store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func HostGroups(store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		hostChecks, err := store.HostGroups()
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+		hostChecks, err := db.HostGroups()
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -40,15 +45,22 @@ func HostGroups(store fauth.Database) func(w http.ResponseWriter, r *http.Reques
 // @Failure 403 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /forward-auth/v1/hostgroups [get]
-func CreateHostGroup(userHeader string, store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func CreateHostGroup(userHeader string, store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		sessionGUID := StringHeader(r, userHeader, rootGUID)
 
 		decoder := json.NewDecoder(r.Body)
 		var group fauth.HostGroup
 
 		// unmarshal JSON into &answers
-		err := decoder.Decode(&group)
+		err = decoder.Decode(&group)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -60,7 +72,7 @@ func CreateHostGroup(userHeader string, store fauth.Database) func(w http.Respon
 			return
 		}
 
-		hostChecks, err := store.CreateHostGroup(sessionGUID, group)
+		hostChecks, err := db.CreateHostGroup(sessionGUID, group)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -69,10 +81,16 @@ func CreateHostGroup(userHeader string, store fauth.Database) func(w http.Respon
 	}
 }
 
-func HostGroup(store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func HostGroup(store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		groupGUID := params["groupGUID"]
-		hostChecks, err := store.HostGroup(groupGUID)
+		hostChecks, err := db.HostGroup(groupGUID)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -81,8 +99,13 @@ func HostGroup(store fauth.Database) func(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func UpdateHostGroup(userHeader string, store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func UpdateHostGroup(userHeader string, store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
 		sessionGUID := StringHeader(r, userHeader, rootGUID)
 		groupGUID := params["groupGUID"]
 
@@ -90,7 +113,7 @@ func UpdateHostGroup(userHeader string, store fauth.Database) func(w http.Respon
 		var group fauth.HostGroup
 
 		// unmarshal JSON body into &group
-		err := decoder.Decode(&group)
+		err = decoder.Decode(&group)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -102,7 +125,7 @@ func UpdateHostGroup(userHeader string, store fauth.Database) func(w http.Respon
 			return
 		}
 
-		hostChecks, err := store.UpdateHostGroup(sessionGUID, groupGUID, group)
+		hostChecks, err := db.UpdateHostGroup(sessionGUID, groupGUID, group)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -111,10 +134,16 @@ func UpdateHostGroup(userHeader string, store fauth.Database) func(w http.Respon
 	}
 }
 
-func DeleteHostGroup(store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func DeleteHostGroup(store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		groupGUID := params["groupGUID"]
-		hostChecks, err := store.DeleteHostGroup(groupGUID)
+		hostChecks, err := db.DeleteHostGroup(groupGUID)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -123,10 +152,16 @@ func DeleteHostGroup(store fauth.Database) func(w http.ResponseWriter, r *http.R
 	}
 }
 
-func Hosts(store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Hosts(store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		groupGUID := params["groupGUID"]
-		hostChecks, err := store.Hosts(groupGUID)
+		hostChecks, err := db.Hosts(groupGUID)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -135,8 +170,14 @@ func Hosts(store fauth.Database) func(w http.ResponseWriter, r *http.Request, pa
 	}
 }
 
-func CreateHost(userHeader string, store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func CreateHost(userHeader string, store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		sessionGUID := StringHeader(r, userHeader, rootGUID)
 		groupGUID := params["groupGUID"]
 
@@ -144,7 +185,7 @@ func CreateHost(userHeader string, store fauth.Database) func(w http.ResponseWri
 		var host fauth.Host
 
 		// unmarshal JSON body into &group
-		err := decoder.Decode(&host)
+		err = decoder.Decode(&host)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -156,7 +197,7 @@ func CreateHost(userHeader string, store fauth.Database) func(w http.ResponseWri
 			return
 		}
 
-		hostChecks, err := store.CreateHost(sessionGUID, groupGUID, host.Hostname)
+		hostChecks, err := db.CreateHost(sessionGUID, groupGUID, host.Hostname)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -165,11 +206,17 @@ func CreateHost(userHeader string, store fauth.Database) func(w http.ResponseWri
 	}
 }
 
-func Host(store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Host(store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		groupGUID := params["groupGUID"]
 		hostGUID := params["hostGUID"]
-		hostChecks, err := store.Host(groupGUID, hostGUID)
+		hostChecks, err := db.Host(groupGUID, hostGUID)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -178,8 +225,14 @@ func Host(store fauth.Database) func(w http.ResponseWriter, r *http.Request, par
 	}
 }
 
-func UpdateHost(userHeader string, store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func UpdateHost(userHeader string, store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		sessionGUID := StringHeader(r, userHeader, rootGUID)
 		groupGUID := params["groupGUID"]
 		hostGUID := params["hostGUID"]
@@ -188,7 +241,7 @@ func UpdateHost(userHeader string, store fauth.Database) func(w http.ResponseWri
 		var host fauth.Host
 
 		// unmarshal JSON body into &group
-		err := decoder.Decode(&host)
+		err = decoder.Decode(&host)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -200,7 +253,7 @@ func UpdateHost(userHeader string, store fauth.Database) func(w http.ResponseWri
 			return
 		}
 
-		hostChecks, err := store.UpdateHost(sessionGUID, groupGUID, hostGUID, host.Hostname)
+		hostChecks, err := db.UpdateHost(sessionGUID, groupGUID, hostGUID, host.Hostname)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -209,11 +262,17 @@ func UpdateHost(userHeader string, store fauth.Database) func(w http.ResponseWri
 	}
 }
 
-func DeleteHost(store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func DeleteHost(store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		groupGUID := params["groupGUID"]
 		hostGUID := params["hostGUID"]
-		hostChecks, err := store.DeleteHost(groupGUID, hostGUID)
+		hostChecks, err := db.DeleteHost(groupGUID, hostGUID)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -222,10 +281,16 @@ func DeleteHost(store fauth.Database) func(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func Checks(store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Checks(store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		groupGUID := params["groupGUID"]
-		hostChecks, err := store.Checks(groupGUID)
+		hostChecks, err := db.Checks(groupGUID)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -234,8 +299,14 @@ func Checks(store fauth.Database) func(w http.ResponseWriter, r *http.Request, p
 	}
 }
 
-func CreateCheck(userHeader string, store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func CreateCheck(userHeader string, store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		sessionGUID := StringHeader(r, userHeader, rootGUID)
 		groupGUID := params["groupGUID"]
 
@@ -243,7 +314,7 @@ func CreateCheck(userHeader string, store fauth.Database) func(w http.ResponseWr
 		var check fauth.Check
 
 		// unmarshal JSON body into &group
-		err := decoder.Decode(&check)
+		err = decoder.Decode(&check)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -255,7 +326,7 @@ func CreateCheck(userHeader string, store fauth.Database) func(w http.ResponseWr
 			return
 		}
 
-		hostChecks, err := store.CreateCheck(sessionGUID, groupGUID, check)
+		hostChecks, err := db.CreateCheck(sessionGUID, groupGUID, check)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -264,11 +335,17 @@ func CreateCheck(userHeader string, store fauth.Database) func(w http.ResponseWr
 	}
 }
 
-func Check(store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Check(store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		groupGUID := params["groupGUID"]
 		checkGUID := params["checkGUID"]
-		hostChecks, err := store.Check(groupGUID, checkGUID)
+		hostChecks, err := db.Check(groupGUID, checkGUID)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -277,8 +354,14 @@ func Check(store fauth.Database) func(w http.ResponseWriter, r *http.Request, pa
 	}
 }
 
-func UpdateCheck(userHeader string, store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func UpdateCheck(userHeader string, store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		sessionGUID := StringHeader(r, userHeader, rootGUID)
 		groupGUID := params["groupGUID"]
 		checkGUID := params["checkGUID"]
@@ -287,7 +370,7 @@ func UpdateCheck(userHeader string, store fauth.Database) func(w http.ResponseWr
 		var check fauth.Check
 
 		// unmarshal JSON body into &group
-		err := decoder.Decode(&check)
+		err = decoder.Decode(&check)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -299,7 +382,7 @@ func UpdateCheck(userHeader string, store fauth.Database) func(w http.ResponseWr
 			return
 		}
 
-		hostChecks, err := store.UpdateCheck(sessionGUID, groupGUID, checkGUID, check)
+		hostChecks, err := db.UpdateCheck(sessionGUID, groupGUID, checkGUID, check)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -308,11 +391,17 @@ func UpdateCheck(userHeader string, store fauth.Database) func(w http.ResponseWr
 	}
 }
 
-func DeleteCheck(store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func DeleteCheck(store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		groupGUID := params["groupGUID"]
 		checkGUID := params["checkGUID"]
-		hostChecks, err := store.DeleteCheck(groupGUID, checkGUID)
+		hostChecks, err := db.DeleteCheck(groupGUID, checkGUID)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -321,12 +410,18 @@ func DeleteCheck(store fauth.Database) func(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func Paths(store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Paths(store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		groupGUID := params["groupGUID"]
 		checkGUID := params["checkGUID"]
 
-		pathsJSON, err := store.Paths(groupGUID, checkGUID)
+		pathsJSON, err := db.Paths(groupGUID, checkGUID)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -335,8 +430,14 @@ func Paths(store fauth.Database) func(w http.ResponseWriter, r *http.Request, pa
 	}
 }
 
-func CreatePath(userHeader string, store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func CreatePath(userHeader string, store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		sessionGUID := StringHeader(r, userHeader, rootGUID)
 		groupGUID := params["groupGUID"]
 		checkGUID := params["checkGUID"]
@@ -344,7 +445,7 @@ func CreatePath(userHeader string, store fauth.Database) func(w http.ResponseWri
 		decoder := json.NewDecoder(r.Body)
 		var path fauth.Path
 		// unmarshal JSON body into &group
-		err := decoder.Decode(&path)
+		err = decoder.Decode(&path)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -356,7 +457,7 @@ func CreatePath(userHeader string, store fauth.Database) func(w http.ResponseWri
 			return
 		}
 
-		pathJSON, err := store.CreatePath(sessionGUID, groupGUID, checkGUID, path)
+		pathJSON, err := db.CreatePath(sessionGUID, groupGUID, checkGUID, path)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -365,12 +466,18 @@ func CreatePath(userHeader string, store fauth.Database) func(w http.ResponseWri
 	}
 }
 
-func Path(store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Path(store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		groupGUID := params["groupGUID"]
 		checkGUID := params["checkGUID"]
 		pathGUID := params["pathGUID"]
-		pathJSON, err := store.Path(groupGUID, checkGUID, pathGUID)
+		pathJSON, err := db.Path(groupGUID, checkGUID, pathGUID)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -379,8 +486,14 @@ func Path(store fauth.Database) func(w http.ResponseWriter, r *http.Request, par
 	}
 }
 
-func UpdatePath(userHeader string, store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func UpdatePath(userHeader string, store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		sessionGUID := StringHeader(r, userHeader, rootGUID)
 		groupGUID := params["groupGUID"]
 		checkGUID := params["checkGUID"]
@@ -388,7 +501,7 @@ func UpdatePath(userHeader string, store fauth.Database) func(w http.ResponseWri
 		decoder := json.NewDecoder(r.Body)
 		var path fauth.Path
 		// unmarshal JSON body into &group
-		err := decoder.Decode(&path)
+		err = decoder.Decode(&path)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -400,7 +513,7 @@ func UpdatePath(userHeader string, store fauth.Database) func(w http.ResponseWri
 			return
 		}
 
-		pathJSON, err := store.UpdatePath(sessionGUID, groupGUID, checkGUID, pathGUID, path)
+		pathJSON, err := db.UpdatePath(sessionGUID, groupGUID, checkGUID, pathGUID, path)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -408,12 +521,18 @@ func UpdatePath(userHeader string, store fauth.Database) func(w http.ResponseWri
 		OkJSON(w, pathJSON)
 	}
 }
-func DeletePath(store fauth.Database) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func DeletePath(store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		db, err := store.Database()
+		if err != nil {
+			ErrJSON(w, NewServerError(err.Error()))
+			return
+		}
+
 		groupGUID := params["groupGUID"]
 		checkGUID := params["checkGUID"]
 		pathGUID := params["pathGUID"]
-		hostChecks, err := store.DeletePath(groupGUID, checkGUID, pathGUID)
+		hostChecks, err := db.DeletePath(groupGUID, checkGUID, pathGUID)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
