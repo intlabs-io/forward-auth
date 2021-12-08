@@ -1,4 +1,4 @@
-ALTER FUNCTION [authz].[HostGroups]()
+ALTER FUNCTION [authz].[HostGroupsJSON]()
 RETURNS NVARCHAR(max)
 AS 
 BEGIN
