@@ -51,6 +51,7 @@ func Auth(auth *fauth.Auth, userHeader, traceHeader string) func(w http.Response
 			log.Debugf("dump raw HTTP request: %s", raw[1:len(raw)-1])
 		}
 
+		// pass or create traceID and add to request header
 		traceID := r.Header.Get(traceHeader)
 		if traceID == "" {
 			traceID = uuid.New()
