@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	"bitbucket.org/_metalogic_/build"
 	fauth "bitbucket.org/_metalogic_/forward-auth"
-	"bitbucket.org/_metalogic_/forward-auth/build"
 	. "bitbucket.org/_metalogic_/glib/http" // dot import fo avoid package prefix in reference (shutup lint)
 	_ "bitbucket.org/_metalogic_/glib/types"
 	"bitbucket.org/_metalogic_/log"
@@ -31,18 +31,13 @@ func init() {
 // @Router /forward-auth/v1/info [get]
 func APIInfo(store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		projectInfo, err := build.Info()
-		if err != nil {
-			ErrJSON(w, NewServerError(err.Error()))
-			return
-		}
 		type runtime struct {
-			ProjectInfo *build.ProjectInfo `json:"projectInfo"`
-			ServiceInfo map[string]string  `json:"serviceInfo"`
-			LogLevel    string             `json:"logLevel"`
+			ProjectInfo build.BuildInfo   `json:"projectInfo"`
+			ServiceInfo map[string]string `json:"serviceInfo"`
+			LogLevel    string            `json:"logLevel"`
 		}
 		rt := &runtime{
-			ProjectInfo: projectInfo,
+			ProjectInfo: build.Info,
 			ServiceInfo: store.Info(),
 			LogLevel:    log.GetLevel().String(),
 		}

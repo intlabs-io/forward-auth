@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"os"
 
+	"bitbucket.org/_metalogic_/build"
 	"bitbucket.org/_metalogic_/config"
-	"bitbucket.org/_metalogic_/forward-auth/build"
 	"bitbucket.org/_metalogic_/forward-auth/stores/mssql"
 	"bitbucket.org/_metalogic_/log"
 )
 
 var (
-	info *build.ProjectInfo
-
 	fileFlg    string
 	disableFlg bool
 	levelFlg   log.Level
@@ -37,11 +35,7 @@ func init() {
 	dbuser = config.MustGetConfig("API_DB_USER")
 	dbpassword = config.MustGetConfig("API_DB_PASSWORD")
 
-	var err error
-	info, err = build.Info()
-	if err != nil {
-		log.Fatalf("get project info failed: %s", err)
-	}
+	info := build.Info
 
 	version := info.String()
 	command := info.Name()

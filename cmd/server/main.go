@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
+	"bitbucket.org/_metalogic_/build"
 	"bitbucket.org/_metalogic_/config"
 	fauth "bitbucket.org/_metalogic_/forward-auth"
-	"bitbucket.org/_metalogic_/forward-auth/build"
 	"bitbucket.org/_metalogic_/forward-auth/docs"
 	"bitbucket.org/_metalogic_/forward-auth/server"
 	"bitbucket.org/_metalogic_/forward-auth/stores/file"
@@ -21,8 +21,6 @@ import (
 )
 
 var (
-	info *build.ProjectInfo
-
 	configFlg  string
 	disableFlg bool
 	runMode    string
@@ -51,11 +49,7 @@ func init() {
 	flag.StringVar(&portFlg, "port", ":8080", "HTTP listen port")
 	flag.StringVar(&storageFlg, "store", config.IfGetenv("FORWARD_AUTH_STORAGE", "file"), "storage adapter type - one of file, mssql, mock")
 
-	var err error
-	info, err = build.Info()
-	if err != nil {
-		log.Fatalf("get project info failed: %s", err)
-	}
+	info := build.Info
 
 	version := info.String()
 	command := info.Name()
@@ -68,7 +62,7 @@ func init() {
 
 	docs.SwaggerInfo.Host = config.MustGetenv("APIS_HOST")
 	projTemplate := config.IfGetenv("OPENAPI_PROJECT_TEMPLATE", "<pre>((Project))\n(branch ((Branch)), commit ((Commit)))\nbuilt at ((Built))</pre>\n\n")
-	version, err = info.Format(projTemplate)
+	version, err := info.Format(projTemplate)
 	if err != nil {
 		log.Warning("failed to format openapi version from template %s: %s", projTemplate, err)
 	} else {
@@ -80,8 +74,10 @@ func init() {
 func main() {
 	flag.Parse()
 
-	runMode = config.IfGetenv("RUN_MODE", "")
 	// get config from Docker secrets or environment
+
+	runMode = config.IfGetenv("RUN_MODE", "")
+
 	dbhost = config.MustGetenv("DB_HOST")
 	dbport = config.MustGetInt("DB_PORT")
 	dbname = config.MustGetenv("DB_NAME")
