@@ -3,7 +3,7 @@ module bitbucket.org/_metalogic_/forward-auth
 go 1.18
 
 require (
-	bitbucket.org/_metalogic_/build v1.0.0
+	bitbucket.org/_metalogic_/build v1.0.1
 	bitbucket.org/_metalogic_/config v1.2.1
 	bitbucket.org/_metalogic_/eval v1.0.1
 	bitbucket.org/_metalogic_/glib v0.9.4
@@ -25,9 +25,7 @@ require (
 require (
 	bitbucket.org/_metalogic_/color v1.0.4 // indirect
 	bitbucket.org/_metalogic_/colorable v1.0.3 // indirect
-	bitbucket.org/_metalogic_/gogit v0.0.0-20210207005759-7fdb8c8ed0f4 // indirect
 	bitbucket.org/_metalogic_/isatty v1.0.4 // indirect
-	bitbucket.org/_metalogic_/mmap v0.0.0-20210207003405-1e2136f1733c // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect

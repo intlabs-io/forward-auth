@@ -1,7 +1,5 @@
-bitbucket.org/_metalogic_/build v0.6.1 h1:IcyHZuNT5NzqQ4RnoGVikEMdBWIAUd6Ulu18+Bhc6uY=
-bitbucket.org/_metalogic_/build v0.6.1/go.mod h1:JWopCqM7aO9cDJtvezNXS/gJITrJvAm0Gze9nBaMjN0=
-bitbucket.org/_metalogic_/build v1.0.0 h1:j+1q7U45nyIPkpkQrKTHZ4hCUfkyviGUvJdaAnngMCg=
-bitbucket.org/_metalogic_/build v1.0.0/go.mod h1:0+xDDYs1xwgMKr/Z6SYmQPU15+7sr/S8eQxsG/updig=
+bitbucket.org/_metalogic_/build v1.0.1 h1:coVnVFGD9u8XKUIG/GeKQq7fodjNtEHPfMt16Sofvp8=
+bitbucket.org/_metalogic_/build v1.0.1/go.mod h1:0+xDDYs1xwgMKr/Z6SYmQPU15+7sr/S8eQxsG/updig=
 bitbucket.org/_metalogic_/color v1.0.4 h1:CPsOhTyTKnJ00mONyxMxr2zyh+GK2rjkdnmzGDZFde4=
 bitbucket.org/_metalogic_/color v1.0.4/go.mod h1:C/g7bUOawd4wuj7fI/UFSkZ3PKD07tjo1Xgek2bVtps=
 bitbucket.org/_metalogic_/colorable v1.0.3 h1:KlLJkk4Eps3tIOpamrvYot7TvnYndC4w5y5XGie9q9Q=
@@ -12,12 +10,6 @@ bitbucket.org/_metalogic_/eval v1.0.1 h1:Ffb1mf2AWEMwTzw7ln+7BYDWd54JWtzfv4rZyVB
 bitbucket.org/_metalogic_/eval v1.0.1/go.mod h1:E0x17mvUTlrWLD09ZY3ZPo/OZsFD7c39YzrjaJ3TQ9I=
 bitbucket.org/_metalogic_/glib v0.9.4 h1:lbFnsOVJqIqvLhk3t7RZPnijc9qUOjKASEdL/gUIvts=
 bitbucket.org/_metalogic_/glib v0.9.4/go.mod h1:VkiFBOm55MWvzNvufzgqexGEaPfrMnX7s7CJATW/bhA=
-bitbucket.org/_metalogic_/gogit v0.0.0-20210207005759-7fdb8c8ed0f4 h1:TNMfdCJ4iKCldjabtW4QPVLq6tNAuxJjLQufiy+t5Cc=
-bitbucket.org/_metalogic_/gogit v0.0.0-20210207005759-7fdb8c8ed0f4/go.mod h1:nyBNwqMKB7xpddQsU3MelF8bJHx5ZMZO18KocwqNDRo=
-bitbucket.org/_metalogic_/httpsig v0.0.0-20211203023508-2620368aa0c3 h1:da9MZ8hDlPeBMTKgipx59sLhkosY/baNZWOrwl/leco=
-bitbucket.org/_metalogic_/httpsig v0.0.0-20211203023508-2620368aa0c3/go.mod h1:U55M9p0d7UVCRB1TUiNXeriqL4OrbbqyBZ9a6A6GvH0=
-bitbucket.org/_metalogic_/httpsig v0.0.0-20211208235517-9b0773cb4c75 h1:xizXZ5Q5uvrepL5k9WBuFF5QYKJhihwqbub2Wh68//w=
-bitbucket.org/_metalogic_/httpsig v0.0.0-20211208235517-9b0773cb4c75/go.mod h1:iqk33QmUu06EfuYK8PSwPcAjGrTrqlxTyWRlMDyNcnQ=
 bitbucket.org/_metalogic_/httpsig v0.0.0-20211209010019-f2554fb89eae h1:uKfbgb5IJSPi2pgdBejk2bPU6cVTi0EJ2SRXgaZKecM=
 bitbucket.org/_metalogic_/httpsig v0.0.0-20211209010019-f2554fb89eae/go.mod h1:iqk33QmUu06EfuYK8PSwPcAjGrTrqlxTyWRlMDyNcnQ=
 bitbucket.org/_metalogic_/httptreemux-swagger v1.1.0 h1:eiaUzDQ4MlKOwZ8f4UFmYNmFjMkHc+tQ2Z7rYVTb/YY=
@@ -28,8 +20,6 @@ bitbucket.org/_metalogic_/isatty v1.0.4 h1:L4PMTm1MR/jEgItkJheGHfjw7/6PDlgnc5hMG
 bitbucket.org/_metalogic_/isatty v1.0.4/go.mod h1:RuNRfBFSbwFXA86JDSaQh3jQZ4Qd7u4qFmK44xvKdm4=
 bitbucket.org/_metalogic_/log v1.4.1 h1:EIDhcp2n5FcUw21p4Zy/aT44zrYD1ipR0QCOJ7YfvKM=
 bitbucket.org/_metalogic_/log v1.4.1/go.mod h1:NfZyXZFE5zxW8/5BRNoTVT0pvFfHjVoaT221EL62niE=
-bitbucket.org/_metalogic_/mmap v0.0.0-20210207003405-1e2136f1733c h1:jakeuD7FrP8SsHbt9iJkfkuQA00LeUu5FsWghBYUZXs=
-bitbucket.org/_metalogic_/mmap v0.0.0-20210207003405-1e2136f1733c/go.mod h1:dz2kDJAMANtLsj++XZYyc6VkwDmOWIla3Uzadg0R2pY=
 bitbucket.org/_metalogic_/pat v0.9.1 h1:HdUioTgXoYXUPknnL3jxI8FfAjNmRfGIpabfYjQu028=
 bitbucket.org/_metalogic_/pat v0.9.1/go.mod h1:REH1IDr/pn6hv0J5kn84gbmNgYPq1GYKHBCO3g8zWH0=
 bitbucket.org/_metalogic_/validation v0.0.0-20210601150612-ed58a6ac8ba6 h1:51kM/lPdIfUP08PDyPgbzqrvRNlnTlZ3Crog8dRQA/c=
