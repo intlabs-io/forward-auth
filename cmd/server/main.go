@@ -61,7 +61,7 @@ func init() {
 	}
 
 	docs.SwaggerInfo.Host = config.MustGetenv("APIS_HOST")
-	projTemplate := config.IfGetenv("OPENAPI_PROJECT_TEMPLATE", "<pre>((Project))\n(branch ((Branch)), commit ((Commit)))\nbuilt at ((Built))</pre>\n\n")
+	projTemplate := config.IfGetenv("OPENAPI_PROJECT_TEMPLATE", "<pre>((Project))\n(version ((Version)), revision ((Revision)))\nbuilt at ((Built))</pre>\n\n")
 	version, err := info.Format(projTemplate)
 	if err != nil {
 		log.Warning("failed to format openapi version from template %s: %s", projTemplate, err)
