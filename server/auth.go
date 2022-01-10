@@ -202,12 +202,12 @@ func Update(auth *fauth.Auth, store fauth.Store) func(w http.ResponseWriter, r *
 			ErrJSON(w, err)
 			return
 		}
-		// update auth
+		// update access
 		err = auth.UpdateFunc()(acs)
 		if err != nil {
 			ErrJSON(w, err)
 			return
 		}
-		MsgJSON(w, "access rules update succeeded")
+		MsgJSON(w, "access system update succeeded")
 	}
 }

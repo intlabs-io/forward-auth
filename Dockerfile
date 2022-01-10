@@ -1,4 +1,4 @@
-FROM golang:1.17 as builder
+FROM golang:1.18beta1 as builder
 
 ENV GOPRIVATE "bitbucket.org/_metalogic_/*"
 

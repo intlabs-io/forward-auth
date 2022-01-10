@@ -1,7 +1,10 @@
 package fauth
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -49,22 +52,26 @@ type Auth struct {
 	runMode    string
 	jwtHeader  string
 	keyFunc    func(token *jwt.Token) (interface{}, error)
+	publicKeys map[string]*rsa.PublicKey
 	tokens     map[string]string
 	blocks     map[string]bool
 	overrides  map[string]string
-	muxLock    sync.RWMutex
+	mutex      sync.RWMutex
 	hostMuxers map[string]*pat.HostMux
 }
 
 // NewAuth returns a new RSA Auth
-func NewAuth(acs *AccessControls, jwtHeader string, publicKey, secret []byte, tokens map[string]string, blocks map[string]bool) (auth *Auth, err error) {
+func NewAuth(acs *AccessSystem, jwtHeader string, publicKey, secret []byte) (auth *Auth, err error) {
 	auth = &Auth{
 		jwtHeader:  jwtHeader,
-		tokens:     tokens,
-		blocks:     blocks,
 		hostMuxers: make(map[string]*pat.HostMux),
+		publicKeys: make(map[string]*rsa.PublicKey),
+		tokens:     acs.Tokens,
+		blocks:     acs.Blocks,
 	}
-	err = auth.setAccess(acs, false)
+
+	auth.setRSAPublicKeys(acs.PublicKeys)
+	err = auth.setAccess(acs.Checks, false)
 	if err != nil {
 		return auth, err
 	}
@@ -313,11 +320,11 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 	}
 }
 
-func (auth *Auth) setAccess(acs *AccessControls, refresh bool) error {
-	auth.overrides = acs.Overrides
+func (auth *Auth) setAccess(checks *HostChecks, refresh bool) error {
+	auth.overrides = checks.Overrides
 
 	// create Pat Host Muxers from Checks
-	for _, group := range acs.HostGroups {
+	for _, group := range checks.HostGroups {
 		// default to deny
 		hostMux := pat.NewDenyMux()
 		if group.Default == "allow" {
@@ -363,6 +370,26 @@ func (auth *Auth) setAccess(acs *AccessControls, refresh bool) error {
 		}
 	}
 	return nil
+}
+
+func (auth *Auth) setRSAPublicKeys(publicKeys map[string]string) {
+	auth.mutex.Lock()
+	defer auth.mutex.Unlock()
+	auth.publicKeys = make(map[string]*rsa.PublicKey)
+	for id, value := range publicKeys {
+		rsa, err := loadPublicKey([]byte(value))
+		if err != nil {
+			log.Warningf("failed to load RSA public key for %s: %s", id, err)
+			continue
+		}
+		auth.publicKeys[id] = rsa
+	}
+}
+
+func (auth *Auth) getRSAPublicKeys() map[string]*rsa.PublicKey {
+	auth.mutex.RLock()
+	defer auth.mutex.RUnlock()
+	return auth.publicKeys
 }
 
 func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials *ident.Credentials, verifier httpsig.Verifier) (result bool, err error) {
@@ -412,7 +439,7 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 		"signature": func(args ...interface{}) (interface{}, error) {
 			tenantID, _ := args[0].(string)
 			log.Debugf("calling signature(%s)", tenantID)
-			return verify(verifier, tenantID), nil
+			return verify(verifier, tenantID, auth.getRSAPublicKeys()), nil
 		},
 		// return true if identity matches the user guid in path
 		// eg: user(guid)
@@ -453,14 +480,14 @@ func redact(secret string) string {
 }
 
 func (auth *Auth) setMux(host string, mux *pat.HostMux) {
-	auth.muxLock.Lock()
-	defer auth.muxLock.Unlock()
+	auth.mutex.Lock()
+	defer auth.mutex.Unlock()
 	auth.hostMuxers[host] = mux
 }
 
 func (auth *Auth) getMux(host string) (mux *pat.HostMux, ok bool) {
-	auth.muxLock.RLock()
-	defer auth.muxLock.RUnlock()
+	auth.mutex.RLock()
+	defer auth.mutex.RUnlock()
 	mux, ok = auth.hostMuxers[host]
 	return mux, ok
 }
@@ -500,17 +527,35 @@ func (auth *Auth) Muxer(host string) (mux *pat.HostMux, err error) {
 }
 
 // HostChecks returns JSON formatted host checks
-func (auth *Auth) HostChecks() (hostChecksJSON string, err error) {
-	data, err := json.Marshal(auth.HostChecks)
-	if err != nil {
-		return hostChecksJSON, err
+// func (auth *Auth) HostChecks() (hostChecksJSON string, err error) {
+// 	data, err := json.Marshal(auth.HostChecks)
+// 	if err != nil {
+// 		return hostChecksJSON, err
+// 	}
+// 	return string(data), nil
+// }
+
+// UpdateFunc returns a function to update AccessControls
+func (auth *Auth) UpdateFunc() (f func(*AccessSystem) error) {
+	return func(acs *AccessSystem) error {
+		auth.setRSAPublicKeys(acs.PublicKeys)
+		return auth.setAccess(acs.Checks, true)
 	}
-	return string(data), nil
 }
 
-// UpdateFunc returns a function to call with AccessControl
-func (auth *Auth) UpdateFunc() (f func(*AccessControls) error) {
-	return func(acs *AccessControls) error {
-		return auth.setAccess(acs, true)
+func loadPublicKey(keyData []byte) (*rsa.PublicKey, error) {
+	pem, _ := pem.Decode(keyData)
+	if pem == nil {
+		return nil, fmt.Errorf("failed to decode public key %s", string(keyData))
 	}
+	if pem.Type != "PUBLIC KEY" {
+		return nil, fmt.Errorf("public key is of the wrong type: %s", pem.Type)
+	}
+
+	key, err := x509.ParsePKIXPublicKey(pem.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return key.(*rsa.PublicKey), nil
 }

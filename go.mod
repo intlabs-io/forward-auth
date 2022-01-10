@@ -13,7 +13,6 @@ require (
 	bitbucket.org/_metalogic_/log v1.4.1
 	bitbucket.org/_metalogic_/pat v0.9.1
 	bitbucket.org/_metalogic_/validation v0.0.0-20210601150612-ed58a6ac8ba6
-	github.com/BurntSushi/toml v0.3.1
 	github.com/denisenkom/go-mssqldb v0.10.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dimfeld/httptreemux/v5 v5.2.2

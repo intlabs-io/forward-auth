@@ -56,7 +56,7 @@ func NewLoader(database, server string, port int, user, password string) (loader
 // Import imports an access control file to the database
 func (loader *Loader) Import(file string) (n int, err error) {
 
-	var ac fauth.AccessControls
+	var ac fauth.HostChecks
 
 	// load checks from file
 	data, err := ioutil.ReadFile(file)
