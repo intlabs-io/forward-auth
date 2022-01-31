@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	bitbucket.org/_metalogic_/build v0.6.1
-	bitbucket.org/_metalogic_/config v1.2.1
+	bitbucket.org/_metalogic_/config v1.4.0
 	bitbucket.org/_metalogic_/eval v1.0.1
 	bitbucket.org/_metalogic_/glib v0.9.4
 	bitbucket.org/_metalogic_/httpsig v0.0.0-20211209010019-f2554fb89eae

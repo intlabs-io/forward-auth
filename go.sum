@@ -4,8 +4,8 @@ bitbucket.org/_metalogic_/color v1.0.4 h1:CPsOhTyTKnJ00mONyxMxr2zyh+GK2rjkdnmzGD
 bitbucket.org/_metalogic_/color v1.0.4/go.mod h1:C/g7bUOawd4wuj7fI/UFSkZ3PKD07tjo1Xgek2bVtps=
 bitbucket.org/_metalogic_/colorable v1.0.3 h1:KlLJkk4Eps3tIOpamrvYot7TvnYndC4w5y5XGie9q9Q=
 bitbucket.org/_metalogic_/colorable v1.0.3/go.mod h1:IXGUeiEYCe0a0disUrvWW09IbhjF40mPoV3G7XxxNOc=
-bitbucket.org/_metalogic_/config v1.2.1 h1:fiVYZ69zHKPaf+JMSK4sQ+qZ28gyCVoru99Tm8hydIw=
-bitbucket.org/_metalogic_/config v1.2.1/go.mod h1:i/F2BFo5ptm8yBVnkOD9cBxd+pusNPey72X1c34TLoA=
+bitbucket.org/_metalogic_/config v1.4.0 h1:WVO87zwv8pRVayWDiYp98B0GY5Gn1CCMtBIVeIKQKzc=
+bitbucket.org/_metalogic_/config v1.4.0/go.mod h1:i/F2BFo5ptm8yBVnkOD9cBxd+pusNPey72X1c34TLoA=
 bitbucket.org/_metalogic_/eval v1.0.1 h1:Ffb1mf2AWEMwTzw7ln+7BYDWd54JWtzfv4rZyVBfQHE=
 bitbucket.org/_metalogic_/eval v1.0.1/go.mod h1:E0x17mvUTlrWLD09ZY3ZPo/OZsFD7c39YzrjaJ3TQ9I=
 bitbucket.org/_metalogic_/glib v0.9.4 h1:lbFnsOVJqIqvLhk3t7RZPnijc9qUOjKASEdL/gUIvts=
