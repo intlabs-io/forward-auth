@@ -12,10 +12,6 @@ bitbucket.org/_metalogic_/glib v0.9.4 h1:lbFnsOVJqIqvLhk3t7RZPnijc9qUOjKASEdL/gU
 bitbucket.org/_metalogic_/glib v0.9.4/go.mod h1:VkiFBOm55MWvzNvufzgqexGEaPfrMnX7s7CJATW/bhA=
 bitbucket.org/_metalogic_/gogit v0.0.0-20210207005759-7fdb8c8ed0f4 h1:TNMfdCJ4iKCldjabtW4QPVLq6tNAuxJjLQufiy+t5Cc=
 bitbucket.org/_metalogic_/gogit v0.0.0-20210207005759-7fdb8c8ed0f4/go.mod h1:nyBNwqMKB7xpddQsU3MelF8bJHx5ZMZO18KocwqNDRo=
-bitbucket.org/_metalogic_/httpsig v0.0.0-20211203023508-2620368aa0c3 h1:da9MZ8hDlPeBMTKgipx59sLhkosY/baNZWOrwl/leco=
-bitbucket.org/_metalogic_/httpsig v0.0.0-20211203023508-2620368aa0c3/go.mod h1:U55M9p0d7UVCRB1TUiNXeriqL4OrbbqyBZ9a6A6GvH0=
-bitbucket.org/_metalogic_/httpsig v0.0.0-20211208235517-9b0773cb4c75 h1:xizXZ5Q5uvrepL5k9WBuFF5QYKJhihwqbub2Wh68//w=
-bitbucket.org/_metalogic_/httpsig v0.0.0-20211208235517-9b0773cb4c75/go.mod h1:iqk33QmUu06EfuYK8PSwPcAjGrTrqlxTyWRlMDyNcnQ=
 bitbucket.org/_metalogic_/httpsig v0.0.0-20211209010019-f2554fb89eae h1:uKfbgb5IJSPi2pgdBejk2bPU6cVTi0EJ2SRXgaZKecM=
 bitbucket.org/_metalogic_/httpsig v0.0.0-20211209010019-f2554fb89eae/go.mod h1:iqk33QmUu06EfuYK8PSwPcAjGrTrqlxTyWRlMDyNcnQ=
 bitbucket.org/_metalogic_/httptreemux-swagger v1.1.0 h1:eiaUzDQ4MlKOwZ8f4UFmYNmFjMkHc+tQ2Z7rYVTb/YY=
