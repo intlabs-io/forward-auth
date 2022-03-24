@@ -1,31 +1,88 @@
 definitions:
-  build.ProjectInfo:
+  build.BuildInfo:
     properties:
-      branch:
-        type: string
       command:
-        type: string
-      commit:
         type: string
       dependencies:
         items:
           type: string
         type: array
+      dirtyBuild:
+        type: boolean
+      goVersion:
+        type: string
+      lastCommit:
+        type: string
       project:
         type: string
-      timestamp:
-        type: integer
+      revision:
+        type: string
+      version:
+        type: string
     type: object
   build.Runtime:
     properties:
+      buildInfo:
+        $ref: '#/definitions/build.BuildInfo'
       logLevel:
         type: string
-      projectInfo:
-        $ref: '#/definitions/build.ProjectInfo'
       serviceInfo:
         additionalProperties:
           type: string
         type: object
+    type: object
+  fauth.Check:
+    properties:
+      base:
+        type: string
+      description:
+        type: string
+      guid:
+        type: string
+      name:
+        type: string
+      paths:
+        items:
+          $ref: '#/definitions/fauth.Path'
+        type: array
+      version:
+        type: integer
+    type: object
+  fauth.HostGroup:
+    properties:
+      checks:
+        items:
+          $ref: '#/definitions/fauth.Check'
+        type: array
+      default:
+        description: '"allow" or "deny" (define in pat?)'
+        type: string
+      description:
+        type: string
+      guid:
+        type: string
+      hosts:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+    type: object
+  fauth.Path:
+    properties:
+      path:
+        type: string
+      rules:
+        additionalProperties:
+          $ref: '#/definitions/fauth.Rule'
+        type: object
+    type: object
+  fauth.Rule:
+    properties:
+      description:
+        type: string
+      expression:
+        type: string
     type: object
   fauth.Stats:
     type: object
@@ -103,6 +160,33 @@ paths:
       summary: sets the service log level
       tags:
       - Admin endpoints
+  /forward-auth/v1/auth:
+    get:
+      description: forces an auth update from a store (invoked via broadcast from
+        /reload)
+      operationId: post-update
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      summary: forces an auth update from a store
+      tags:
+      - Auth endpoints
   /forward-auth/v1/health:
     get:
       description: checks health of forward-auth service, currently uses a database
@@ -130,38 +214,10 @@ paths:
       summary: check health of forward-auth service
       tags:
       - Common endpoints
-  /forward-auth/v1/info:
+  /forward-auth/v1/hostgroups:
     get:
-      description: get forward-auth service info, including version, log level
-      operationId: get-info
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/build.Runtime'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/http.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/http.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/http.ErrorResponse'
-      summary: get forward-auth service info
-      tags:
-      - Common endpoints
-  /forward-auth/v1/stats:
-    get:
-      description: |-
-        authorizes a request based on configured access control rules;
-        jwtHeader, traceHeader and userHeader are added to the forwarded request headers
-      operationId: get-auth
+      description: creates a new host group in an access control system
+      operationId: create-hostgroup
       produces:
       - application/json
       responses:
@@ -181,7 +237,87 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/http.ErrorResponse'
-      summary: authorizes a request based on configured access control rules
+      summary: creates a new host group in an access control system
       tags:
-      - Auth endpoints
+      - ACS endpoints
+    post:
+      description: returns the defined host groups in an access control system
+      operationId: get-hostgroups
+      parameters:
+      - description: host group
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/fauth.HostGroup'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      summary: returns the defined host groups in an access control system
+      tags:
+      - ACS endpoints
+  /forward-auth/v1/stats:
+    get:
+      description: get forward-auth service statistics, currently database stats only
+      operationId: get-stats
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/fauth.Stats'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      summary: get forward-auth service statistics
+      tags:
+      - Common endpoints
+  /info:
+    get:
+      description: get forward-auth service info, including version, log level
+      operationId: get-info
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/build.Runtime'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      summary: get forward-auth service info
+      tags:
+      - Common endpoints
 swagger: "2.0"
