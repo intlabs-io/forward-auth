@@ -187,13 +187,13 @@ func Unblock(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 // @Tags Auth endpoints
 // @Summary forces an auth update from a store
 // @Description forces an auth update from a store (invoked via broadcast from /reload)
-// @ID post-update
+// @ID update-auth
 // @Produce  json
 // @Success 200 {string} ok
 // @Failure 401 {object} ErrorResponse
 // @Failure 403 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /forward-auth/v1/auth [get]
+// @Router /forward-auth/v1/auth [put]
 func Update(auth *fauth.Auth, store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		// get access control system from the store
