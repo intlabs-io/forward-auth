@@ -1,4 +1,4 @@
-FROM golang:1.17 as builder
+FROM golang:1.18 as builder
 
 ENV GOPRIVATE "bitbucket.org/_metalogic_/*"
 
@@ -6,7 +6,7 @@ COPY ./ /build
 
 WORKDIR /build/cmd/server
 
-RUN go generate bitbucket.org/_metalogic_/forward-auth/build && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o forward-auth .
+RUN  CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o forward-auth .
 
 FROM metalogic/alpine:latest
 

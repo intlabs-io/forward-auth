@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"os"
 
+	"bitbucket.org/_metalogic_/build"
 	"bitbucket.org/_metalogic_/config"
-	"bitbucket.org/_metalogic_/forward-auth/build"
+	"bitbucket.org/_metalogic_/forward-auth/docs"
 	"bitbucket.org/_metalogic_/forward-auth/stores/mssql"
 	"bitbucket.org/_metalogic_/log"
 )
 
 var (
-	info *build.ProjectInfo
+	info build.BuildInfo
 
 	fileFlg    string
 	disableFlg bool
@@ -38,18 +39,24 @@ func init() {
 	dbpassword = config.MustGetConfig("API_DB_PASSWORD")
 
 	var err error
-	info, err = build.Info()
-	if err != nil {
-		log.Fatalf("get project info failed: %s", err)
-	}
+	info = build.Info
 
 	version := info.String()
 	command := info.Name()
 
 	flag.Usage = func() {
 		fmt.Printf("Project %s:\n\n", version)
-		fmt.Printf("%s -help (this message) | %s [options] FILE:\n\n", command, command)
+		fmt.Printf("Usage: %s -help (this message) | %s [options]:\n\n", command, command)
 		flag.PrintDefaults()
+	}
+
+	docs.SwaggerInfo.Host = config.MustGetenv("APIS_HOST")
+	projTemplate := config.MustGetConfig("OPENAPI_BUILD_TEMPLATE")
+	version, err = info.Format(projTemplate)
+	if err != nil {
+		log.Warning("Failed to format openapi version from template %s: %s", projTemplate, err)
+	} else {
+		docs.SwaggerInfo.Description = fmt.Sprintf("%s%s", version, docs.SwaggerInfo.Description)
 	}
 }
 
