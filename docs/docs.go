@@ -303,45 +303,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/forward-auth/v1/info": {
-            "get": {
-                "description": "get forward-auth service info, including version, log level",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Common endpoints"
-                ],
-                "summary": "get forward-auth service info",
-                "operationId": "get-info",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/build.Runtime"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/http.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/http.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/http.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/forward-auth/v1/stats": {
             "get": {
                 "description": "get forward-auth service statistics, currently database stats only",
@@ -368,6 +329,39 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/http.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/http.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/info": {
+            "get": {
+                "description": "get forward-auth service info, including version, log level",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Common endpoints"
+                ],
+                "summary": "get forward-auth service info",
+                "operationId": "get-info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/build.Runtime"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/http.ErrorResponse"
                         }

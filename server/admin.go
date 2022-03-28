@@ -26,18 +26,13 @@ func init() {
 // @Produce json
 // @Success 200 {object} build.Runtime
 // @Failure 400 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
+// @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /forward-auth/v1/info [get]
+// @Router /info [get]
 func APIInfo(store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		type runtime struct {
-			ProjectInfo build.BuildInfo   `json:"projectInfo"`
-			ServiceInfo map[string]string `json:"serviceInfo"`
-			LogLevel    string            `json:"logLevel"`
-		}
-		rt := &runtime{
-			ProjectInfo: build.Info,
+		rt := &build.Runtime{
+			BuildInfo:   build.Info,
 			ServiceInfo: store.Info(),
 			LogLevel:    log.GetLevel().String(),
 		}
@@ -48,7 +43,6 @@ func APIInfo(store fauth.Store) func(w http.ResponseWriter, r *http.Request, par
 			return
 		}
 		OkJSON(w, string(runtimeJSON))
-		return
 	}
 }
 

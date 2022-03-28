@@ -299,32 +299,6 @@ paths:
       summary: returns the defined host groups in an access control system
       tags:
       - ACS endpoints
-  /forward-auth/v1/info:
-    get:
-      description: get forward-auth service info, including version, log level
-      operationId: get-info
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/build.Runtime'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/http.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/http.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/http.ErrorResponse'
-      summary: get forward-auth service info
-      tags:
-      - Common endpoints
   /forward-auth/v1/stats:
     get:
       description: get forward-auth service statistics, currently database stats only
@@ -349,6 +323,28 @@ paths:
           schema:
             $ref: '#/definitions/http.ErrorResponse'
       summary: get forward-auth service statistics
+      tags:
+      - Common endpoints
+  /info:
+    get:
+      description: get forward-auth service info, including version, log level
+      operationId: get-info
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/build.Runtime'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      summary: get forward-auth service info
       tags:
       - Common endpoints
 swagger: "2.0"

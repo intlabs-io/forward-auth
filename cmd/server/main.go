@@ -21,6 +21,7 @@ import (
 )
 
 var (
+	info       build.BuildInfo
 	configFlg  string
 	disableFlg bool
 	levelFlg   log.Level
@@ -36,7 +37,8 @@ func init() {
 	flag.StringVar(&portFlg, "port", ":8080", "HTTP listen port")
 	flag.StringVar(&storageFlg, "store", config.IfGetenv("FORWARD_AUTH_STORAGE", "file"), "storage adapter type - one of file, mssql, mock")
 
-	info := build.Info
+	var err error
+	info = build.Info
 
 	version := info.String()
 	command := info.Name()
@@ -48,10 +50,11 @@ func init() {
 	}
 
 	docs.SwaggerInfo.Host = config.MustGetenv("APIS_HOST")
-	projTemplate := config.IfGetenv("OPENAPI_PROJECT_TEMPLATE", "<pre>((Project))\n(version ((Version)), revision ((Revision)))\nbuilt at ((Built))</pre>\n\n")
-	version, err := info.Format(projTemplate)
+
+	projTemplate := config.MustGetConfig("OPENAPI_BUILD_TEMPLATE")
+	version, err = info.Format(projTemplate)
 	if err != nil {
-		log.Warning("failed to format openapi version from template %s: %s", projTemplate, err)
+		log.Warning("Failed to format openapi version from template %s: %s", projTemplate, err)
 	} else {
 		docs.SwaggerInfo.Description = fmt.Sprintf("%s%s", version, docs.SwaggerInfo.Description)
 	}
