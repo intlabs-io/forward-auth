@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 
 	"bitbucket.org/_metalogic_/eval"
+	"bitbucket.org/_metalogic_/httpsig"
 	"bitbucket.org/_metalogic_/ident"
 	"bitbucket.org/_metalogic_/log"
 	"bitbucket.org/_metalogic_/pat"
@@ -279,7 +281,23 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 			username = auth.User(jwt)
 		}
 
-		if t, err := evaluate(rule.Expression, params, auth, credentials); err != nil {
+		u, err := url.Parse(path)
+		if err != nil { // shouldn't happen
+			log.Error(err)
+			return http.StatusForbidden, message, username
+		}
+
+		// get signature verifier
+		var verifier httpsig.Verifier
+		if header.Get(string(httpsig.Signature)) != "" {
+			verifier, err = httpsig.NewForwardAuthVerifier(header, method, path, u.RawQuery)
+			if err != nil {
+				log.Error(err)
+				return http.StatusForbidden, fmt.Sprintf("failed to get signature verifier: %s", err), username
+			}
+		}
+
+		if t, err := evaluate(rule.Expression, params, auth, credentials, verifier); err != nil {
 			message := fmt.Sprintf("%s %s failed evaluation for rule %s: %s", method, path, rule.Expression, err)
 			log.Error(message)
 			return http.StatusForbidden, message, username
@@ -347,7 +365,7 @@ func (auth *Auth) setAccess(acs *AccessControls, refresh bool) error {
 	return nil
 }
 
-func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials *ident.Credentials) (result bool, err error) {
+func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials *ident.Credentials, verifier httpsig.Verifier) (result bool, err error) {
 	log.Debugf("evaluating expr '%s' with params %v, auth %v, credentials %v", expr, paramMap, auth, credentials)
 	// define builtins
 	functions := map[string]eval.ExpressionFunction{
@@ -388,6 +406,13 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 		"root": func(args ...interface{}) (interface{}, error) {
 			log.Debug("calling root()")
 			return auth.Root(credentials.JWT), nil
+		},
+		// return true if a request signed by tenant's private key is valid
+		// with respect to tenant's public key
+		"signature": func(args ...interface{}) (interface{}, error) {
+			tenantID, _ := args[0].(string)
+			log.Debugf("calling signature(%s)", tenantID)
+			return verify(verifier, tenantID), nil
 		},
 		// return true if identity matches the user guid in path
 		// eg: user(guid)

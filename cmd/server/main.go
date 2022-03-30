@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
+	"bitbucket.org/_metalogic_/build"
 	"bitbucket.org/_metalogic_/config"
 	fauth "bitbucket.org/_metalogic_/forward-auth"
-	"bitbucket.org/_metalogic_/forward-auth/build"
 	"bitbucket.org/_metalogic_/forward-auth/docs"
 	"bitbucket.org/_metalogic_/forward-auth/server"
 	"bitbucket.org/_metalogic_/forward-auth/stores/file"
@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	info *build.ProjectInfo
+	info build.BuildInfo
 
 	configFlg  string
 	disableFlg bool
@@ -52,10 +52,7 @@ func init() {
 	flag.StringVar(&storageFlg, "store", config.IfGetenv("FORWARD_AUTH_STORAGE", "file"), "storage adapter type - one of file, mssql, mock")
 
 	var err error
-	info, err = build.Info()
-	if err != nil {
-		log.Fatalf("get project info failed: %s", err)
-	}
+	info = build.Info
 
 	version := info.String()
 	command := info.Name()
@@ -67,10 +64,10 @@ func init() {
 	}
 
 	docs.SwaggerInfo.Host = config.MustGetenv("APIS_HOST")
-	projTemplate := config.IfGetenv("OPENAPI_PROJECT_TEMPLATE", "<pre>((Project))\n(branch ((Branch)), commit ((Commit)))\nbuilt at ((Built))</pre>\n\n")
+	projTemplate := config.MustGetConfig("OPENAPI_BUILD_TEMPLATE")
 	version, err = info.Format(projTemplate)
 	if err != nil {
-		log.Warning("failed to format openapi version from template %s: %s", projTemplate, err)
+		log.Warning("Failed to format openapi version from template %s: %s", projTemplate, err)
 	} else {
 		docs.SwaggerInfo.Description = fmt.Sprintf("%s%s", version, docs.SwaggerInfo.Description)
 	}
