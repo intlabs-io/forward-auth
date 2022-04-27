@@ -11,7 +11,7 @@ require (
 	bitbucket.org/_metalogic_/httptreemux-swagger v1.1.0
 	bitbucket.org/_metalogic_/ident v1.1.1
 	bitbucket.org/_metalogic_/log v1.4.1
-	bitbucket.org/_metalogic_/pat v0.9.1
+	bitbucket.org/_metalogic_/pat v0.9.3
 	bitbucket.org/_metalogic_/validation v0.0.0-20210601150612-ed58a6ac8ba6
 	github.com/BurntSushi/toml v0.3.1
 	github.com/denisenkom/go-mssqldb v0.10.0
