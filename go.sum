@@ -20,8 +20,8 @@ bitbucket.org/_metalogic_/isatty v1.0.4 h1:L4PMTm1MR/jEgItkJheGHfjw7/6PDlgnc5hMG
 bitbucket.org/_metalogic_/isatty v1.0.4/go.mod h1:RuNRfBFSbwFXA86JDSaQh3jQZ4Qd7u4qFmK44xvKdm4=
 bitbucket.org/_metalogic_/log v1.4.1 h1:EIDhcp2n5FcUw21p4Zy/aT44zrYD1ipR0QCOJ7YfvKM=
 bitbucket.org/_metalogic_/log v1.4.1/go.mod h1:NfZyXZFE5zxW8/5BRNoTVT0pvFfHjVoaT221EL62niE=
-bitbucket.org/_metalogic_/pat v0.9.1 h1:HdUioTgXoYXUPknnL3jxI8FfAjNmRfGIpabfYjQu028=
-bitbucket.org/_metalogic_/pat v0.9.1/go.mod h1:REH1IDr/pn6hv0J5kn84gbmNgYPq1GYKHBCO3g8zWH0=
+bitbucket.org/_metalogic_/pat v0.9.3 h1:JUoO4QuUe1TgX4xufRlt25ZnExKV7OzJOihaQuaUq58=
+bitbucket.org/_metalogic_/pat v0.9.3/go.mod h1:REH1IDr/pn6hv0J5kn84gbmNgYPq1GYKHBCO3g8zWH0=
 bitbucket.org/_metalogic_/validation v0.0.0-20210601150612-ed58a6ac8ba6 h1:51kM/lPdIfUP08PDyPgbzqrvRNlnTlZ3Crog8dRQA/c=
 bitbucket.org/_metalogic_/validation v0.0.0-20210601150612-ed58a6ac8ba6/go.mod h1:ydQk01rdfURse/T4G+HBNDNltW23pVJlCnpHtt9IAsE=
 bitbucket.org/_metalogic_/validator v0.0.0-20210601150159-9df48f02c435 h1:Ivklh2Tzt20XyH5NcFs3Sejp0AZPkhRlCkr3wFpWSWE=
