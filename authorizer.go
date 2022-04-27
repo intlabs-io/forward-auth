@@ -343,7 +343,8 @@ func (auth *Auth) setAccess(checks *HostChecks, refresh bool) error {
 		}
 		// add path prefixes to hostMux
 		for _, check := range group.Checks {
-			pathPrefix := hostMux.AddPrefix(check.Base, pat.DenyHandler)
+			// deny if method + path is not found
+			pathPrefix := hostMux.AddPrefix(check.Base, pat.NotFoundHandler)
 			for _, path := range check.Paths {
 				if r, ok := path.Rules["GET"]; ok {
 					pathPrefix.Get(path.Path, Handler(r, auth))

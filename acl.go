@@ -56,7 +56,7 @@ func (hg HostGroup) Validate() error {
 	)
 }
 
-// Check defines a base URI and the paths below to which access rules are applie
+// Check defines a base URI and the paths below to which access rules are applied
 type Check struct {
 	GUID        string `json:"guid"`
 	Name        string `json:"name"`

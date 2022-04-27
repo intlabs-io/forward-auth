@@ -104,6 +104,8 @@ func Auth(auth *fauth.Auth, userHeader, traceHeader string) func(w http.Response
 			ErrJSON(w, NewUnauthorizedError(message))
 		case 403:
 			ErrJSON(w, NewForbiddenError(message))
+		case 404: // always deny on not found
+			ErrJSON(w, NewForbiddenError(message))
 		case 200:
 			if username != "" {
 				log.Debugf("Adding HTTP header %s %s", userHeader, username)
