@@ -292,8 +292,7 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 		if header.Get(string(httpsig.Signature)) != "" {
 			verifier, err = httpsig.NewForwardAuthVerifier(header, method, path, u.RawQuery)
 			if err != nil {
-				log.Error(err)
-				return http.StatusForbidden, fmt.Sprintf("failed to get signature verifier: %s", err), username
+				log.Warning(fmt.Sprintf("found signature header but failed to get verifier: %s", err))
 			}
 		}
 
