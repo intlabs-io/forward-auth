@@ -147,7 +147,7 @@ func (store *MSSql) Tokens(rootToken string) (tokens map[string]string, err erro
 
 	// load application bearer token mappings from token value to token name
 	for _, application := range applications {
-		if application.Bearer != nil && application.Bearer.Store == "docker" {
+		if application.Bearer != nil && application.Bearer.Source == "docker" {
 			tokens[config.MustGetConfig(application.Bearer.Name)] = application.Bearer.Name
 		}
 	}

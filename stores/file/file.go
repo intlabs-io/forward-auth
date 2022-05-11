@@ -169,24 +169,30 @@ func access(files *files) (publicKeys map[string]string, tokens map[string]strin
 		for _, tenant := range tenants {
 			// map tenant bearer token value to tenant ID
 			if tenant.Bearer != nil {
-				if tenant.Bearer.Store == "database" {
+				if tenant.Bearer.Source == "database" {
 					// TODO
 				}
-				if tenant.Bearer.Store == "docker" {
+				if tenant.Bearer.Source == "docker" {
 					tokens[config.MustGetConfig(tenant.Bearer.Name)] = tenant.GUID
 				}
-				if tenant.Bearer.Store == "file" {
+				if tenant.Bearer.Source == "file" {
 					tokens[tenant.Bearer.Value] = tenant.GUID
 				}
 			}
 			// map tenant ID to tenant key(s)
 
 			if tenant.PublicKey != nil {
-				if tenant.PublicKey.Store == "database" {
+				if tenant.PublicKey.Source == "database" {
 					// TODO
 				}
-				if tenant.PublicKey.Store == "file" {
+				if tenant.PublicKey.Source == "file" {
+					if tenant.PublicKey.Value == "" {
+						return publicKeys, tokens, fmt.Errorf("public key value is empty")
+					}
 					publicKeys[tenant.GUID] = tenant.PublicKey.Value
+				}
+				if tenant.PublicKey.Source == "url" {
+					// TODO
 				}
 			}
 		}
@@ -209,7 +215,7 @@ func access(files *files) (publicKeys map[string]string, tokens map[string]strin
 
 		for _, application := range applications {
 			// map token value to token ID
-			if application.Bearer != nil && application.Bearer.Store == "docker" {
+			if application.Bearer != nil && application.Bearer.Source == "docker" {
 				tokens[application.Bearer.Name] = config.MustGetConfig(application.Bearer.Name)
 			}
 		}

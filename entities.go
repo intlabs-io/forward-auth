@@ -50,12 +50,12 @@ type Tenant struct {
 }
 
 type PublicKey struct {
-	Store string `json:"store"`
-	Value string `json:"value,omitempty"`
+	Source string `json:"source"`
+	Value  string `json:"value,omitempty"`
 }
 
 type Token struct {
-	Store string `json:"store"`
-	Name  string `json:"name"`
-	Value string `json:"value,omitempty"`
+	Source string `json:"source"`
+	Name   string `json:"name"`
+	Value  string `json:"value,omitempty"`
 }
