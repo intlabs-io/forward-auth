@@ -7,12 +7,14 @@ import (
 // AccessSystem represents a system of access objects:
 //   - Blocks: a user block list
 //   - Checks: a collection of host/path checks with access rules
-//   - Keys: mappings of key names to key values
-//   - Tokens: mappings of bearer token value to token names
-//   - JWTSecretKey: the key used to validate user JSON Web Tokens
+//   - PublicKeys: mappings of public key names to key values
+//   - Tokens: mappings of bearer token values to token names
+//   - JWTSecretKey: the secret key used to validate user JSON Web Tokens
 type AccessSystem struct {
 	Blocks       map[string]bool   `json:"blocks"`
-	Checks       *HostChecks       `json:"checks"`
+	Applications []Application     `json:"applications"`
+	Tenants      []Tenant          `json:"tenants"`
+	Checks       *HostChecks       `json:"authorization"`
 	PublicKeys   map[string]string `json:"publicKeys"`
 	Tokens       map[string]string `json:"tokens"`
 	Digests      map[string]string `json:"digests"`
