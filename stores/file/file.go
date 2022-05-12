@@ -18,24 +18,8 @@ import (
 // FileStore implements the forward-auth file storage interface
 type FileStore struct {
 	directory string
-	files     *files
+	path      string
 	watcher   *fsnotify.Watcher
-}
-
-type files struct {
-	applications file
-	blocks       file
-	checks       file
-	tenants      file
-}
-
-type file struct {
-	hash string
-	name string
-}
-
-func (f *file) String() string {
-	return f.name
 }
 
 // New creates a new forward-auth service from data files in directory dir
@@ -51,18 +35,18 @@ func New(dir string) (store *FileStore, err error) {
 		log.Fatal(err)
 	}
 
-	f, err := validateFiles(dir)
+	f, err := getFile(dir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	store = &FileStore{
 		directory: dir,
-		files:     f,
+		path:      f,
 		watcher:   watcher,
 	}
 
-	log.Debugf("initialized new %s service from %s", store.ID(), dir)
+	log.Debugf("initialized new %s service %+v from %s", store.ID(), store, dir)
 
 	return store, err
 }
@@ -78,172 +62,101 @@ func (store *FileStore) Database() (db fauth.Database, err error) {
 // Load loads the Access System from files
 func (store *FileStore) Load() (acs *fauth.AccessSystem, err error) {
 
-	// load user block list from file
-	blocks, err := blocks(store.files)
+	acs = &fauth.AccessSystem{}
+
+	acs, err = load(store.path)
+
 	if err != nil {
 		return acs, err
-	}
-
-	// load host checks from file
-	checks, err := checks(store.files)
-	if err != nil {
-		return acs, err
-	}
-
-	// load public keys and bearer tokens from files
-	keys, tokens, err := access(store.files)
-	if err != nil {
-		return acs, err
-	}
-
-	acs = &fauth.AccessSystem{
-		Blocks:     blocks,
-		Checks:     checks,
-		PublicKeys: keys,
-		Tokens:     tokens,
 	}
 
 	log.Debugf("loaded access control system: %+v", acs)
 	return acs, nil
 }
 
-func blocks(files *files) (blocks map[string]bool, err error) {
-	// load blocks and its digest from file
-	data, hash, err := readFile(files.blocks.name)
+// load acs from store
+func load(path string) (acs *fauth.AccessSystem, err error) {
+
+	acs = &fauth.AccessSystem{}
+
+	data, _, err := readFile(path)
 	if err != nil {
-		return blocks, err
+		return acs, err
 	}
 
-	if hash == files.blocks.hash {
-		return blocks, err
-	}
-
-	blocks = make(map[string]bool, 0)
-	err = json.Unmarshal(data, &blocks)
+	err = json.Unmarshal(data, acs)
 	if err != nil {
-		return blocks, err
+		return acs, err
 	}
 
-	log.Debugf("loaded blocks list from '%s': %+v", files.blocks, blocks)
-	return blocks, nil
+	log.Debugf("loaded acs from '%s': %+v", path, acs)
 
-}
+	// publicKeys maps tenantIDs to their publicKeys; forward-auth uses the tenant public key
+	// to verify request signatures signed with the corresponding private key of the tenant
+	acs.PublicKeys = make(map[string]string, 0)
 
-func checks(files *files) (checks *fauth.HostChecks, err error) {
-	data, hash, err := readFile(files.checks.name)
-	if err != nil {
-		return checks, err
-	}
+	// tokens maps bearer tokens to token names that are used to express conditions in access rules; the map contains
+	// mappings of token values to tenant IDs and application names:
+	//   |  TOKEN  |  Tenant ID  (the tenant ID to which the token is assigned)
+	//   |  TOKEN  |  Application Token Name  | (the application token name that is authorized to use the token)
+	//
+	acs.Tokens = make(map[string]string, 0)
 
-	if hash == files.checks.hash {
-		return checks, err
-	}
-
-	// update checks file hash
-	files.checks.hash = hash
-
-	checks = &fauth.HostChecks{}
-	err = json.Unmarshal(data, checks)
-	if err != nil {
-		return checks, err
-	}
-
-	log.Debugf("loaded host checks from '%s': %+v", files.checks.name, checks)
-	return checks, nil
-}
-
-func access(files *files) (publicKeys map[string]string, tokens map[string]string, err error) {
-	var (
-		data []byte
-		hash string
-	)
-
-	data, hash, err = readFile(files.tenants.name)
-	if err != nil {
-		return publicKeys, tokens, err
-	}
-
-	publicKeys = make(map[string]string, 0)
-	tokens = make(map[string]string, 0)
-
-	// load keys and tokens if tenants file has changed or this is the first load
-	if hash != files.tenants.hash {
-		// update file hash
-		files.tenants.hash = hash
-		tenants := make([]fauth.Tenant, 0)
-		err = json.Unmarshal(data, &tenants)
-		if err != nil {
-			return publicKeys, tokens, err
+	for _, application := range acs.Applications {
+		// map token value to token ID
+		if application.Bearer != nil && application.Bearer.Source == "docker" {
+			acs.Tokens[application.Bearer.Name] = config.MustGetConfig(application.Bearer.Name)
 		}
+	}
 
-		for _, tenant := range tenants {
-			// map tenant bearer token value to tenant ID
-			if tenant.Bearer != nil {
-				switch tenant.Bearer.Source {
-				case "database":
-					// TODO
-				case "docker":
-					tokens[config.MustGetConfig(tenant.Bearer.Name)] = tenant.GUID
-				case "file":
-					if tenant.Bearer.Value == "" {
-						return publicKeys, tokens, fmt.Errorf("bearer token value is empty")
-					}
-					tokens[tenant.Bearer.Value] = tenant.GUID
-				default:
-					return publicKeys, tokens, fmt.Errorf("invalid bearer source: %s", tenant.Bearer.Source)
+	for _, tenant := range acs.Tenants {
+		// map tenant bearer token value to tenant ID
+		if tenant.Bearer != nil {
+			switch tenant.Bearer.Source {
+			case "database":
+				// TODO
+			case "docker":
+				if tenant.Bearer.Root {
+					acs.Tokens[tenant.Bearer.Value] = "ROOT_TOKEN"
+				} else {
+					acs.Tokens[config.MustGetConfig(tenant.Bearer.Name)] = tenant.GUID
 				}
-			}
-
-			// map tenant ID to tenant key(s)
-			if tenant.PublicKey != nil {
-				switch tenant.PublicKey.Source {
-				case "database":
-					// TODO
-
-				case "file":
-					if tenant.PublicKey.Value == "" {
-						return publicKeys, tokens, fmt.Errorf("public key value is empty")
-					}
-					publicKeys[tenant.GUID] = tenant.PublicKey.Value
-
-				case "url":
-					// TODO
-				default:
-					return publicKeys, tokens, fmt.Errorf("invalid public key source: %s", tenant.PublicKey.Source)
+			case "file":
+				if tenant.Bearer.Value == "" {
+					return acs, fmt.Errorf("bearer token value is empty")
 				}
+				if tenant.Bearer.Root {
+					acs.Tokens[tenant.Bearer.Value] = "ROOT_TOKEN"
+				} else {
+					acs.Tokens[tenant.Bearer.Value] = tenant.GUID
+				}
+
+			default:
+				return acs, fmt.Errorf("invalid bearer source: %s", tenant.Bearer.Source)
 			}
 		}
 
-		log.Debugf("loaded tenants from '%s': %+v", files.tenants, tenants)
-	}
+		// map tenant ID to tenant key(s)
+		if tenant.PublicKey != nil {
+			switch tenant.PublicKey.Source {
+			case "database":
+				// TODO
 
-	data, hash, err = readFile(files.applications.name)
-	if err != nil {
-		return publicKeys, tokens, err
-	}
+			case "file":
+				if tenant.PublicKey.Value == "" {
+					return acs, fmt.Errorf("public key value is empty")
+				}
+				acs.PublicKeys[tenant.GUID] = tenant.PublicKey.Value
 
-	// load tokens if applications file has changed or this is the first load
-	if hash != files.applications.hash {
-		// update applications file hash
-		files.applications.hash = hash
-
-		applications := make([]fauth.Application, 0)
-		err = json.Unmarshal(data, &applications)
-		if err != nil {
-			return publicKeys, tokens, err
-		}
-
-		for _, application := range applications {
-			// map token value to token ID
-			if application.Bearer != nil && application.Bearer.Source == "docker" {
-				tokens[application.Bearer.Name] = config.MustGetConfig(application.Bearer.Name)
+			case "url":
+				// TODO
+			default:
+				return acs, fmt.Errorf("invalid public key source: %s", tenant.PublicKey.Source)
 			}
 		}
-
-		log.Debugf("loaded tenants from '%s': %+v", files.tenants, access)
 	}
 
-	return publicKeys, tokens, nil
+	return acs, nil
 }
 
 // Close closes the file storage adapter;
@@ -273,38 +186,16 @@ func readFile(file string) (data []byte, hash string, err error) {
 	return data, fmt.Sprintf("%x", md5.Sum(data)), nil
 }
 
-func validateFiles(dir string) (f *files, err error) {
-	f = &files{
-		applications: file{name: filepath.Join(dir, "applications.json")},
-		blocks:       file{name: filepath.Join(dir, "blocks.json")},
-		checks:       file{name: filepath.Join(dir, "checks.json")},
-		tenants:      file{name: filepath.Join(dir, "tenants.json")},
-	}
-	if e, err := exists(f.applications.name); err != nil {
-		return f, err
+func getFile(dir string) (name string, err error) {
+
+	name = filepath.Join(dir, "access.json")
+	if e, err := exists(name); err != nil {
+		return name, err
 	} else if !e {
-		return f, fmt.Errorf("%s does not exist", f.applications)
+		return name, fmt.Errorf("%s does not exist", name)
 	}
 
-	if e, err := exists(f.blocks.name); err != nil {
-		return f, err
-	} else if !e {
-		return f, fmt.Errorf("%s does not exist", f.blocks)
-	}
-
-	if e, err := exists(f.checks.name); err != nil {
-		return f, err
-	} else if !e {
-		return f, fmt.Errorf("%s does not exist", f.checks)
-	}
-
-	if e, err := exists(f.tenants.name); err != nil {
-		return f, err
-	} else if !e {
-		return f, fmt.Errorf("%s does not exist", f.tenants)
-	}
-
-	return f, nil
+	return name, nil
 }
 
 func exists(name string) (bool, error) {

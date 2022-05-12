@@ -18,7 +18,7 @@ func (store *FileStore) Listen(updateACS func(*fauth.AccessSystem) error) {
 					return
 				}
 				log.Debugf("files watch: %s", event)
-				if (event.Name == store.files.applications.name || event.Name == store.files.blocks.name || event.Name == store.files.checks.name || event.Name == store.files.tenants.name) && (event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write) {
+				if event.Name == store.path && (event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write) {
 					log.Infof("access  file %s has changed; reloading", event.Name)
 					acs, err := store.Load()
 					if err != nil {
