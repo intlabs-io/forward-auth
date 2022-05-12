@@ -34,6 +34,10 @@ type file struct {
 	name string
 }
 
+func (f *file) String() string {
+	return f.name
+}
+
 // New creates a new forward-auth service from data files in directory dir
 func New(dir string) (store *FileStore, err error) {
 	// configure file change watcher
@@ -99,6 +103,7 @@ func (store *FileStore) Load() (acs *fauth.AccessSystem, err error) {
 		Tokens:     tokens,
 	}
 
+	log.Debugf("loaded access control system: %+v", acs)
 	return acs, nil
 }
 
@@ -134,6 +139,9 @@ func checks(files *files) (checks *fauth.HostChecks, err error) {
 		return checks, err
 	}
 
+	// update checks file hash
+	files.checks.hash = hash
+
 	checks = &fauth.HostChecks{}
 	err = json.Unmarshal(data, checks)
 	if err != nil {
@@ -160,6 +168,8 @@ func access(files *files) (publicKeys map[string]string, tokens map[string]strin
 
 	// load keys and tokens if tenants file has changed or this is the first load
 	if hash != files.tenants.hash {
+		// update file hash
+		files.tenants.hash = hash
 		tenants := make([]fauth.Tenant, 0)
 		err = json.Unmarshal(data, &tenants)
 		if err != nil {
@@ -169,30 +179,37 @@ func access(files *files) (publicKeys map[string]string, tokens map[string]strin
 		for _, tenant := range tenants {
 			// map tenant bearer token value to tenant ID
 			if tenant.Bearer != nil {
-				if tenant.Bearer.Source == "database" {
+				switch tenant.Bearer.Source {
+				case "database":
 					// TODO
-				}
-				if tenant.Bearer.Source == "docker" {
+				case "docker":
 					tokens[config.MustGetConfig(tenant.Bearer.Name)] = tenant.GUID
-				}
-				if tenant.Bearer.Source == "file" {
+				case "file":
+					if tenant.Bearer.Value == "" {
+						return publicKeys, tokens, fmt.Errorf("bearer token value is empty")
+					}
 					tokens[tenant.Bearer.Value] = tenant.GUID
+				default:
+					return publicKeys, tokens, fmt.Errorf("invalid bearer source: %s", tenant.Bearer.Source)
 				}
 			}
-			// map tenant ID to tenant key(s)
 
+			// map tenant ID to tenant key(s)
 			if tenant.PublicKey != nil {
-				if tenant.PublicKey.Source == "database" {
+				switch tenant.PublicKey.Source {
+				case "database":
 					// TODO
-				}
-				if tenant.PublicKey.Source == "file" {
+
+				case "file":
 					if tenant.PublicKey.Value == "" {
 						return publicKeys, tokens, fmt.Errorf("public key value is empty")
 					}
 					publicKeys[tenant.GUID] = tenant.PublicKey.Value
-				}
-				if tenant.PublicKey.Source == "url" {
+
+				case "url":
 					// TODO
+				default:
+					return publicKeys, tokens, fmt.Errorf("invalid public key source: %s", tenant.PublicKey.Source)
 				}
 			}
 		}
@@ -207,6 +224,9 @@ func access(files *files) (publicKeys map[string]string, tokens map[string]strin
 
 	// load tokens if applications file has changed or this is the first load
 	if hash != files.applications.hash {
+		// update applications file hash
+		files.applications.hash = hash
+
 		applications := make([]fauth.Application, 0)
 		err = json.Unmarshal(data, &applications)
 		if err != nil {

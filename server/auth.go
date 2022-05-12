@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -163,8 +164,11 @@ func Block(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 func Tree(auth *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		w.Header().Set("Content-Type", "application/json")
-		tree := ""
-		MsgJSON(w, tree)
+		data, err := json.MarshalIndent(auth, "", "  ")
+		if err != nil {
+			ErrJSON(w, err)
+		}
+		MsgJSON(w, string(data))
 	}
 }
 
