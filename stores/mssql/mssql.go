@@ -118,12 +118,6 @@ func (store *MSSql) Load() (acs *fauth.AccessSystem, err error) {
 	return acs, nil
 }
 
-// Reload updates acs from files
-func (store *MSSql) Reload(acs *fauth.AccessSystem) (err error) {
-	// TODO
-	return nil
-}
-
 // Blocks returns the map of blocked users
 // TODO this needs to come from the database
 func (store *MSSql) Blocks() (map[string]bool, error) {
