@@ -58,4 +58,5 @@ type Token struct {
 	Source string `json:"source"`
 	Name   string `json:"name"`
 	Value  string `json:"value,omitempty"`
+	Root   bool   `json:"root"`
 }
