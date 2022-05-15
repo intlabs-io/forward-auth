@@ -74,7 +74,6 @@ func main() {
 	//   and returned by forward-auth; Traefik attaches the userHeader and traceHeader to the request
 	//   for downstream consumption
 
-	rootToken := config.MustGetConfig("ROOT_TOKEN")
 	tenantParam := config.IfGetenv("TENANT_PARAM_NAME", ":tenantID")
 	jwtHeader := config.IfGetenv("JWT_HEADER_NAME", "X-Jwt-Header")
 	userHeader := config.IfGetenv("USER_HEADER_NAME", "X-User-Header")
@@ -120,7 +119,7 @@ func main() {
 	exitDone := &sync.WaitGroup{}
 	exitDone.Add(2)
 
-	authzSrv := server.Start(portFlg, runMode, rootToken, tenantParam, jwtHeader, userHeader, traceHeader, store, exitDone)
+	authzSrv := server.Start(portFlg, runMode, tenantParam, jwtHeader, userHeader, traceHeader, store, exitDone)
 
 	log.Infof("forward-auth started with %s storage adapter", store.ID())
 
