@@ -24,14 +24,12 @@ type AuthzServer struct {
 	info   map[string]string
 }
 
-func Start(addr, runMode, rootToken, tenantParam, jwtHeader, userHeader, traceHeader string, store fauth.Store, wg *sync.WaitGroup) (svr *AuthzServer) {
+func Start(addr, runMode, tenantParam, jwtHeader, userHeader, traceHeader string, store fauth.Store, wg *sync.WaitGroup) (svr *AuthzServer) {
 	// load the access controls
 	acs, err := store.Load()
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	acs.RootToken = rootToken
 
 	// RSA Public Key
 	publicKey, err := config.GetRawSecret("IDENTITY_PROVIDER_PUBLIC_KEY")
