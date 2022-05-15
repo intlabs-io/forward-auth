@@ -105,7 +105,7 @@ func (auth *Auth) CheckBearerAuth(token string, tokens ...string) bool {
 }
 
 // CheckJWT returns true if jwt has action permission on category in the tenantID
-func (auth *Auth) CheckJWT(jwt, tenantID, category, action string) bool {
+func (auth *Auth) CheckJWT(jwt, tenantID, context, category, action string) bool {
 	if jwt == "" {
 		return false
 	}
@@ -126,7 +126,7 @@ func (auth *Auth) CheckJWT(jwt, tenantID, category, action string) bool {
 	for _, role := range identity.UserPermissions {
 		if strings.EqualFold(role.TenantID, tenantID) {
 			for _, perm := range role.Permissions {
-				if perm.Category == ANY || perm.Category == category {
+				if (perm.Context == ALL || perm.Context == context) && (perm.Category == ANY || perm.Category == category) {
 					for _, a := range perm.Action {
 						if a == ALL || a == action {
 							return true
@@ -199,6 +199,7 @@ type UserPermission struct {
 
 // CategoryPermissions type
 type CategoryPermissions struct {
+	Context  string   `json:"context"`
 	Category string   `json:"category"`
 	Action   []string `json:"actions"`
 }
@@ -420,13 +421,30 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 			return "", nil
 		},
 		// return true if identity has role permission in tenant
-		// eg: role(tenantID('KPU'),'ADM','READ')
+		// eg: role(tenantID('KPU'),'ADM','READ'),
+		// role(tenantID('UVIC'),'DRAFT', 'PROGINFO','CREATE') etc
 		"role": func(args ...interface{}) (interface{}, error) {
+
 			tenantID, _ := args[0].(string)
-			category := args[1].(string)
-			action := args[2].(string)
-			log.Debugf("calling role(%s,%s,%s)", tenantID, category, action)
-			return auth.CheckJWT(credentials.JWT, tenantID, category, action), nil
+			var (
+				context  string
+				category string
+				action   string
+			)
+			if len(args) == 3 {
+				context = ALL // default if not provided
+				category = args[1].(string)
+				action = args[2].(string)
+			} else if len(args) == 4 {
+				context = args[1].(string)
+				category = args[2].(string)
+				action = args[3].(string)
+			} else {
+				return false, fmt.Errorf("function role takes 3 or 4 arguments")
+			}
+
+			log.Debugf("calling role(%s,%s,%s)", tenantID, context, category, action)
+			return auth.CheckJWT(credentials.JWT, tenantID, context, category, action), nil
 		},
 		// return true if identity has role permission in tenant
 		// eg: role(epbcid(KPU),ADM,READ)
