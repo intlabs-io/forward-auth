@@ -104,8 +104,17 @@ func load(path string) (acs *fauth.AccessSystem, err error) {
 
 	for _, application := range acs.Applications {
 		// map token value to token ID
-		if application.Bearer != nil && application.Bearer.Source == "docker" {
-			acs.Tokens[application.Bearer.Name] = config.MustGetConfig(application.Bearer.Name)
+		if application.Bearer != nil {
+			switch application.Bearer.Source {
+			case "database":
+				// TODO
+			case "docker":
+				acs.Tokens[application.Bearer.Name] = config.MustGetConfig(application.Bearer.Name)
+			case "file":
+				acs.Tokens[application.Bearer.Name] = application.Bearer.Value
+			default:
+				return acs, fmt.Errorf("invalid bearer token source for application %s: %s", application.Name, application.Bearer.Source)
+			}
 		}
 	}
 
@@ -116,23 +125,25 @@ func load(path string) (acs *fauth.AccessSystem, err error) {
 			case "database":
 				// TODO
 			case "docker":
+				value := config.MustGetConfig(tenant.Bearer.Name)
 				if tenant.Bearer.Root {
-					acs.Tokens[tenant.Bearer.Value] = "ROOT_TOKEN"
+					acs.Tokens[value] = "ROOT_TOKEN"
 				} else {
-					acs.Tokens[config.MustGetConfig(tenant.Bearer.Name)] = tenant.GUID
+					acs.Tokens[value] = tenant.GUID
 				}
 			case "file":
-				if tenant.Bearer.Value == "" {
+				value := tenant.Bearer.Value
+				if value == "" {
 					return acs, fmt.Errorf("bearer token value is empty")
 				}
 				if tenant.Bearer.Root {
-					acs.Tokens[tenant.Bearer.Value] = "ROOT_TOKEN"
+					acs.Tokens[value] = "ROOT_TOKEN"
 				} else {
-					acs.Tokens[tenant.Bearer.Value] = tenant.GUID
+					acs.Tokens[value] = tenant.GUID
 				}
 
 			default:
-				return acs, fmt.Errorf("invalid bearer source: %s", tenant.Bearer.Source)
+				return acs, fmt.Errorf("invalid bearer token source for tenant %s: %s", tenant.Name, tenant.Bearer.Source)
 			}
 		}
 
