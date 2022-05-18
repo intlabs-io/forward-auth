@@ -6,8 +6,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-// Listen listens for changes to the access checks and public keys files calling
-// update to refresh its caches on change
+// Listen listens for changes to the access control file, calling
+// updateACS to refresh its caches on change
 func (store *FileStore) Listen(updateACS func(*fauth.AccessSystem) error) {
 
 	go func() {
@@ -19,7 +19,7 @@ func (store *FileStore) Listen(updateACS func(*fauth.AccessSystem) error) {
 				}
 				log.Debugf("files watch: %s", event)
 				if event.Name == store.path && (event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write) {
-					log.Infof("access  file %s has changed; reloading", event.Name)
+					log.Infof("access file %s has changed; reloading", event.Name)
 					acs, err := store.Load()
 					if err != nil {
 						log.Errorf("error reloading %s: %s", event.Name, err)
