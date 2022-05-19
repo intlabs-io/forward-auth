@@ -69,7 +69,7 @@ func (loader *Loader) Import(file string) (n int, err error) {
 		return n, err
 	}
 
-	log.Debugf("loaded access system: %+v", acs)
+	log.Debugf("loaded access system from file %s: %+v", file, acs)
 
 	sessionGUID := "ROOT"
 
@@ -115,6 +115,36 @@ func (loader *Loader) Import(file string) (n int, err error) {
 
 	txn.Commit()
 	return n, nil
+}
+
+func createSystem(txn *sql.Tx, sessionGUID, name, description string) (systemGUID, systemJSON string, err error) {
+	var (
+		rows *sql.Rows
+	)
+
+	ctx := context.TODO()
+	rows, err = txn.QueryContext(ctx, "[authz].[CreateSystem]",
+		sql.Named("SessionGUID", sessionGUID),
+		sql.Named("Name", name),
+		sql.Named("Description", IfNullString(description)),
+		sql.Named("GUID", sql.Out{Dest: &systemGUID}))
+
+	if err != nil {
+		return systemGUID, systemJSON, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		err = rows.Scan(&systemJSON)
+	}
+
+	if err != nil {
+		log.Errorf("%s", err)
+		return systemGUID, systemJSON, err
+	}
+
+	return systemGUID, systemJSON, err
 }
 
 func createHostGroup(txn *sql.Tx, sessionGUID string, group fauth.HostGroup) (groupGUID, groupJSON string, err error) {
