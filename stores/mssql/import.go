@@ -56,7 +56,7 @@ func NewLoader(database, server string, port int, user, password string) (loader
 // Import imports an access control file to the database
 func (loader *Loader) Import(file string) (n int, err error) {
 
-	var ac fauth.HostChecks
+	var acs fauth.AccessSystem
 
 	// load checks from file
 	data, err := ioutil.ReadFile(file)
@@ -64,12 +64,12 @@ func (loader *Loader) Import(file string) (n int, err error) {
 		return n, err
 	}
 
-	err = json.Unmarshal(data, &ac)
+	err = json.Unmarshal(data, &acs)
 	if err != nil {
 		return n, err
 	}
 
-	log.Debugf("loaded checks: %+v", ac)
+	log.Debugf("loaded access system: %+v", acs)
 
 	sessionGUID := "ROOT"
 
@@ -79,7 +79,7 @@ func (loader *Loader) Import(file string) (n int, err error) {
 		return n, err
 	}
 
-	for i, group := range ac.HostGroups {
+	for i, group := range acs.Checks.HostGroups {
 		groupGUID, groupJSON, err := createHostGroup(txn, sessionGUID, group)
 		if err != nil {
 			return n, err
