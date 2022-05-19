@@ -103,15 +103,15 @@ func load(path string) (acs *fauth.AccessSystem, err error) {
 	acs.Tokens = make(map[string]string, 0)
 
 	for _, application := range acs.Applications {
-		// map token value to token ID
+		// map application bearer token value to name
 		if application.Bearer != nil {
 			switch application.Bearer.Source {
 			case "database":
 				// TODO
 			case "docker":
-				acs.Tokens[application.Bearer.Name] = config.MustGetConfig(application.Bearer.Name)
+				acs.Tokens[config.MustGetConfig(application.Bearer.Name)] = application.Bearer.Name
 			case "file":
-				acs.Tokens[application.Bearer.Name] = application.Bearer.Value
+				acs.Tokens[application.Bearer.Value] = application.Bearer.Name
 			default:
 				return acs, fmt.Errorf("invalid bearer token source for application %s: %s", application.Name, application.Bearer.Source)
 			}
