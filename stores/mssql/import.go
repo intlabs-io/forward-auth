@@ -58,7 +58,7 @@ func (loader *Loader) Import(file string) (n int, err error) {
 
 	var acs fauth.AccessSystem
 
-	// load checks from file
+	// load access.json from file
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return n, err
