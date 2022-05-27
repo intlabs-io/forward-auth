@@ -21,32 +21,18 @@ import (
 )
 
 var (
-	info build.BuildInfo
-
+	info       build.BuildInfo
 	configFlg  string
 	disableFlg bool
-	runMode    string
 	levelFlg   log.Level
 	portFlg    string
 	storageFlg string
-
-	dbname     string
-	dbhost     string
-	dbport     int
-	dbuser     string
-	dbpassword string
-
-	jwtHeader   string
-	userHeader  string
-	traceHeader string
-
-	tenantParam string
 )
 
 func init() {
 
-	flag.StringVar(&configFlg, "config", "", "config file")
-	flag.BoolVar(&disableFlg, "disable", false, "disable authorization")
+	flag.StringVar(&configFlg, "config", "", "path to file adapter config directory")
+	flag.BoolVar(&disableFlg, "disable", false, "disable forward authorization")
 	flag.Var(&levelFlg, "level", "set log level to one of trace, debug, info, warning, error")
 	flag.StringVar(&portFlg, "port", ":8080", "HTTP listen port")
 	flag.StringVar(&storageFlg, "store", config.IfGetenv("FORWARD_AUTH_STORAGE", "file"), "storage adapter type - one of file, mssql, mock")
@@ -64,6 +50,7 @@ func init() {
 	}
 
 	docs.SwaggerInfo.Host = config.MustGetenv("APIS_HOST")
+
 	projTemplate := config.MustGetConfig("OPENAPI_BUILD_TEMPLATE")
 	version, err = info.Format(projTemplate)
 	if err != nil {
@@ -77,18 +64,20 @@ func init() {
 func main() {
 	flag.Parse()
 
-	runMode = config.IfGetenv("RUN_MODE", "")
-	// get config from Docker secrets or environment
-	dbhost = config.MustGetenv("DB_HOST")
-	dbport = config.MustGetInt("DB_PORT")
-	dbname = config.MustGetenv("DB_NAME")
-	dbuser = config.MustGetConfig("API_DB_USER")
-	dbpassword = config.MustGetConfig("API_DB_PASSWORD")
+	runMode := config.IfGetenv("RUN_MODE", "")
 
-	tenantParam = config.IfGetenv("TENANT_PARAM_NAME", ":tenantID")
-	jwtHeader = config.IfGetenv("JWT_HEADER_NAME", "X-Jwt-Header")
-	userHeader = config.IfGetenv("USER_HEADER_NAME", "X-User-Header")
-	traceHeader = config.IfGetenv("TRACE_HEADER_NAME", "X-Trace-Header")
+	// - rootToken is the name of the tenant API token that is treated as ROOT
+	// - tenantParam is the name of the tenant ID path parameter used in rule expressions
+	// - jwtHeader is the name of the header in requests that carries a user JSON Web Token
+	// - userHeader is the name of the header containing the user identifier extracted from the JWT
+	// - traceHeader is the name of the header containing a trace identifier used for log coordination
+	//   and returned by forward-auth; Traefik attaches the userHeader and traceHeader to the request
+	//   for downstream consumption
+
+	tenantParam := config.IfGetenv("TENANT_PARAM_NAME", ":tenantID")
+	jwtHeader := config.IfGetenv("JWT_HEADER_NAME", "X-Jwt-Header")
+	userHeader := config.IfGetenv("USER_HEADER_NAME", "X-User-Header")
+	traceHeader := config.IfGetenv("TRACE_HEADER_NAME", "X-Trace-Header")
 
 	if levelFlg == log.None {
 		loglevel := os.Getenv("LOG_LEVEL")
@@ -103,29 +92,34 @@ func main() {
 		runMode = "noAuth"
 	}
 
-	var configPath = configFlg
-	if configPath == "" {
-		configPath = config.IfGetenv("CONFIG_PATH", "/usr/local/etc/forward-auth")
+	dataDir := configFlg
+	if dataDir == "" {
+		dataDir = config.IfGetenv("FORWARD_AUTH_DATA_DIR", "/usr/local/etc/forward-auth")
 	}
 
 	var store fauth.Store
 	var err error
 	switch storageFlg {
 	case "file":
-		store, err = file.New(configPath)
+		store, err = file.New(dataDir)
 	case "mssql":
-		store, err = mssql.New(jwtHeader, configPath, runMode, dbname, dbhost, dbport, dbuser, dbpassword)
+		dbhost := config.MustGetenv("DB_HOST")
+		dbport := config.MustGetInt("DB_PORT")
+		dbname := config.MustGetenv("DB_NAME")
+		dbuser := config.MustGetConfig("API_DB_USER")
+		dbpassword := config.MustGetConfig("API_DB_PASSWORD")
+		store, err = mssql.New(dataDir, dbname, dbhost, dbport, dbuser, dbpassword)
 	}
 
 	if err != nil {
-		log.Fatalf("failed to create forward-auth %s Service: %s", store.ID(), err)
+		log.Fatalf("failed to create forward-auth %s service: %s", store.ID(), err)
 	}
 	defer store.Close()
 
 	exitDone := &sync.WaitGroup{}
 	exitDone.Add(2)
 
-	authzSrv := server.Start(portFlg, runMode, tenantParam, userHeader, traceHeader, store, exitDone)
+	authzSrv := server.Start(portFlg, runMode, tenantParam, jwtHeader, userHeader, traceHeader, store, exitDone)
 
 	log.Infof("forward-auth started with %s storage adapter", store.ID())
 
