@@ -393,6 +393,10 @@ func (auth *Auth) getRSAPublicKeys() map[string]*rsa.PublicKey {
 	return auth.publicKeys
 }
 
+func (auth *Auth) setTokens(tokens map[string]string) {
+	auth.tokens = tokens
+}
+
 func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials *ident.Credentials, verifier httpsig.Verifier) (result bool, err error) {
 	log.Debugf("evaluating expr '%s' with params %v, auth %v, credentials %v", expr, paramMap, auth, credentials)
 	// define builtins
@@ -553,9 +557,10 @@ func (auth *Auth) Muxer(host string) (mux *pat.HostMux, err error) {
 // 	return string(data), nil
 // }
 
-// UpdateFunc returns a function to update AccessControls
+// UpdateFunc returns a function to update access system
 func (auth *Auth) UpdateFunc() (f func(*AccessSystem) error) {
 	return func(acs *AccessSystem) error {
+		auth.setTokens(acs.Tokens)
 		auth.setRSAPublicKeys(acs.PublicKeys)
 		return auth.setAccess(acs.Checks, true)
 	}
