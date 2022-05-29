@@ -26,7 +26,6 @@ bitbucket.org/_metalogic_/validation v0.0.0-20210601150612-ed58a6ac8ba6 h1:51kM/
 bitbucket.org/_metalogic_/validation v0.0.0-20210601150612-ed58a6ac8ba6/go.mod h1:ydQk01rdfURse/T4G+HBNDNltW23pVJlCnpHtt9IAsE=
 bitbucket.org/_metalogic_/validator v0.0.0-20210601150159-9df48f02c435 h1:Ivklh2Tzt20XyH5NcFs3Sejp0AZPkhRlCkr3wFpWSWE=
 bitbucket.org/_metalogic_/validator v0.0.0-20210601150159-9df48f02c435/go.mod h1:6p5dkCJQ4fYtoGtx/p/mBycF/iX4ckXRIv1OA6DOSgI=
-github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=
 github.com/KyleBanks/depth v1.2.1/go.mod h1:jzSb9d0L43HxTQfT+oSA1EEp2q+ne2uh6XgeJcm8brE=

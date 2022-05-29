@@ -11,14 +11,16 @@ type Common interface {
 type Store interface {
 	Common
 	ID() string
-	Database() (Database, error)
-	Load() (*AccessControls, error)
-	Listen(func(*AccessControls) error)
 	Close() error
+	Database() (Database, error)
+	Listen(func(*AccessSystem) error)
+	Load() (*AccessSystem, error)
 }
 
 type Database interface {
-	Store
+	Blocks() (map[string]bool, error)
+	Tokens(root string) (map[string]string, error)
+
 	HostGroups() (groupsJSON string, err error)
 	CreateHostGroup(sessionGUID string, group HostGroup) (groupJSON string, err error)
 	HostGroup(groupGUID string) (groupJSON string, err error)

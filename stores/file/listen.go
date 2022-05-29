@@ -6,9 +6,9 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-// Listen listens for changes to the access checks file calling
-// update to refresh its cache on change
-func (store *File) Listen(update func(*fauth.AccessControls) error) {
+// Listen listens for changes to the access control file, calling
+// updateACS to refresh its caches on change
+func (store *FileStore) Listen(updateACS func(*fauth.AccessSystem) error) {
 
 	go func() {
 		for {
@@ -17,14 +17,14 @@ func (store *File) Listen(update func(*fauth.AccessControls) error) {
 				if !ok {
 					return
 				}
-				log.Debugf("access checks file watch: %s", event)
-				if event.Name == store.file && (event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write) {
-					log.Infof("access rules file %s has changed; reloading", store.file)
+				log.Debugf("files watch: %s", event)
+				if event.Name == store.path && (event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write) {
+					log.Infof("access file %s has changed; reloading", event.Name)
 					acs, err := store.Load()
 					if err != nil {
-						log.Errorf("error reloading access rules file: %s", err)
+						log.Errorf("error reloading %s: %s", event.Name, err)
 					}
-					update(acs)
+					updateACS(acs)
 				}
 			case err, ok := <-store.watcher.Errors:
 				if !ok {
@@ -34,9 +34,4 @@ func (store *File) Listen(update func(*fauth.AccessControls) error) {
 			}
 		}
 	}()
-
-	// err := store.watcher.Add(store.directory)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
 }

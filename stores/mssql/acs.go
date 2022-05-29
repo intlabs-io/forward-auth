@@ -10,6 +10,15 @@ import (
 	"bitbucket.org/_metalogic_/log"
 )
 
+/*******************************
+ implement the Database interface
+********************************/
+
+// Database returns a database implementation
+func (store *MSSql) Database() (db fauth.Database, err error) {
+	return store, nil
+}
+
 func (store *MSSql) HostGroups() (groupsJSON string, err error) {
 	var (
 		rows *sql.Rows
@@ -34,6 +43,7 @@ func (store *MSSql) HostGroups() (groupsJSON string, err error) {
 
 	return groupsJSON, err
 }
+
 func (store *MSSql) CreateHostGroup(sessionGUID string, group fauth.HostGroup) (groupJSON string, err error) {
 	txn, err := store.database.BeginTx(context.TODO(), nil)
 	if err != nil {

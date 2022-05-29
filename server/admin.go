@@ -31,7 +31,6 @@ func init() {
 // @Router /info [get]
 func APIInfo(store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-
 		rt := &build.Runtime{
 			BuildInfo:   build.Info,
 			ServiceInfo: store.Info(),

@@ -4,8 +4,27 @@ import (
 	"bitbucket.org/_metalogic_/validation"
 )
 
-// AccessControls ...
-type AccessControls struct {
+// AccessSystem represents a system of access objects:
+//   - Blocks: a user block list
+//   - Checks: a collection of host/path checks with access rules
+//   - PublicKeys: mappings of public key names to key values
+//   - Tokens: mappings of bearer token values to token names
+//   - JWTSecretKey: the secret key used to validate user JSON Web Tokens
+type AccessSystem struct {
+	Blocks       map[string]bool   `json:"blocks"`
+	Applications []Application     `json:"applications"`
+	Tenants      []Tenant          `json:"tenants"`
+	Checks       *HostChecks       `json:"authorization"`
+	PublicKeys   map[string]string `json:"publicKeys"`
+	Tokens       map[string]string `json:"tokens"`
+	Digests      map[string]string `json:"digests"`
+	RootToken    string            `json:"rootToken"`
+	JWTSecretKey string            `json:"jwtSecret,omitempty"`
+}
+
+// HostChecks ...
+type HostChecks struct {
+	Hash       string
 	Overrides  map[string]string `json:"overrides,omitempty"`
 	HostGroups []HostGroup       `json:"hostGroups"`
 }
