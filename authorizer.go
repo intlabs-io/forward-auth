@@ -16,7 +16,7 @@ import (
 	"bitbucket.org/_metalogic_/ident"
 	"bitbucket.org/_metalogic_/log"
 	"bitbucket.org/_metalogic_/pat"
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 )
 
 const (
@@ -450,13 +450,12 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 			log.Debugf("calling role(%s,%s,%s)", tenantID, context, category, action)
 			return auth.CheckJWT(credentials.JWT, tenantID, context, category, action), nil
 		},
-		// return true if identity has role permission in tenant
-		// eg: role(epbcid(KPU),ADM,READ)
+		// return true if identity has root permission
 		"root": func(args ...interface{}) (interface{}, error) {
 			log.Debug("calling root()")
 			return auth.Root(credentials.JWT), nil
 		},
-		// return true if a request signed by tenant's private key is valid
+		// return true if a request signed with tenant's private key is valid
 		// with respect to tenant's public key
 		"signature": func(args ...interface{}) (interface{}, error) {
 			tenantID, _ := args[0].(string)
