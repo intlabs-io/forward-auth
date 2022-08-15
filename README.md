@@ -1,10 +1,17 @@
-# EPBC Traefik Forward Auth Service
+# Traefik Forward Auth Service
 
-Traefik is the EPBC gateway for all backend services. Backend services do not implement authorization logic. Rather Traefik ix configured to pass all HTTP requests through a forward auth service which is responsible for all authorization.
+[Traefik](https://traefik.io) is an HTTP reverse proxy and load balancer. 
+
+Forward-auth is an implementation of Traefik forward-auth middleware.
+Traefik reads forward-auth configuration from labels defined on Docker containers. All requests for configured
+containers are passed through forward-auth to evaluate access control rules against the request. Requests that
+satisfy matching access control rules are forwarded to the configured Docker container; those that do not are
+denied with HTTP forbidden status.
+
 
 ## Build Docker Image
 
 ```
-$ docker build --no-cache -t epbc/forward-auth .
+$ docker build -t metalogic/forward-auth .
 ```
 
