@@ -1,4 +1,4 @@
-FROM golang:1.18 as builder
+FROM golang:1.19 as builder
 
 ENV GOPRIVATE "bitbucket.org/_metalogic_/*"
 
@@ -10,7 +10,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o forward-auth .
 
 FROM metalogic/alpine:3.15
 
-RUN adduser -u 25010 -g 'Application Runner' -D runner
+RUN adduser -u 25000 -g 'Application Runner' -D runner
 
 WORKDIR /home/runner
 
