@@ -17,6 +17,7 @@ import (
 	"bitbucket.org/_metalogic_/forward-auth/server"
 	"bitbucket.org/_metalogic_/forward-auth/stores/file"
 	"bitbucket.org/_metalogic_/forward-auth/stores/mssql"
+	"bitbucket.org/_metalogic_/forward-auth/stores/postgres"
 	"bitbucket.org/_metalogic_/log"
 )
 
@@ -49,9 +50,9 @@ func init() {
 		flag.PrintDefaults()
 	}
 
-	docs.SwaggerInfo.Host = config.MustGetenv("APIS_HOST")
+	docs.SwaggerInfo.Host = config.IfGetenv("APIS_HOST", "localhost")
+	projTemplate := config.IfGetenv("OPENAPI_BUILD_TEMPLATE", "<pre>((Project))\n(version ((Version)), revision ((Revision)))\n of ((Built))</pre>\n\n")
 
-	projTemplate := config.MustGetConfig("OPENAPI_BUILD_TEMPLATE")
 	version, err = info.Format(projTemplate)
 	if err != nil {
 		log.Warning("Failed to format openapi version from template %s: %s", projTemplate, err)
@@ -103,12 +104,9 @@ func main() {
 	case "file":
 		store, err = file.New(dataDir)
 	case "mssql":
-		dbhost := config.MustGetenv("DB_HOST")
-		dbport := config.MustGetInt("DB_PORT")
-		dbname := config.MustGetenv("DB_NAME")
-		dbuser := config.MustGetConfig("API_DB_USER")
-		dbpassword := config.MustGetConfig("API_DB_PASSWORD")
-		store, err = mssql.New(dataDir, dbname, dbhost, dbport, dbuser, dbpassword)
+		store, err = mssql.New()
+	case "postgres":
+		store, err = postgres.New()
 	}
 
 	if err != nil {

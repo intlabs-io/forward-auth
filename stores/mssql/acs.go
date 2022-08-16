@@ -24,7 +24,7 @@ func (store *MSSql) HostGroups() (groupsJSON string, err error) {
 		rows *sql.Rows
 	)
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[GetHostGroups]")
+	rows, err = store.DB.QueryContext(store.context, "[authz].[GetHostGroups]")
 
 	if err != nil {
 		return groupsJSON, err
@@ -45,7 +45,7 @@ func (store *MSSql) HostGroups() (groupsJSON string, err error) {
 }
 
 func (store *MSSql) CreateHostGroup(sessionGUID string, group fauth.HostGroup) (groupJSON string, err error) {
-	txn, err := store.database.BeginTx(context.TODO(), nil)
+	txn, err := store.DB.BeginTx(context.TODO(), nil)
 	if err != nil {
 		log.Error(err)
 		return groupJSON, err
@@ -74,7 +74,7 @@ func (store *MSSql) HostGroup(groupGUID string) (groupJSON string, err error) {
 		rows *sql.Rows
 	)
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[GetHostGroup]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[GetHostGroup]",
 		sql.Named("GroupGUID", groupGUID))
 
 	if err != nil {
@@ -102,7 +102,7 @@ func (store *MSSql) UpdateHostGroup(sessionGUID, groupGUID string, group fauth.H
 
 	log.Debugf("[Session GUID: %s]: update host group %s", sessionGUID, group.Name)
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[UpdateHostGroup]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[UpdateHostGroup]",
 		sql.Named("SessionGUID", sessionGUID),
 		sql.Named("Name", group.Name),
 		sql.Named("Description", IfNullString(group.Description)),
@@ -130,7 +130,7 @@ func (store *MSSql) DeleteHostGroup(groupGUID string) (msgJSON string, err error
 		rows *sql.Rows
 	)
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[DeleteHostGroup]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[DeleteHostGroup]",
 		sql.Named("GroupGUID", groupGUID))
 
 	if err != nil {
@@ -156,7 +156,7 @@ func (store *MSSql) Hosts(groupGUID string) (hostsJSON string, err error) {
 		rows *sql.Rows
 	)
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[GetHosts]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[GetHosts]",
 		sql.Named("GroupGUID", groupGUID))
 
 	if err != nil {
@@ -185,7 +185,7 @@ func (store *MSSql) CreateHost(sessionGUID, groupGUID string, hostname string) (
 
 	log.Debugf("[Session GUID: %s]: update host group %s", sessionGUID, hostname)
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[CreateHost]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[CreateHost]",
 		sql.Named("SessionGUID", sessionGUID),
 		sql.Named("GroupGUID", groupGUID),
 		sql.Named("Hostname", hostname),
@@ -214,7 +214,7 @@ func (store *MSSql) Host(groupGUID, hostGUID string) (hostJSON string, err error
 		rows *sql.Rows
 	)
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[GetHost]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[GetHost]",
 		sql.Named("GroupGUID", groupGUID),
 		sql.Named("HostGUID", hostGUID))
 
@@ -243,7 +243,7 @@ func (store *MSSql) UpdateHost(sessionGUID, groupGUID, hostGUID string, hostname
 
 	log.Debugf("[Session GUID: %s]: update host group %s", sessionGUID, hostname)
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[UpdateHost]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[UpdateHost]",
 		sql.Named("SessionGUID", sessionGUID),
 		sql.Named("GroupGUID", groupGUID),
 		sql.Named("HostGUID", hostGUID),
@@ -274,7 +274,7 @@ func (store *MSSql) DeleteHost(groupGUID, hostGUID string) (msgJSON string, err 
 
 	log.Debugf("delete host %s", hostGUID)
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[DeleteHost]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[DeleteHost]",
 		sql.Named("GroupGUID", groupGUID),
 		sql.Named("HostGUID", hostGUID))
 
@@ -301,7 +301,7 @@ func (store *MSSql) Checks(groupGUID string) (checksJSON string, err error) {
 		rows *sql.Rows
 	)
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[GetChecks]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[GetChecks]",
 		sql.Named("GroupGUID", groupGUID))
 
 	if err != nil {
@@ -330,7 +330,7 @@ func (store *MSSql) CreateCheck(sessionGUID, groupGUID string, check fauth.Check
 
 	log.Debugf("[Session GUID: %s]: create host check for group %s", sessionGUID, groupGUID)
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[CreateCheck]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[CreateCheck]",
 		sql.Named("SessionGUID", sessionGUID),
 		sql.Named("GroupGUID", groupGUID),
 		sql.Named("Name", check.Name),
@@ -362,7 +362,7 @@ func (store *MSSql) Check(groupGUID, checkGUID string) (checkJSON string, err er
 		rows *sql.Rows
 	)
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[GetCheck]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[GetCheck]",
 		sql.Named("GroupGUID", groupGUID),
 		sql.Named("CheckGUID", checkGUID))
 
@@ -391,7 +391,7 @@ func (store *MSSql) UpdateCheck(sessionGUID, groupGUID, checkGUID string, check 
 
 	log.Debugf("[Session GUID: %s]: update check %s for group %s", sessionGUID, checkGUID, groupGUID)
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[UpdateCheck]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[UpdateCheck]",
 		sql.Named("SessionGUID", sessionGUID),
 		sql.Named("GroupGUID", groupGUID),
 		sql.Named("CheckGUID", checkGUID))
@@ -421,7 +421,7 @@ func (store *MSSql) DeleteCheck(groupGUID, checkGUID string) (msgJSON string, er
 
 	log.Debugf("delete check %s for group %s", checkGUID, groupGUID)
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[DeleteCheck]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[DeleteCheck]",
 		sql.Named("GroupGUID", groupGUID),
 		sql.Named("HostGUID", checkGUID))
 
@@ -448,7 +448,7 @@ func (store *MSSql) Paths(groupGUID, checkGUID string) (pathsJSON string, err er
 		rows *sql.Rows
 	)
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[GetPaths]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[GetPaths]",
 		sql.Named("GroupGUID", groupGUID),
 		sql.Named("CheckGUID", checkGUID))
 
@@ -483,7 +483,7 @@ func (store *MSSql) CreatePath(sessionGUID, groupGUID, checkGUID string, path fa
 		return pathJSON, err
 	}
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[CreatePath]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[CreatePath]",
 		sql.Named("SessionGUID", sessionGUID),
 		sql.Named("GroupGUID", groupGUID),
 		sql.Named("CheckGUID", checkGUID),
@@ -514,7 +514,7 @@ func (store *MSSql) Path(groupGUID, checkGUID, pathGUID string) (pathJSON string
 		rows *sql.Rows
 	)
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[GetPath]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[GetPath]",
 		sql.Named("GroupGUID", groupGUID),
 		sql.Named("CheckGUID", checkGUID),
 		sql.Named("PathGUID", pathGUID))
@@ -549,7 +549,7 @@ func (store *MSSql) UpdatePath(sessionGUID, groupGUID, checkGUID, pathGUID strin
 		return pathJSON, err
 	}
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[UpdatePath]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[UpdatePath]",
 		sql.Named("SessionGUID", sessionGUID),
 		sql.Named("GroupGUID", groupGUID),
 		sql.Named("CheckGUID", checkGUID),
@@ -582,7 +582,7 @@ func (store *MSSql) DeletePath(groupGUID, checkGUID, pathGUID string) (msgJSON s
 
 	log.Debugf("delete host %s", pathGUID)
 
-	rows, err = store.database.QueryContext(store.context, "[authz].[DeletePath]",
+	rows, err = store.DB.QueryContext(store.context, "[authz].[DeletePath]",
 		sql.Named("GroupGUID", groupGUID),
 		sql.Named("CheckGUID", checkGUID),
 		sql.Named("PathGUID", pathGUID))

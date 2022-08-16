@@ -15,28 +15,13 @@ import (
 var (
 	info build.BuildInfo
 
-	fileFlg    string
-	disableFlg bool
-	levelFlg   log.Level
-
-	dbname     string
-	dbhost     string
-	dbport     int
-	dbuser     string
-	dbpassword string
+	fileFlg  string
+	levelFlg log.Level
 )
 
 func init() {
 	flag.StringVar(&fileFlg, "file", "", "checks file")
-	flag.BoolVar(&disableFlg, "disable", false, "disable authorization")
 	flag.Var(&levelFlg, "level", "set log level to one of debug, info, warning, error")
-
-	// get config from Docker secrets or environment
-	dbhost = config.MustGetConfig("DB_HOST")
-	dbport = config.MustGetInt("DB_PORT")
-	dbname = config.MustGetConfig("DB_NAME")
-	dbuser = config.MustGetConfig("API_DB_USER")
-	dbpassword = config.MustGetConfig("API_DB_PASSWORD")
 
 	var err error
 	info = build.Info
@@ -77,7 +62,7 @@ func main() {
 		}
 	}
 
-	loader, err := mssql.NewLoader(dbname, dbhost, dbport, dbuser, dbpassword)
+	loader, err := mssql.NewLoader()
 	if err != nil {
 		log.Fatal(err)
 	}

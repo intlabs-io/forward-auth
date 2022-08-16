@@ -6,17 +6,18 @@ require (
 	bitbucket.org/_metalogic_/build v1.0.2
 	bitbucket.org/_metalogic_/config v1.4.0
 	bitbucket.org/_metalogic_/eval v1.0.1
-	bitbucket.org/_metalogic_/glib v0.9.4
+	bitbucket.org/_metalogic_/glib v1.0.0
 	bitbucket.org/_metalogic_/httpsig v0.0.0-20211209010019-f2554fb89eae
 	bitbucket.org/_metalogic_/httptreemux-swagger v1.1.0
 	bitbucket.org/_metalogic_/ident v1.1.2
 	bitbucket.org/_metalogic_/log v1.4.1
 	bitbucket.org/_metalogic_/pat v0.9.3
 	bitbucket.org/_metalogic_/validation v0.0.0-20210601150612-ed58a6ac8ba6
-	github.com/denisenkom/go-mssqldb v0.10.0
+	github.com/denisenkom/go-mssqldb v0.12.2
 	github.com/dimfeld/httptreemux/v5 v5.2.2
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/lib/pq v1.10.6
 	github.com/pborman/uuid v1.2.0
 	github.com/swaggo/swag v1.8.0
 )
@@ -33,6 +34,7 @@ require (
 	github.com/go-openapi/spec v0.20.4 // indirect
 	github.com/go-openapi/swag v0.19.15 // indirect
 	github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe // indirect
+	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect

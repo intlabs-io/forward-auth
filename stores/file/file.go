@@ -110,6 +110,8 @@ func load(path string) (acs *fauth.AccessSystem, err error) {
 				// TODO
 			case "docker":
 				acs.Tokens[config.MustGetConfig(application.Bearer.Name)] = application.Bearer.Name
+			case "env":
+				acs.Tokens[config.MustGetConfig(application.Bearer.Name)] = application.Bearer.Name
 			case "file":
 				acs.Tokens[application.Bearer.Value] = application.Bearer.Name
 			default:
@@ -125,6 +127,13 @@ func load(path string) (acs *fauth.AccessSystem, err error) {
 			case "database":
 				// TODO
 			case "docker":
+				value := config.MustGetConfig(tenant.Bearer.Name)
+				if tenant.Bearer.Root {
+					acs.Tokens[value] = "ROOT_TOKEN"
+				} else {
+					acs.Tokens[value] = tenant.GUID
+				}
+			case "env":
 				value := config.MustGetConfig(tenant.Bearer.Name)
 				if tenant.Bearer.Root {
 					acs.Tokens[value] = "ROOT_TOKEN"

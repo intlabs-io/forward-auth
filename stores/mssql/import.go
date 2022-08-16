@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"time"
 
+	"bitbucket.org/_metalogic_/config"
 	fauth "bitbucket.org/_metalogic_/forward-auth"
 	. "bitbucket.org/_metalogic_/glib/sql" // dot import fo avoid package prefix in reference (shutup lint)
 	"bitbucket.org/_metalogic_/log"
@@ -17,36 +18,44 @@ import (
 
 // Loader implements a data loader for the forward-auth database schema
 type Loader struct {
-	database *sql.DB
-	context  context.Context
+	DB      *sql.DB
+	context context.Context
 }
 
 // NewLoader creates a new database loader
-func NewLoader(database, server string, port int, user, password string) (loader *Loader, err error) {
+func NewLoader() (loader *Loader, err error) {
 
-	loader = &Loader{}
+	name := config.MustGetConfig("DB_NAME")
+	user := config.MustGetConfig("API_DB_USER")
+	password := config.MustGetConfig("API_DB_PASSWORD")
 
+	server := config.IfGetenv("DB_HOST", "mssql.mssql.svc.cluster.local")
+	port := config.IfGetInt("DB_PORT", 1433)
+
+	loader = &Loader{context: context.Background()}
 	// configure MSSql Server
 	values := url.Values{}
-	values.Set("database", database)
+	values.Set("database", name)
 	values.Set("app", "forward-auth loader")
 	u := &url.URL{
-		Scheme:   "sqlserver",
-		User:     url.UserPassword(user, password),
-		Host:     fmt.Sprintf("%s:%d", server, port),
+		Scheme: "sqlserver",
+		User:   url.UserPassword(user, password),
+		Host:   fmt.Sprintf("%s:%d", server, port),
+		// Path:  instance, // if connecting to an instance instead of a port
 		RawQuery: values.Encode(),
 	}
+
 	log.Debugf("sqlserver connection string: %s", u.Redacted())
 
-	loader.database, err = sql.Open("sqlserver", u.String())
+	loader.DB, err = sql.Open("sqlserver", u.String())
 	if err != nil {
 		return loader, err
 	}
-	loader.database.SetConnMaxLifetime(300 * time.Second)
-	loader.database.SetMaxIdleConns(50)
-	loader.database.SetMaxOpenConns(50)
+	loader.DB.SetConnMaxLifetime(300 * time.Second)
+	loader.DB.SetMaxIdleConns(50)
+	loader.DB.SetMaxOpenConns(50)
 
-	if err = loader.database.Ping(); err != nil {
+	if err = loader.DB.Ping(); err != nil {
 		return loader, err
 	}
 
@@ -73,7 +82,7 @@ func (loader *Loader) Import(file string) (n int, err error) {
 
 	sessionGUID := "ROOT"
 
-	txn, err := loader.database.BeginTx(context.TODO(), nil)
+	txn, err := loader.DB.BeginTx(context.TODO(), nil)
 	if err != nil {
 		log.Error(err)
 		return n, err

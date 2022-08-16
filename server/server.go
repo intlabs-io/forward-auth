@@ -32,7 +32,7 @@ func Start(addr, runMode, tenantParam, jwtHeader, userHeader, traceHeader string
 	}
 
 	// RSA Public Key
-	publicKey, err := config.GetRawSecret("IDENTITY_PROVIDER_PUBLIC_KEY")
+	publicKey := []byte(config.MustGetConfig("IDENTITY_PROVIDER_PUBLIC_KEY"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -125,7 +125,7 @@ func router(auth *fauth.Auth, store fauth.Store, userHeader, traceHeader string)
 	api.POST("/block/:userGUID", Block(auth))
 	api.DELETE("/block/:userGUID", Unblock(auth))
 
-	// ACS endpoints - only the MSSql adapter implements these endpoints
+	// ACS endpoints - the file storage adapter does not implement these endpoints
 	api.GET("/hostgroups", HostGroups(store))
 	api.POST("/hostgroups", CreateHostGroup(userHeader, store))
 	api.GET("/hostgroups/:groupGUID", HostGroup(store))

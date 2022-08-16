@@ -20,7 +20,7 @@ type Mock struct {
 	version string
 }
 
-func NewMock() (mock *Mock, err error) {
+func New() (mock *Mock, err error) {
 	mock = &Mock{context: context.TODO(), version: "v1"}
 	return mock, err
 }
