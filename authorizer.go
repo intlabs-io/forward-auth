@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"net/http"
@@ -120,7 +121,7 @@ func (auth *Auth) CheckJWT(jwt, tenantID, context, category, action string) bool
 		return false
 	}
 
-	log.Debugf("identity found in JWT: %s", identity)
+	log.Debugf("identity found in JWT: %+v", *identity)
 
 	if identity.Root {
 		return true
@@ -159,7 +160,7 @@ func (auth *Auth) Root(jwt string) bool {
 		return false
 	}
 
-	log.Debugf("identity found in JWT: %s", identity)
+	log.Debugf("identity found in JWT: %+v", *identity)
 
 	return identity.Root
 }
@@ -182,7 +183,7 @@ func (auth *Auth) User(jwt string) (uid string) {
 		return uid
 	}
 
-	log.Debugf("identity found in JWT: %s", identity)
+	log.Debugf("identity found in JWT: %+v", *identity)
 
 	return *identity.UID
 }
@@ -196,12 +197,12 @@ type Identity struct {
 	Permissions    []TenantPermissions `json:"userPerms"`
 }
 
-func (ident *Identity) String() string {
-	if ident == nil {
-		return ""
-	}
-	return *ident.Name
-}
+// func (ident *Identity) String() string {
+// 	if ident == nil {
+// 		return ""
+// 	}
+// 	return *ident.Name
+// }
 
 // TenantPermissions defines the permissions of a user for a tenant
 type TenantPermissions struct {
@@ -240,7 +241,16 @@ func jwtIdentity(tknStr string, auth *Auth) (identity *Identity, err error) {
 	if !tkn.Valid {
 		return identity, fmt.Errorf("JWT token in request is expired")
 	}
-	log.Debugf("JWT Claims: %+v", claims)
+
+	if log.Loggable(log.DebugLevel) {
+
+		m, err := json.Marshal(claims)
+		if err != nil {
+			log.Errorf("failed to marshal claims: %+v", claims)
+		} else {
+			log.Debugf("parsed JWT Claims: %s", m)
+		}
+	}
 
 	return claims.Identity, nil
 }
@@ -328,6 +338,10 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 }
 
 func (auth *Auth) setAccess(checks *HostChecks, refresh bool) error {
+	if checks == nil {
+		log.Warning("empty host checks for auth")
+		return nil
+	}
 	auth.overrides = checks.Overrides
 
 	// create Pat Host Muxers from Checks
@@ -484,7 +498,7 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 				return false, fmt.Errorf("function role takes 3 or 4 arguments")
 			}
 
-			log.Debugf("calling role(%s,%s,%s)", tenantID, context, category, action)
+			log.Debugf("calling role(%s,%s,%s,%s)", tenantID, context, category, action)
 			return auth.CheckJWT(credentials.JWT, tenantID, context, category, action), nil
 		},
 		// return true if identity has root permission
