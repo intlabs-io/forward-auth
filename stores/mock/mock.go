@@ -3,6 +3,9 @@ package mock
 import (
 	"context"
 	"sync"
+
+	fauth "bitbucket.org/_metalogic_/forward-auth"
+	"bitbucket.org/_metalogic_/log"
 )
 
 const rfc339 = "2006-01-02T15:04:05Z07:00"
@@ -48,4 +51,19 @@ func (mock *Mock) SetRunMode(mode string) {
 
 func (mock *Mock) Version() string {
 	return mock.version
+}
+
+// Load returns a mock AccessSystem
+func (mock *Mock) Load() (acs *fauth.AccessSystem, err error) {
+
+	acs = &fauth.AccessSystem{
+		PublicKeys: make(map[string]string),
+	}
+
+	if err != nil {
+		return acs, err
+	}
+
+	log.Debugf("loaded access control system: %+v", acs)
+	return acs, nil
 }

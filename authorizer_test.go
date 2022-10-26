@@ -1,9 +1,11 @@
-package fauth
+package fauth_test
 
 import (
 	"io/ioutil"
 	"testing"
 
+	fauth "bitbucket.org/_metalogic_/forward-auth"
+	"bitbucket.org/_metalogic_/forward-auth/stores/mock"
 	"bitbucket.org/_metalogic_/log"
 )
 
@@ -12,37 +14,42 @@ const (
 )
 
 var (
-	auth      *Auth
+	auth      *fauth.Auth
 	publicKey []byte
 	blocks    map[string]bool
 	tokens    map[string]string
 	secret    []byte
 	// new
-	keyFile = "test/new-public.key"
-	adamTkn = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjRFQjcxODhFMzhGOTgyNEY2M0QyQTRFQzdEMjNEMjAxREYyRTZBMjFSUzI1NiIsInR5cCI6ImF0K2p3dCIsIng1dCI6IlRyY1lqamo1Z2s5ajBxVHNmU1BTQWQ4dWFpRSJ9.eyJuYmYiOjE2MjA3NjkxMTAsImV4cCI6MTYyMzM2MTExMCwiaXNzIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6ODA4MSIsImNsaWVudF9pZCI6Im1jIiwic3ViIjoiQ0YxQjczMDYtOUM4Qy00REZGLUE2NzgtMTBDREJDMEYzRDMxIiwiYXV0aF90aW1lIjoxNjIwNzY5MTA5LCJpZHAiOiJsb2NhbCIsImlkZW50aXR5Ijoie1widXNlckdVSURcIjpcIkNGMUI3MzA2LTlDOEMtNERGRi1BNjc4LTEwQ0RCQzBGM0QzMVwiLFwidXNlcm5hbWVcIjpcImFkYW0uYnJvd25AZWR1Y2F0aW9ucGxhbm5lcmJjLmNhXCIsXCJyb290XCI6dHJ1ZSxcInVzZXJQZXJtc1wiOlt7XCJ0ZW5hbnRJRFwiOlwiMTk2RUUzNjMtQTVBMy00QzQ3LThGREItMkU4REE4REJFMkU5XCIsXCJwZXJtc1wiOlt7XCJjYXRlZ29yeVwiOlwiQU5ZXCIsXCJhY3Rpb25zXCI6W1wiQUxMXCJdfV19LHtcInRlbmFudElEXCI6XCIyRDAzRDY3Ny02RDY0LTRGMzYtQjA5OC05Q0E0ODdFM0I2RUFcIixcInBlcm1zXCI6W3tcImNhdGVnb3J5XCI6XCJBRE1cIixcImFjdGlvbnNcIjpbXCJSRUFEXCJdfV19LHtcInRlbmFudElEXCI6XCI0NDEwNTBDMS04ODM5LTRBRTktOTY5My03OTVFNEU0RkE4NzVcIixcInBlcm1zXCI6W119LHtcInRlbmFudElEXCI6XCI1MzlFMjQ3NS0wMjE1LTQ0QzMtQTREMC1FQTgwNkNGOUFCOUZcIixcInBlcm1zXCI6W3tcImNhdGVnb3J5XCI6XCJBTllcIixcImFjdGlvbnNcIjpbXCJBTExcIl19XX1dfSIsImp0aSI6IjI2NTE2MzAzOThGNjA3RjdENEE2NDYwNzQ2NEFENzMyIiwic2lkIjoiODNERjUzNTc2NUM2QzRDQzQ3ODUwNzgyQTE0QTdGQjgiLCJpYXQiOjE2MjA3NjkxMTAsInNjb3BlIjpbIm9wZW5pZCIsInByb2ZpbGUiLCJlbWFpbCIsImVwYmNfaWRlbnRpdHkiLCJvZmZsaW5lX2FjY2VzcyJdLCJhbXIiOlsicHdkIl19.ydqtqCrEir97BYfr7Q_Dz_ubM9zDl3tbRB1YkNR2iVSBXKyGZnIKQFVoohW7b-fSZ2ute5_1n2t0xo91VzUupckruGE04zWQ_y2fWCexhZTEUNCLs9yQLHcluzbadMHMkwXqgqfQ2VVXImLbg8tpoDPJnGeGQQ0isK7eYslvZPTPhIHV1LIqhErAQplNTcAj12SPv2imN4KkAHjdg2_FtaM_XFNb5cVr_daQnwZsC_RgBRAYjWN3XbCDtRdNxnIrKO0Jg3c_SFVhV2A-EbieuRYZ5nEni3ETgpjY9UX7NK9tbEBfcj5qsoPgmFwE6Ppqfx59lrl414bYV3wN91nYA32lxBOJTLiCU-yevxV1Y76Fx-MVq0rV9VOJ2i_6N7hOOxXldae-iq7kvC7EdZTLdnp36KYZy2-U15_XQ9naaX_b9VCe5BOIjafSUn57C99OIgE-XIOYUf-0sZ-HpTO_RdK9yHiMqdadTnH6ceBrakjp-Es4YXwS-AdaW9CuwuEW8AO0FYYC8l-bzbDiUqN0quZ3yzbOVmDxAW1deFjGWAXuxxpolXwCuP4P6PWWOCXURGwhTxDUPwDJaIuJmSzIIJyCXQppbEHIAD9j4MazXqZhSOI0d1RPaROUC-O5ffrLg1m22dvX85nuy6-3WKaci4pCmfKv0z-vhSuCYzV3DHU"
-	adamJWT = `{
-		"nbf": 1620162215,
-		"exp": 1622754215,
-		"iss": "https://localhost:8081",
-		"client_id": "mc",
-		"sub": "CF1B7306-9C8C-4DFF-A678-10CDBC0F3D31",
-		"auth_time": 1620161732,
-		"idp": "local",
-		"identity": "{\"userGUID\":\"CF1B7306-9C8C-4DFF-A678-10CDBC0F3D31\",\"username\":\"adam.brown@educationplannerbc.ca\",\"root\":true,\"userPerms\":[{\"tenantID\":\"196EE363-A5A3-4C47-8FDB-2E8DA8DBE2E9\",\"perms\":[{\"category\":\"ANY\",\"actions\":[\"ALL\"]}]},{\"tenantID\":\"2D03D677-6D64-4F36-B098-9CA487E3B6EA\",\"perms\":[{\"category\":\"ADM\",\"actions\":[\"READ\"]}]},{\"tenantID\":\"441050C1-8839-4AE9-9693-795E4E4FA875\",\"perms\":[]},{\"tenantID\":\"539E2475-0215-44C3-A4D0-EA806CF9AB9F\",\"perms\":[{\"category\":\"ANY\",\"actions\":[\"ALL\"]}]}]}",
-		"jti": "125CDAD2FA10EDB6DB15737A4DD7A323",
-		"sid": "DE77509D1ACFDDB8DF152FF70E708068",
-		"iat": 1620162215,
-		"scope": [
-		  "openid",
-		  "profile",
-		  "email",
-		  "epbc_identity",
-		  "offline_access"
+	keyFile    = "test/dev-q84yaa6r.pem"
+	rickyToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InYxRHZZRFF5NG5IOVlGNWd5U0RCaiJ9.eyJuYW1lIjoiUmlja3kgTW9ycmlzb24iLCJlbWFpbCI6InJpY2t5QGludGxhYnMuaW8iLCJpZGVudGl0eSI6eyJjbGFzc2lmaWNhdGlvbiI6Ik5PTkUiLCJkZXNjcmlwdGlvbiI6IlJpY2t5IE1vcnJpc29uIiwiZG9tYWluIjoiaW8uaW50bGFicyIsIm1ldGEiOnsiY3JlYXRlZCI6IjIwMjItMTAtMjRUMDc6MzY6MDIuMDUyNjgrMDA6MDAiLCJjcmVhdGV1c2VyIjoiT1JJR0lOIiwidXBkYXRlZCI6bnVsbCwidXBkYXRldXNlciI6bnVsbH0sIm5hbWUiOiJyaWNreSIsInN1cGVydXNlciI6ZmFsc2UsInVpZCI6Imdvb2dsZS1vYXV0aDJ8MTE2MjgyMDc1Mzc3MDM4Mzg1NDkyIn0sImlzcyI6Imh0dHBzOi8vZGV2LXE4NHlhYTZyLnVzLmF1dGgwLmNvbS8iLCJzdWIiOiJnb29nbGUtb2F1dGgyfDExNjI4MjA3NTM3NzAzODM4NTQ5MiIsImF1ZCI6WyJodHRwOi8vb3JpZ2luLWFwaXMubG9jYWxob3N0IiwiaHR0cHM6Ly9kZXYtcTg0eWFhNnIudXMuYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTY2Njc5NTAzNywiZXhwIjoxNjY2ODgxNDM3LCJhenAiOiJTUVlKR2J5VFFrczdsVU96VVFENEV1U1hIM3d6SnJVeCIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwifQ.EeTKX_fzIz1C1IVGOZthngBAAsGpuYrFS0R8L-QbiLBeavAZ_qhXQ4cy6sxzMj2RURSkpe47UqIdElSK-jqRPviKPknLZ3cHoWq0cPZJR_giR8cMyZJ9DgRCp1stWP_968j-VWBo-ntq47C69NJkIHXC20m0cBnKumjkPgRrfpdn6U8rQI9ntFT0PLZgvP653r6dN1Qo4noLbYMLQFbsbZNUAO4to6xZWp-p7Looc6qFtQldffHFw4DwkLVIXLi83hglgvXy-7hoT6um1OWjlepC43LLkurLUMqpn4ERFnYJRFhbwwtc25ZJUhJmZKWKVS9QgBqPD7vvKDR2p7vHKw"
+	rickyJWT   = `{
+		"name": "Ricky Morrison",
+		"email": "ricky@intlabs.io",
+		"identity": {
+		  "uid": "google-oauth2|116282075377038385492",
+		  "classification": "NONE",
+		  "description": "Ricky Morrison",
+		  "domain": "io.intlabs",
+		  "name": "ricky",
+		  "superuser": false,
+		  "meta": {
+			"created": "2022-10-24T07:36:02.05268+00:00",
+			"createuser": "ORIGIN",
+			"updated": null,
+			"updateuser": null
+		  }
+		},
+		"iss": "https://dev-q84yaa6r.us.auth0.com/",
+		"sub": "google-oauth2|116282075377038385492",
+		"aud": [
+		  "http://origin-apis.localhost",
+		  "https://dev-q84yaa6r.us.auth0.com/userinfo"
 		],
-		"amr": [
-		  "pwd"
-		]
-	  }`
+		"iat": 1666782112,
+		"exp": 1666868512,
+		"azp": "SQYJGbyTQks7lUOzUQD4EuSXH3wzJrUx",
+		"scope": "openid profile email"
+	}`
 )
 
 func init() {
@@ -52,7 +59,15 @@ func init() {
 		log.Fatal(err)
 	}
 	secret = []byte("RyxDWzqg8AaDAHxGt989tEPdfG42dr6e5QqCxJ4mwGKYavtLbj")
-	// TODO	auth, err = NewAuth(jwtHeader, publicKey, secret, tokens, blocks)
+	store, err := mock.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	acs, err := store.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
+	auth, err = fauth.NewAuth(acs, jwtHeader, publicKey, secret)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -68,10 +83,10 @@ func Test_checkJWT(t *testing.T) {
 	}
 
 	type wants struct {
-		userGUID string
-		username string
-		root     bool
-		tenantID string
+		uid            string
+		name           string
+		root           bool
+		classification string
 	}
 
 	tests := []struct {
@@ -80,17 +95,17 @@ func Test_checkJWT(t *testing.T) {
 		wants wants
 	}{
 		{
-			"Adam claims",
+			"Ricky claims",
 			args{
 				keyType:     "rsa",
 				key:         publicKey,
-				tokenString: adamTkn,
+				tokenString: rickyToken,
 			},
 			wants{
-				"CF1B7306-9C8C-4DFF-A678-10CDBC0F3D31",
-				"adam.brown@educationplannerbc.ca",
-				true,
-				"441050C1-8839-4AE9-9693-795E4E4FA875",
+				"google-oauth2|116282075377038385492",
+				"ricky",
+				false,
+				"NONE",
 			},
 		},
 	}
@@ -102,11 +117,17 @@ func Test_checkJWT(t *testing.T) {
 				if identity.Root != tt.wants.root {
 					t.Errorf("%s: identity.Root = %t, want %t", tt.name, identity.Root, tt.wants.root)
 				}
-				if *identity.Name != tt.wants.username {
-					t.Errorf("%s: identity.Username = %s, want %s", tt.name, *identity.Name, tt.wants.username)
+				if *identity.Name != tt.wants.name {
+					t.Errorf("%s: identity.Name = %s, want %s", tt.name, *identity.Name, tt.wants.name)
+				}
+				if *identity.UID != tt.wants.uid {
+					t.Errorf("%s: identity.UID = %s, want %s", tt.name, *identity.UID, tt.wants.uid)
 				}
 			} else {
 				t.Errorf("%s: %s", tt.name, err)
+			}
+			if identity == nil {
+				t.Errorf("%s: identity not found in token", tt.name)
 			}
 
 		})
