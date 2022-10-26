@@ -1,9 +1,9 @@
 package fauth
 
 import (
+	"bytes"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"net/http"
@@ -11,12 +11,13 @@ import (
 	"strings"
 	"sync"
 
+	"bitbucket.org/_metalogic_/config"
 	"bitbucket.org/_metalogic_/eval"
 	"bitbucket.org/_metalogic_/httpsig"
 	"bitbucket.org/_metalogic_/ident"
 	"bitbucket.org/_metalogic_/log"
 	"bitbucket.org/_metalogic_/pat"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 const (
@@ -37,16 +38,17 @@ const (
 )
 
 // Auth type holds data for authorization
-// - jwtHeader is the name of the header containing the user's JWT
-// - idType is a string with value either "string" or "struct":
-//   if "string" then the value of Claim.Identity is a string;
-//   if "struct" then the value of Claim.Identity is the Identity struct defined in this package
-// - keyFunc is a function passed to JWT parse function to return the key for decrypting the JWT token
-// - tokens maps token values passed in a request to token names referenced in
-//   access control functions; eg: bearer(ROOT_TOKEN) returns true if the bearer
-//   auth token in the request maps to the token name ROOT_TOKEN
-// - blocks is a map of subjects (usernames, hostnames, IP addresses) to be denied
-//   access; subject names must be unique for all subjects
+//   - jwtHeader is the name of the header containing the user's JWT
+//   - idType is a string with value either "string" or "struct":
+//     if "string" then the value of Claim.Identity is a string;
+//     if "struct" then the value of Claim.Identity is the Identity struct defined in this package
+//   - keyFunc is a function passed to JWT parse function to return the key for decrypting the JWT token
+//   - tokens maps token values passed in a request to token names referenced in
+//     access control functions; eg: bearer(ROOT_TOKEN) returns true if the bearer
+//     auth token in the request maps to the token name ROOT_TOKEN
+//   - blocks is a map of subjects (usernames, hostnames, IP addresses) to be denied
+//     access; subject names must be unique for all subjects
+//
 // an instance of Auth is passed to handlers to drive authorization calculations
 type Auth struct {
 	runMode    string
@@ -80,6 +82,7 @@ func NewAuth(acs *AccessSystem, jwtHeader string, publicKey, secret []byte) (aut
 	if err != nil {
 		return auth, err
 	}
+	// support JWT signing by either symmetric secret key or RSA public/private key
 	auth.keyFunc = func(token *jwt.Token) (key interface{}, err error) {
 		switch token.Method.Alg() {
 		case "HS256":
@@ -122,10 +125,10 @@ func (auth *Auth) CheckJWT(jwt, tenantID, context, category, action string) bool
 	if identity.Root {
 		return true
 	}
-	log.Debugf("evaluating user permissions: %+v", identity.UserPermissions)
-	for _, role := range identity.UserPermissions {
+	log.Debugf("evaluating user permissions: %+v", identity.Permissions)
+	for _, role := range identity.Permissions {
 		if strings.EqualFold(role.TenantID, tenantID) {
-			for _, perm := range role.Permissions {
+			for _, perm := range role.Actions {
 				if (perm.Context == ALL || perm.Context == context) && (perm.Category == ANY || perm.Category == category) {
 					for _, a := range perm.Action {
 						if a == ALL || a == action {
@@ -176,29 +179,30 @@ func (auth *Auth) User(jwt string) (guid string) {
 
 	log.Debugf("identity found in JWT: %s", identity)
 
-	return identity.User
+	return *identity.UID
 }
 
 // Identity type
 type Identity struct {
-	User            string           `json:"userGUID"`
-	Username        string           `json:"username"`
-	Root            bool             `json:"root"`
-	UserPermissions []UserPermission `json:"userPerms"`
+	UID            *string             `json:"uid"`
+	Name           *string             `json:"name"`
+	Root           bool                `json:"superuser"`
+	Classification *string             `json:"classification"`
+	Permissions    []TenantPermissions `json:"userPerms"`
 }
 
 func (ident *Identity) String() string {
-	return ident.Username
+	return *ident.Name
 }
 
-// UserPermission defines the permissions of a user for a tenant
-type UserPermission struct {
-	TenantID    string                `json:"tenantID"`
-	Permissions []CategoryPermissions `json:"perms"`
+// TenantPermissions defines the permissions of a user for a tenant
+type TenantPermissions struct {
+	TenantID string            `json:"tenantID"`
+	Actions  []CategoryActions `json:"perms"`
 }
 
-// CategoryPermissions type
-type CategoryPermissions struct {
+// CategoryActions type
+type CategoryActions struct {
 	Context  string   `json:"context"`
 	Category string   `json:"category"`
 	Action   []string `json:"actions"`
@@ -208,8 +212,8 @@ func jwtIdentity(tknStr string, auth *Auth) (identity *Identity, err error) {
 
 	// Claims type
 	type Claims struct {
-		Identity string `json:"identity"`
-		jwt.StandardClaims
+		Identity *Identity `json:"identity"`
+		jwt.RegisteredClaims
 	}
 	// Initialize a new instance of `Claims`
 	claims := &Claims{}
@@ -229,13 +233,8 @@ func jwtIdentity(tknStr string, auth *Auth) (identity *Identity, err error) {
 		return identity, fmt.Errorf("JWT token in request is expired")
 	}
 	log.Debugf("JWT Claims: %+v", claims)
-	identity = &Identity{}
-	err = json.Unmarshal([]byte(claims.Identity), identity)
-	if err != nil {
-		return identity, err
-	}
 
-	return identity, nil
+	return claims.Identity, nil
 }
 
 // Action returns an action from an HTTP method
@@ -401,6 +400,36 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 	log.Debugf("evaluating expr '%s' with params %v, auth %v, credentials %v", expr, paramMap, auth, credentials)
 	// define builtins
 	functions := map[string]eval.ExpressionFunction{
+		// return true if call to URL returns HTTP status 200 ok
+		// eg: allow(action, user, "sources/{sid}", "https://example.com/check")
+		// action is one of HEAD (should we call this EXISTS?), CREATE, READ, UPDATE, DELETE
+		"allow": func(args ...interface{}) (interface{}, error) {
+			action, _ := args[0].(string)
+			uid, _ := args[1].(string)
+			rid, _ := args[2].(string)
+			route, _ := args[3].(string)
+			log.Debugf("checking user %s for access to resource '%s' at URL %s", uid, rid, route)
+
+			body := []byte(fmt.Sprintf(`{ "action": "%s", "user": "%s", "resource": "%s"}`, action, uid, rid))
+			token := config.MustGetConfig("ORIGIN_API_TOKEN")
+			client := &http.Client{}
+			req, err := http.NewRequest("POST", route, bytes.NewBuffer(body))
+			if err != nil {
+				return false, err
+			}
+
+			req.Header.Set("Authorization", "Bearer "+token)
+			resp, err := client.Do(req)
+			if err != nil {
+				return false, err
+			}
+
+			if resp.StatusCode != 200 {
+				return false, fmt.Errorf(resp.Status)
+			}
+
+			return true, nil
+		},
 		// return true if the value of one of the bearer tokens is valid in the environment
 		// eg: bearer('ROOT_TOKEN', ...)
 		"bearer": func(args ...interface{}) (interface{}, error) {
@@ -414,7 +443,7 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 			log.Debugf("calling bearer(%v)", tokens)
 			return auth.CheckBearerAuth(credentials.Token, tokens...), nil
 		},
-		// return the binding of a path or query parameter
+		// return the binding of a path or (TODO query parameter)
 		// eg: param(':tenantID')
 		"param": func(args ...interface{}) (interface{}, error) {
 			param := args[0].(string)
@@ -461,6 +490,11 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 			tenantID, _ := args[0].(string)
 			log.Debugf("calling signature(%s)", tenantID)
 			return verify(verifier, tenantID, auth.getRSAPublicKeys()), nil
+		},
+		// return the subdomain of the request
+		"subdomain": func(args ...interface{}) (interface{}, error) {
+			log.Debugf("calling subdomain()")
+			return "TODO", nil
 		},
 		// return true if identity matches the user guid in path
 		// eg: user(guid)

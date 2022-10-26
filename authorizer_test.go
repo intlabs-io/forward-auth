@@ -102,8 +102,8 @@ func Test_checkJWT(t *testing.T) {
 				if identity.Root != tt.wants.root {
 					t.Errorf("%s: identity.Root = %t, want %t", tt.name, identity.Root, tt.wants.root)
 				}
-				if identity.Username != tt.wants.username {
-					t.Errorf("%s: identity.Username = %s, want %s", tt.name, identity.Username, tt.wants.username)
+				if *identity.Name != tt.wants.username {
+					t.Errorf("%s: identity.Username = %s, want %s", tt.name, *identity.Name, tt.wants.username)
 				}
 			} else {
 				t.Errorf("%s: %s", tt.name, err)

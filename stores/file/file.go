@@ -161,13 +161,13 @@ func load(path string) (acs *fauth.AccessSystem, err error) {
 			switch tenant.PublicKey.Source {
 			case "database":
 				// TODO
-
+			case "env":
+				// TODO
 			case "file":
 				if tenant.PublicKey.Value == "" {
 					return acs, fmt.Errorf("public key value is empty")
 				}
 				acs.PublicKeys[tenant.GUID] = tenant.PublicKey.Value
-
 			case "url":
 				// TODO
 			default:
@@ -175,7 +175,6 @@ func load(path string) (acs *fauth.AccessSystem, err error) {
 			}
 		}
 	}
-
 	return acs, nil
 }
 

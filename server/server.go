@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"sync"
 
@@ -31,10 +32,17 @@ func Start(addr, runMode, tenantParam, jwtHeader, userHeader, traceHeader string
 		log.Fatal(err)
 	}
 
-	// RSA Public Key
-	publicKey := []byte(config.MustGetConfig("IDENTITY_PROVIDER_PUBLIC_KEY"))
-	if err != nil {
-		log.Fatal(err)
+	// RSA Public Key is used to verify a JWT signed with IDP RSA private key;
+	// it must be available either by HTTP request or in the environment
+	url := config.IfGetenv("IDENTITY_PROVIDER_PUBLIC_KEY_URL", "")
+	var publicKey []byte
+	if url != "" {
+		publicKey, err = getPublicKey(url)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		publicKey = []byte(config.MustGetConfig("IDENTITY_PROVIDER_PUBLIC_KEY"))
 	}
 
 	// Symmetric secret key
@@ -151,4 +159,25 @@ func router(auth *fauth.Auth, store fauth.Store, userHeader, traceHeader string)
 	api.DELETE("/hostgroups/:groupGUID/checks/:checkGUID/paths/:pathGUID", DeletePath(store))
 
 	return treemux
+}
+
+func getPublicKey(url string) (publicKey []byte, err error) {
+	log.Debugf("getting RSA public key from %s", url)
+	resp, err := http.Get(url)
+	if err != nil {
+		return publicKey, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return publicKey, fmt.Errorf(resp.Status)
+	}
+
+	publicKey, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return publicKey, err
+	}
+
+	return publicKey, nil
 }
