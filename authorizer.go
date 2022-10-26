@@ -197,6 +197,9 @@ type Identity struct {
 }
 
 func (ident *Identity) String() string {
+	if ident == nil {
+		return ""
+	}
 	return *ident.Name
 }
 
