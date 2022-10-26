@@ -165,16 +165,21 @@ func (auth *Auth) Root(jwt string) bool {
 }
 
 // User returns the user GUID in jwt
-func (auth *Auth) User(jwt string) (guid string) {
+func (auth *Auth) User(jwt string) (uid string) {
 	if jwt == "" {
-		return guid
+		return uid
 	}
 
 	var err error
 	var identity *Identity
 	if identity, err = jwtIdentity(jwt, auth); err != nil {
 		log.Errorf("JWT found in request is invalid: %s", err)
-		return guid
+		return uid
+	}
+
+	if identity == nil {
+		log.Errorf("no identity found in JWT: %s", jwt)
+		return uid
 	}
 
 	log.Debugf("identity found in JWT: %s", identity)
