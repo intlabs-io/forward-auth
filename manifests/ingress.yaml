@@ -1,0 +1,16 @@
+# IngresRoute
+---
+kind: IngressRoute
+apiVersion: traefik.containo.us/v1alpha1
+metadata:
+  name: forward-auth
+
+spec:
+  entryPoints: 
+    - web
+  routes:
+  - match: Host(`forward-auth.localhost`) 
+    kind: Rule
+    services:
+    - name: forward-auth-service
+      port: 8080

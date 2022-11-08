@@ -1,0 +1,88 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: forward-auth
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: forward-auth
+  template:
+    metadata:
+      labels:
+        app: forward-auth
+    spec:
+      containers:
+        - name: forward-auth
+          image: metalogic/forward-auth:latest
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          env:
+          - name: LOG_LEVEL
+            value: "DEBUG"
+          - name: DB_NAME
+            valueFrom:
+              secretKeyRef:
+                name: apis-secrets-config
+                key: dbname
+          - name: API_DB_USER
+            valueFrom:
+              secretKeyRef:
+                name: apis-secrets-config
+                key: username
+          - name: API_DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: apis-secrets-config
+                key: password
+          - name: ORIGIN_API_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: forward-auth-secrets-config
+                key: origin_api_bearer_token
+          - name: MC_API_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: forward-auth-secrets-config
+                key: origin_management_console_bearer_token
+          - name: LM_API_TOKEN
+            valueFrom:
+              secretKeyRef:
+                key: lockheed_api_bearer_token
+                name: forward-auth-secrets-config
+          - name: IDENTITY_PROVIDER_PUBLIC_KEY
+            valueFrom:
+              secretKeyRef:
+                name: forward-auth-secrets-config
+                key: idp_public_key
+          - name: IDENTITY_PROVIDER_PUBLIC_KEY_URL
+            valueFrom:
+              secretKeyRef:
+                name: forward-auth-secrets-config
+                key: idp_public_key_url
+          - name: JWT_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: forward-auth-secrets-config
+                key: jwt_secret_key
+          volumeMounts:
+            - mountPath: /usr/local/etc/forward-auth
+              name: etcdata
+      volumes:
+        - name: etcdata
+          persistentVolumeClaim:
+            claimName: etc-forward-auth-volume-claim
