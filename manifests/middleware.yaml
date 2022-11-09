@@ -1,4 +1,4 @@
-# Forward authentication forward-auth host in cluster 
+# Forward authorization requests to forward-auth host in cluster 
 apiVersion: traefik.containo.us/v1alpha1
 kind: Middleware
 metadata:
