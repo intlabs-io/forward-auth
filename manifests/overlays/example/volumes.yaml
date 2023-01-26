@@ -1,0 +1,8 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: etc-forward-auth-volume
+spec:
+  hostPath:
+    path: /Users/ricky/data/Volumes/etc/forward-auth

@@ -4,10 +4,13 @@ The manifests directory contains Kustomize scripts for the deployment
 of forward-auth to a Kubernetes cluster. The prerequsites are an installation
 of Traefik (obviously) and kubeseal. 
 
+*Your must create a Kustomize overlay that modifies the scripts in base.*
+
 The manifests assume a deployment to a namespace named "apis." This is the
 namepace where your Web applications and APIs are deployed. If that is not the
 namespace you are using (and why would it be) then you must kustomize
-middleware.yaml to use the correct internal addres defining the /auth endpoint:
+middleware.yaml to use the correct internal address defining the
+forward-auth /auth endpoint:
 
 ```
 # Forward authorization requests to forward-auth host in cluster 
@@ -20,9 +23,11 @@ spec:
     address: http://forward-auth-service.apis.svc.cluster.local:8080/auth
 ```
 
-Notice the appearance of the apis namespace in the address above.
+Notice the appearance of the ```apis``` namespace in the address above. This allows
+direct HTTP requests from inside the Kubernetes cluster without additional
+routing.
 
-To use the correct namespace - let's say myapps - for your application
+To use the correct namespace - let's say ```myapps``` - for your application
 create a patch file like the following:
 
 ```
@@ -34,7 +39,7 @@ spec:
   forwardAuth:
     address: http://forward-auth-service.my-apps.svc.cluster.local:8080/auth
 ```
-Then edit the kustomization file for my-apps to apply the patch:
+Then edit the kustomization file for your overlay to apply the patch:
 
 ```
 apiVersion: kustomize.config.k8s.io/v1beta1
