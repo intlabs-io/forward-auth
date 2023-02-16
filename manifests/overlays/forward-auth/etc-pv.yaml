@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: etc-forward-auth-volume
+  name: CHANGE-ME-etc-forward-auth-volume
   labels:
     type: local
     app: forward-auth
@@ -12,5 +12,5 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: /data/Volumes/etc/forward-auth
+    path: /CHANGE-ME/to/patch/to/etc/forward-auth
   persistentVolumeReclaimPolicy: Retain

@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+bases:
+- ../../base
+resources:
+- forward-auth/config.yaml
+- forward-auth/secrets/kubeseal.json
+patchesJson6902:
+- target:
+    kind: PersistentVolume
+    name: etc-forward-auth-volume
+  path: forward-auth/etc-pv-patch.json
+- target:
+    kind: PersistentVolumeClaim
+    name: etc-forward-auth-volume-claim
+  path: forward-auth/etc-pvc-patch.json

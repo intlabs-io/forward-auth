@@ -5,4 +5,4 @@ metadata:
   name: etc-forward-auth-volume
 spec:
   hostPath:
-    path: /Users/ricky/data/Volumes/etc/forward-auth
+    path: /path/to/etc/forward-auth

@@ -5,7 +5,7 @@ metadata:
   labels:
     app: forward-auth
 spec:
-  volumeName: etc-forward-auth-volume
+  volumeName: CHANGE-ME-etc-forward-auth-volume
   storageClassName: manual
   accessModes:
     - ReadWriteOnce

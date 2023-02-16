@@ -3,7 +3,4 @@ kind: Kustomization
 bases:
 - ../../base
 resources:
-- forward-auth-config.yaml
-- secrets/forward-auth-kubeseal.json
-patchesStrategicMerge:
-- forward-auth-volume.yaml
+- forward-auth

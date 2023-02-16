@@ -1,0 +1,7 @@
+[
+  {
+    "op": "replace",
+    "path": "/spec/forwardAuth/address",
+    "value": "http://forward-auth-service.CHANGE-ME-TO-YOUR-NAMESPACE.svc.cluster.local:8080/auth"
+  }
+]
