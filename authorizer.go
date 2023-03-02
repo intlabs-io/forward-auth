@@ -22,13 +22,13 @@ import (
 )
 
 const (
-	// ANY wildcard category matches any individual category (eg ADM, FEE, INST, etc)
+	// ANY wildcard category matches any individual category (eg FINANCE, CONTENT, IMAGE, etc)
 	ANY = "ANY"
-	// ALL wildcard action matches any of GET, PUT, POST, DELETE, PATCH
+	// ALL wildcard action matches any of CREATE, READ, UPDATE, DELETE, EXISTS
 	ALL = "ALL"
 )
 
-// Action constants as defined in database table [auth].[ACTIONS]
+// Action constants as defined in database table auth.ACTIONS
 // HTTP methods are mapped to an action
 const (
 	CREATE = "CREATE"
@@ -45,8 +45,8 @@ const (
 //     if "struct" then the value of Claim.Identity is the Identity struct defined in this package
 //   - keyFunc is a function passed to JWT parse function to return the key for decrypting the JWT token
 //   - tokens maps token values passed in a request to token names referenced in
-//     access control functions; eg: bearer(ROOT_TOKEN) returns true if the bearer
-//     auth token in the request maps to the token name ROOT_TOKEN
+//     access control functions; eg: bearer(ROOT_KEY) returns true if the bearer
+//     auth token in the request maps to the token name ROOT_KEY
 //   - blocks is a map of subjects (usernames, hostnames, IP addresses) to be denied
 //     access; subject names must be unique for all subjects
 //
@@ -196,13 +196,6 @@ type Identity struct {
 	Classification *string             `json:"classification"`
 	Permissions    []TenantPermissions `json:"userPerms"`
 }
-
-// func (ident *Identity) String() string {
-// 	if ident == nil {
-// 		return ""
-// 	}
-// 	return *ident.Name
-// }
 
 // TenantPermissions defines the permissions of a user for a tenant
 type TenantPermissions struct {
@@ -433,14 +426,14 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 			log.Debugf("checking user %s for access to resource '%s' at URL %s", uid, rid, route)
 
 			body := []byte(fmt.Sprintf(`{ "action": "%s", "user": "%s", "resource": "%s"}`, action, uid, rid))
-			token := config.MustGetConfig("ORIGIN_API_TOKEN")
+			key := config.MustGetConfig("ROOT_KEY")
 			client := &http.Client{}
 			req, err := http.NewRequest("POST", route, bytes.NewBuffer(body))
 			if err != nil {
 				return false, err
 			}
 
-			req.Header.Set("Authorization", "Bearer "+token)
+			req.Header.Set("Authorization", "Bearer "+key)
 			resp, err := client.Do(req)
 			if err != nil {
 				return false, err
@@ -453,7 +446,7 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 			return true, nil
 		},
 		// return true if the value of one of the bearer tokens is valid in the environment
-		// eg: bearer('ROOT_TOKEN', ...)
+		// eg: bearer('ROOT_KEY', 'MC_APP_KEY' ...)
 		"bearer": func(args ...interface{}) (interface{}, error) {
 			if credentials.Token == "" {
 				return false, nil
@@ -518,12 +511,12 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 			log.Debugf("calling subdomain()")
 			return "TODO", nil
 		},
-		// return true if identity matches the user guid in path
-		// eg: user(guid)
+		// return true if identity matches the user UUID in path
+		// eg: user(param(':uuid'))
 		"user": func(args ...interface{}) (interface{}, error) {
-			guid, _ := args[0].(string)
-			log.Debugf("calling user(%s)", guid)
-			return strings.EqualFold(auth.User(credentials.JWT), guid), nil
+			uuid, _ := args[0].(string)
+			log.Debugf("calling user(%s)", uuid)
+			return strings.EqualFold(auth.User(credentials.JWT), uuid), nil
 		},
 	}
 

@@ -9,21 +9,21 @@
 	to an API exposing the token.
 
 	Bearer tokens are referenced in access rules through calls to the forward-auth bearer() built-in.
-	For example, in the following access rule expression the designated bearer token ROOT_TOKEN and
-	the application token called MGT_TOKEN are resolved. If the bearer token in the request matches bearer()
+	For example, in the following access rule expression the designated bearer token ROOT_KEY and
+	the application token called MC_APP_KEY are resolved. If the bearer token in the request matches bearer()
 	returns true.
 
-	    "bearer('ROOT_TOKEN') || (bearer('MGT_TOKEN') && root())"
+	    "bearer('ROOT_KEY') || (bearer('MC_APP_KEY') && root())"
 
 	Tenant bearer tokens are resolved by their tenant ID as follows:
 
 	    "bearer(param(':tenantID'))"
 
-	In this rule expression the call to bearer() returns true if the bearer token matches the tenant token
+	In this rule expression the call to bearer() returns true if the bearer token matches the tenant key
 	for the value of tenantID found in the HTTP request path. Such a rule would allow a request for a tenant's widgets
 	if the request was accompanied by the matching bearer token for that tenant ID:
 
-	   GET .../foo-api/v1/tenants/{tenantID}/widgets)
+	   GET .../foo-api/v1/tenants/{tenantID}/widgets
 
 	The tokens map associates bearer token values with their names (either an application short
 	name or a tenantID):
@@ -44,13 +44,20 @@ type Application struct {
 type Tenant struct {
 	Name      string     `json:"name"`
 	Short     string     `json:"short"`
-	GUID      string     `json:"guid"`
+	UUID      string     `json:"uuid"`
 	Bearer    *Token     `json:"bearer"`
 	PublicKey *PublicKey `json:"publicKey"`
 }
 
 type PublicKey struct {
 	Source string `json:"source"`
+	Name   string `json:"name"`
+	Value  string `json:"value,omitempty"`
+}
+
+type PrivateKey struct {
+	Source string `json:"source"`
+	Name   string `json:"name"`
 	Value  string `json:"value,omitempty"`
 }
 

@@ -25,8 +25,8 @@ type MSSql struct {
 // New creates a new SQL Server storage service and sets the database
 func New() (store *MSSql, err error) {
 	name := config.MustGetConfig("DB_NAME")
-	user := config.MustGetConfig("API_DB_USER")
-	password := config.MustGetConfig("API_DB_PASSWORD")
+	user := config.MustGetConfig("DB_USER")
+	password := config.MustGetConfig("DB_PASSWORD")
 
 	server := config.IfGetenv("DB_HOST", "mssql.mssql.svc.cluster.local")
 	port := config.IfGetInt("DB_PORT", 1433)

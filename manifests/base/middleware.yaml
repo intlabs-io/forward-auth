@@ -1,0 +1,8 @@
+# Forward authorization requests to forward-auth host in cluster 
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: forward-auth-middleware
+spec:
+  forwardAuth:
+    address: http://forward-auth-service.metalogic.svc.cluster.local:8080/auth

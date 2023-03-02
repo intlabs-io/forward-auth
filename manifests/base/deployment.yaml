@@ -1,0 +1,87 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: forward-auth
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: forward-auth
+  template:
+    metadata:
+      labels:
+        app: forward-auth
+    spec:
+      containers:
+        - name: forward-auth
+          image: metalogic/forward-auth:latest
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          env:
+          - name: LOG_LEVEL
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: LOG_LEVEL
+          - name: DB_NAME
+            valueFrom:
+              secretKeyRef:
+                name: auth-database-secrets
+                key: dbname
+          - name: DB_USER
+            valueFrom:
+              secretKeyRef:
+                name: auth-database-secrets
+                key: dbuser
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: auth-database-secrets
+                key: dbpassword
+          - name: ROOT_KEY
+            valueFrom:
+              secretKeyRef:
+                name: forward-auth-secrets
+                key: global_client_bearer_token
+          - name: MC_APP_KEY
+            valueFrom:
+              secretKeyRef:
+                name: forward-auth-secrets
+                key: management_console_app_bearer_token
+          - name: IDENTITY_PROVIDER_PUBLIC_KEY
+            valueFrom:
+              secretKeyRef:
+                name: forward-auth-secrets
+                key: idp_public_key
+          - name: IDENTITY_PROVIDER_PUBLIC_KEY_URL
+            valueFrom:
+              secretKeyRef:
+                name: forward-auth-secrets
+                key: idp_public_key_url
+                optional: true
+          - name: JWT_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: forward-auth-secrets
+                key: jwt_secret_key
+          volumeMounts:
+            - mountPath: /usr/local/etc/forward-auth
+              name: etcdata
+      volumes:
+        - name: etcdata
+          persistentVolumeClaim:
+            claimName: etc-forward-auth-volume-claim
