@@ -21,14 +21,14 @@ type Service struct {
 
 // New creates a new storage service and sets the database
 func New() (svc *Service, err error) {
-	name := config.MustGetConfig("DB_NAME")
-	user := config.MustGetConfig("API_DB_USER")
-	password := config.MustGetConfig("API_DB_PASSWORD")
 
 	server := config.IfGetenv("DB_HOST", "postgres.postgres.svc.cluster.local")
 	port := config.IfGetenv("DB_PORT", "5432")
-
 	sslmode := config.IfGetenv("SSL_MODE", "disable")
+
+	name := config.MustGetConfig("DB_NAME")
+	user := config.MustGetConfig("DB_USER")
+	password := config.MustGetConfig("DB_PASSWORD")
 
 	svc = &Service{context: context.Background()}
 	values := url.Values{}

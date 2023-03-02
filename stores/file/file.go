@@ -120,37 +120,41 @@ func load(path string) (acs *fauth.AccessSystem, err error) {
 		}
 	}
 
+	owner := acs.Owner
+	if owner.Bearer == nil {
+		return acs, fmt.Errorf("owner root bearer token is undefined")
+	}
+	switch owner.Bearer.Source {
+	case "database":
+		// TODO
+	case "env":
+		value := config.MustGetConfig(owner.Bearer.Name)
+		acs.Tokens[value] = "ROOT_KEY"
+	case "file":
+		value := owner.Bearer.Value
+		if value == "" {
+			return acs, fmt.Errorf("bearer token value is empty")
+		}
+		acs.Tokens[value] = "ROOT_KEY"
+	default:
+		return acs, fmt.Errorf("invalid bearer token source for owner %s: %s", owner.Name, owner.Bearer.Source)
+	}
+
 	for _, tenant := range acs.Tenants {
 		// map tenant bearer token value to tenant ID
 		if tenant.Bearer != nil {
 			switch tenant.Bearer.Source {
 			case "database":
 				// TODO
-			case "docker":
-				value := config.MustGetConfig(tenant.Bearer.Name)
-				if tenant.Bearer.Root {
-					acs.Tokens[value] = "ROOT_TOKEN"
-				} else {
-					acs.Tokens[value] = tenant.GUID
-				}
 			case "env":
 				value := config.MustGetConfig(tenant.Bearer.Name)
-				if tenant.Bearer.Root {
-					acs.Tokens[value] = "ROOT_TOKEN"
-				} else {
-					acs.Tokens[value] = tenant.GUID
-				}
+				acs.Tokens[value] = tenant.UUID
 			case "file":
 				value := tenant.Bearer.Value
 				if value == "" {
 					return acs, fmt.Errorf("bearer token value is empty")
 				}
-				if tenant.Bearer.Root {
-					acs.Tokens[value] = "ROOT_TOKEN"
-				} else {
-					acs.Tokens[value] = tenant.GUID
-				}
-
+				acs.Tokens[value] = tenant.UUID
 			default:
 				return acs, fmt.Errorf("invalid bearer token source for tenant %s: %s", tenant.Name, tenant.Bearer.Source)
 			}
@@ -167,7 +171,7 @@ func load(path string) (acs *fauth.AccessSystem, err error) {
 				if tenant.PublicKey.Value == "" {
 					return acs, fmt.Errorf("public key value is empty")
 				}
-				acs.PublicKeys[tenant.GUID] = tenant.PublicKey.Value
+				acs.PublicKeys[tenant.UUID] = tenant.PublicKey.Value
 			case "url":
 				// TODO
 			default:

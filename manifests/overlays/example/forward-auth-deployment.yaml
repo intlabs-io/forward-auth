@@ -23,31 +23,26 @@ spec:
               secretKeyRef:
                 name: apis-secrets-config
                 key: dbname
-          - name: API_DB_USER
+          - name: DB_USER
             valueFrom:
               secretKeyRef:
                 name: apis-secrets-config
                 key: username
-          - name: API_DB_PASSWORD
+          - name: DB_PASSWORD
             valueFrom:
               secretKeyRef:
                 name: apis-secrets-config
                 key: password
-          - name: ORIGIN_API_TOKEN
+          - name: ROOT_KEY
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets-config
-                key: origin_api_bearer_token
-          - name: MC_API_TOKEN
+                key: global_client_bearer_token
+          - name: MC_APP_KEY
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets-config
-                key: origin_management_console_bearer_token
-          - name: LM_API_TOKEN
-            valueFrom:
-              secretKeyRef:
-                key: lockheed_api_bearer_token
-                name: forward-auth-secrets-config
+                key: management_console_bearer_token
           - name: IDENTITY_PROVIDER_PUBLIC_KEY
             valueFrom:
               secretKeyRef:

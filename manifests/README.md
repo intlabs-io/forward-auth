@@ -10,7 +10,8 @@ The manifests assume a deployment to a namespace named "apis." This is the
 namepace where your Web applications and APIs are deployed. If that is not the
 namespace you are using (and why would it be) then you must kustomize
 middleware.yaml to use the correct internal address defining the
-forward-auth /auth endpoint:
+forward-auth /auth endpoint. Replace "apis" with the namespace where your
+APIs are deployed and thereforce where forward-auth will be deployed:
 
 ```
 # Forward authorization requests to forward-auth host in cluster 
@@ -27,7 +28,7 @@ Notice the appearance of the ```apis``` namespace in the address above. This all
 direct HTTP requests from inside the Kubernetes cluster without additional
 routing.
 
-To use the correct namespace - let's say ```myapps``` - for your application
+To use the correct namespace - let's say ```my-apis``` - for your application
 create a patch file like the following:
 
 ```
@@ -37,7 +38,7 @@ metadata:
   name: forward-auth-middleware
 spec:
   forwardAuth:
-    address: http://forward-auth-service.my-apps.svc.cluster.local:8080/auth
+    address: http://forward-auth-service.my-apis.svc.cluster.local:8080/auth
 ```
 Then edit the kustomization file for your overlay to apply the patch:
 

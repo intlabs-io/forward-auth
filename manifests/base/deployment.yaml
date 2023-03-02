@@ -40,28 +40,28 @@ spec:
           - name: DB_NAME
             valueFrom:
               secretKeyRef:
-                name: forward-auth-secrets
+                name: auth-database-secrets
                 key: dbname
-          - name: API_DB_USER
+          - name: DB_USER
             valueFrom:
               secretKeyRef:
-                name: forward-auth-secrets
+                name: auth-database-secrets
                 key: dbuser
-          - name: API_DB_PASSWORD
+          - name: DB_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: forward-auth-secrets
+                name: auth-database-secrets
                 key: dbpassword
-          - name: ROOT_API_TOKEN
+          - name: ROOT_KEY
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
-                key: root_api_key
-          - name: MC_API_TOKEN
+                key: global_client_bearer_token
+          - name: MC_APP_KEY
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
-                key: management_console_app_key
+                key: management_console_app_bearer_token
           - name: IDENTITY_PROVIDER_PUBLIC_KEY
             valueFrom:
               secretKeyRef:
@@ -72,6 +72,7 @@ spec:
               secretKeyRef:
                 name: forward-auth-secrets
                 key: idp_public_key_url
+                optional: true
           - name: JWT_SECRET_KEY
             valueFrom:
               secretKeyRef:

@@ -5,4 +5,4 @@ metadata:
   name: forward-auth-middleware
 spec:
   forwardAuth:
-    address: http://forward-auth-service.gtvets.svc.cluster.local:8080/auth
+    address: http://forward-auth-service.apis.svc.cluster.local:8080/auth

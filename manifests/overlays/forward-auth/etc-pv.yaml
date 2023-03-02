@@ -12,5 +12,5 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: /CHANGE-ME/to/patch/to/etc/forward-auth
+    path: /CHANGE-ME/to/path/to/etc/forward-auth
   persistentVolumeReclaimPolicy: Retain
