@@ -2,8 +2,9 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"sync"
 
@@ -163,7 +164,21 @@ func router(auth *fauth.Auth, store fauth.Store, userHeader, traceHeader string)
 
 func getPublicKey(url string) (publicKey []byte, err error) {
 	log.Debugf("getting RSA public key from %s", url)
-	resp, err := http.Get(url)
+	client := &http.Client{}
+
+	if config.IfGetBool("INSECURE_SKIP_VERIFY", false) {
+		log.Warning("InsecureSkipVerify is enabled for http.Client - DO NOT DO THIS IN PRODUCTION")
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+	}
+
+	r, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return publicKey, fmt.Errorf("error creating request GET %s: %s", url, err)
+	}
+
+	resp, err := client.Do(r)
 	if err != nil {
 		return publicKey, err
 	}
@@ -174,7 +189,7 @@ func getPublicKey(url string) (publicKey []byte, err error) {
 		return publicKey, fmt.Errorf(resp.Status)
 	}
 
-	publicKey, err = ioutil.ReadAll(resp.Body)
+	publicKey, err = io.ReadAll(resp.Body)
 	if err != nil {
 		return publicKey, err
 	}
