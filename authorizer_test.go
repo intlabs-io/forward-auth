@@ -27,7 +27,10 @@ var (
 		"email": "ricky@intlabs.io",
 		"identity": {
 		  "uid": "google-oauth2|116282075377038385492",
-		  "classification": "NONE",
+		  "classification": {
+			"authority": "standard",
+			"level": "NONE"
+		  },
 		  "description": "Ricky Morrison",
 		  "domain": "io.intlabs",
 		  "name": "ricky",
@@ -84,7 +87,7 @@ func Test_checkJWT(t *testing.T) {
 
 	type wants struct {
 		uid            string
-		name           string
+		email          string
 		root           bool
 		classification string
 	}
@@ -103,7 +106,7 @@ func Test_checkJWT(t *testing.T) {
 			},
 			wants{
 				"google-oauth2|116282075377038385492",
-				"ricky",
+				"ricky@intlabs.io",
 				false,
 				"NONE",
 			},
@@ -114,11 +117,11 @@ func Test_checkJWT(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			identity, err := auth.JWTIdentity(tt.args.tokenString)
 			if err == nil {
-				if identity.Root != tt.wants.root {
-					t.Errorf("%s: identity.Root = %t, want %t", tt.name, identity.Root, tt.wants.root)
+				if identity.Superuser != tt.wants.root {
+					t.Errorf("%s: identity.Root = %t, want %t", tt.name, identity.Superuser, tt.wants.root)
 				}
-				if *identity.Name != tt.wants.name {
-					t.Errorf("%s: identity.Name = %s, want %s", tt.name, *identity.Name, tt.wants.name)
+				if *identity.Email != tt.wants.email {
+					t.Errorf("%s: identity.Name = %s, want %s", tt.name, *identity.Email, tt.wants.email)
 				}
 				if *identity.UID != tt.wants.uid {
 					t.Errorf("%s: identity.UID = %s, want %s", tt.name, *identity.UID, tt.wants.uid)
