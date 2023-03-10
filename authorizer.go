@@ -165,7 +165,7 @@ func (auth *Auth) Root(jwt string) bool {
 	return identity.Superuser
 }
 
-// Root returns true if jwt has root privilege
+// Classification returns the user classication object
 func (auth *Auth) Classification(jwt string) *Classification {
 	if jwt == "" {
 		return nil
@@ -180,7 +180,7 @@ func (auth *Auth) Classification(jwt string) *Classification {
 
 	log.Debugf("identity found in JWT: %+v", *identity)
 
-	return &identity.Classification
+	return identity.Classification
 }
 
 // User returns the user UID in jwt
@@ -240,11 +240,12 @@ type UserRequest struct {
 
 // Identity type
 type Identity struct {
-	TID             string           `json:"tid"`
+	TID             *string          `json:"tid"`
 	UID             *string          `json:"uid"`
+	Name            *string          `json:"name"`
 	Email           *string          `json:"email"`
 	Superuser       bool             `json:"superuser"`
-	Classification  Classification   `json:"classification"`
+	Classification  *Classification  `json:"classification"`
 	UserPermissions []UserPermission `json:"userPerms"`
 }
 
