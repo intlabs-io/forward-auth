@@ -284,8 +284,6 @@ func jwtIdentity(tknStr string, auth *Auth) (identity *Identity, err error) {
 	// or if the signature does not match
 	tkn, err := jwt.ParseWithClaims(tknStr, claims, auth.keyFunc)
 
-	log.Debugf("parsed JWT as %s", tkn)
-
 	if err != nil {
 		log.Error(err)
 		return identity, err
