@@ -109,7 +109,7 @@ func (auth *Auth) CheckBearerAuth(token string, tokens ...string) bool {
 }
 
 // CheckJWT returns true if jwt has action permission on category in the tenantID
-func (auth *Auth) CheckJWT(jwt, tenantID, context, category, action string) bool {
+func (auth *Auth) CheckJWT(jwt, context, category, action string) bool {
 	if jwt == "" {
 		return false
 	}
@@ -123,18 +123,18 @@ func (auth *Auth) CheckJWT(jwt, tenantID, context, category, action string) bool
 
 	log.Debugf("identity found in JWT: %+v", *identity)
 
-	if identity.Root {
+	if identity.Superuser {
 		return true
 	}
-	log.Debugf("evaluating user permissions: %+v", identity.Permissions)
-	for _, role := range identity.Permissions {
-		if strings.EqualFold(role.TenantID, tenantID) {
-			for _, perm := range role.Actions {
-				if (perm.Context == ALL || perm.Context == context) && (perm.Category == ANY || perm.Category == category) {
-					for _, a := range perm.Action {
-						if a == ALL || a == action {
-							return true
-						}
+
+	log.Debugf("evaluating user permissions: %+v", identity.UserPermissions)
+
+	for _, up := range identity.UserPermissions {
+		for _, perm := range up.Permissions {
+			if (up.Context == ALL || up.Context == context) && (perm.Category == ANY || perm.Category == category) {
+				for _, a := range perm.Actions {
+					if a == ALL || a == action {
+						return true
 					}
 				}
 			}
@@ -162,10 +162,28 @@ func (auth *Auth) Root(jwt string) bool {
 
 	log.Debugf("identity found in JWT: %+v", *identity)
 
-	return identity.Root
+	return identity.Superuser
 }
 
-// User returns the user GUID in jwt
+// Classification returns the user classication object
+func (auth *Auth) Classification(jwt string) *Classification {
+	if jwt == "" {
+		return nil
+	}
+
+	var err error
+	var identity *Identity
+	if identity, err = jwtIdentity(jwt, auth); err != nil {
+		log.Errorf("JWT found in request is invalid: %s", err)
+		return nil
+	}
+
+	log.Debugf("identity found in JWT: %+v", *identity)
+
+	return identity.Classification
+}
+
+// User returns the user UID in jwt
 func (auth *Auth) User(jwt string) (uid string) {
 	if jwt == "" {
 		return uid
@@ -188,6 +206,7 @@ func (auth *Auth) User(jwt string) (uid string) {
 	return *identity.UID
 }
 
+/*
 // Identity type
 type Identity struct {
 	UID            *string             `json:"uid"`
@@ -208,6 +227,45 @@ type CategoryActions struct {
 	Context  string   `json:"context"`
 	Category string   `json:"category"`
 	Action   []string `json:"actions"`
+}
+*/
+
+// User type
+type UserRequest struct {
+	UID     string `json:"uid"`
+	Email   string `json:"email"`
+	Status  string `json:"status"`
+	Comment string `json:"comment,omitempty"`
+}
+
+// Identity type
+type Identity struct {
+	TID             *string          `json:"tid"`
+	UID             *string          `json:"uid"`
+	Name            *string          `json:"name"`
+	Email           *string          `json:"email"`
+	Superuser       bool             `json:"superuser"`
+	Classification  *Classification  `json:"classification"`
+	UserPermissions []UserPermission `json:"userPerms"`
+}
+
+type Classification struct {
+	Authority string `json:"authority"`
+	Level     string `json:"level"`
+}
+
+// UserPermission defines the permissions of a tenant user
+type UserPermission struct {
+	Context     string       `json:"context"`
+	Permissions []Permission `json:"permissions"`
+}
+
+// [{"permissions":{"context": "5273d8a1-6bbd-4ccd-9bda-8340acb8cfe9", "permissions": [{"actions": ["ALL"], "categoryCode": "CONTENT"}, {"actions": ["ALL"], "categoryCode": "MEDIA"}]}}]
+
+// Permission type
+type Permission struct {
+	Category string   `json:"categoryCode"`
+	Actions  []string `json:"actions"`
 }
 
 func jwtIdentity(tknStr string, auth *Auth) (identity *Identity, err error) {
@@ -469,35 +527,37 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 			return "", nil
 		},
 		// return true if identity has role permission in tenant
-		// eg: role(tenantID('KPU'),'ADM','READ'),
-		// role(tenantID('UVIC'),'DRAFT', 'PROGINFO','CREATE') etc
+		// eg: role('INSTITUTION','CREATE'),
+		// role(param(':context'), 'CONTENT','CREATE') etc
 		"role": func(args ...interface{}) (interface{}, error) {
-
-			tenantID, _ := args[0].(string)
 			var (
 				context  string
 				category string
 				action   string
 			)
-			if len(args) == 3 {
+			if len(args) == 2 {
 				context = ALL // default if not provided
+				category = args[0].(string)
+				action = args[1].(string)
+			} else if len(args) == 3 {
+				context = args[0].(string)
 				category = args[1].(string)
 				action = args[2].(string)
-			} else if len(args) == 4 {
-				context = args[1].(string)
-				category = args[2].(string)
-				action = args[3].(string)
 			} else {
-				return false, fmt.Errorf("function role takes 3 or 4 arguments")
+				return false, fmt.Errorf("function role takes 2 or 3 arguments")
 			}
 
-			log.Debugf("calling role(%s,%s,%s,%s)", tenantID, context, category, action)
-			return auth.CheckJWT(credentials.JWT, tenantID, context, category, action), nil
+			log.Debugf("calling role(%s,%s,%s)", context, category, action)
+			return auth.CheckJWT(credentials.JWT, context, category, action), nil
 		},
 		// return true if identity has root permission
 		"root": func(args ...interface{}) (interface{}, error) {
 			log.Debug("calling root()")
 			return auth.Root(credentials.JWT), nil
+		},
+		"classification": func(args ...interface{}) (interface{}, error) {
+			log.Debug("calling classification()")
+			return auth.Classification(credentials.JWT), nil
 		},
 		// return true if a request signed with tenant's private key is valid
 		// with respect to tenant's public key
