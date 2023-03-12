@@ -1,0 +1,92 @@
+{
+  "owner": {
+    "name": "{{ .OWNER_NAME }}",
+    "uid": "{{ .OWNER_UID }}",
+    "bearer": {
+       "source": "env",
+       "name": "ROOT_KEY",
+       "root": true
+    }
+  },
+  "applications": [
+    {
+      "name": "Forward Auth Management Console Web Application",
+      "bearer": {
+        "source": "env",
+        "name": "MC_APP_KEY"
+      }
+    }
+  ],
+  "tenants": [],
+  "authorization": {
+    "hostGroups": [
+      {
+        "name": "No Auth Application Hosts",
+        "hosts": [
+          "traefik.localhost"
+        ],
+        "default": "allow"
+      },
+      {
+        "name": "API Hosts",
+        "hosts": [
+          "forward-auth.localhost"
+        ],
+        "default": "deny",
+        "checks": [
+          {
+            "name": "admin-api",
+            "base": "/admin-api/v1",
+            "paths": [
+              {
+                "path": "/health",
+                "rules": {
+                  "GET": {
+                    "description": "get API health",
+                    "expression": "true"
+                  }
+                }
+              },
+              {
+                "path": "/info",
+                "rules": {
+                  "GET": {
+                    "description": "get API info",
+                    "expression": "bearer('ROOT_KEY')"
+                  }
+                }
+              },
+              {
+                "path": "/openapi/:any",
+                "rules": {
+                  "GET": {
+                    "description": "get Swagger API documentation",
+                    "expression": "true"
+                  }
+                }
+              },
+              {
+                "path": "/loglevel",
+                "rules": {
+                  "GET": {
+                    "description": "get API log level",
+                    "expression": "bearer('ROOT_KEY')"
+                  }
+                }
+              },
+              {
+                "path": "/loglevel/:level",
+                "rules": {
+                  "PUT": {
+                    "description": "set API log level",
+                    "expression": "bearer('ROOT_KEY')"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
