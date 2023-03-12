@@ -12,6 +12,12 @@ your users.
 
 Then run init.sh to generate base.json. 
 
+**The base.json.tmpl template file controls access to the forward-auth API and SHOULD NOT be edited.**
+
+The access control checks for your application belongs in access.json. There is a "blank" access.json
+that can be used to begin with. Verify that your deployment of forward-auth works with it before editing
+it to add your own access control rules.
+
 Copy base.json and the blank access.json to the etc/forward-auth directory you configured in your
 Kustomize manifest.
 
