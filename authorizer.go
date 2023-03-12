@@ -40,9 +40,6 @@ const (
 
 // Auth type holds data for authorization
 //   - jwtHeader is the name of the header containing the user's JWT
-//   - idType is a string with value either "string" or "struct":
-//     if "string" then the value of Claim.Identity is a string;
-//     if "struct" then the value of Claim.Identity is the Identity struct defined in this package
 //   - keyFunc is a function passed to JWT parse function to return the key for decrypting the JWT token
 //   - tokens maps token values passed in a request to token names referenced in
 //     access control functions; eg: bearer(ROOT_KEY) returns true if the bearer
@@ -55,6 +52,7 @@ type Auth struct {
 	runMode    string
 	jwtHeader  string
 	keyFunc    func(token *jwt.Token) (interface{}, error)
+	owner      Owner
 	publicKeys map[string]*rsa.PublicKey
 	tokens     map[string]string
 	blocks     map[string]bool
@@ -68,6 +66,7 @@ func NewAuth(acs *AccessSystem, jwtHeader string, publicKey, secret []byte) (aut
 	auth = &Auth{
 		jwtHeader:  jwtHeader,
 		hostMuxers: make(map[string]*pat.HostMux),
+		owner:      acs.Owner,
 		publicKeys: make(map[string]*rsa.PublicKey),
 		tokens:     acs.Tokens,
 		blocks:     acs.Blocks,
@@ -162,7 +161,14 @@ func (auth *Auth) Root(jwt string) bool {
 
 	log.Debugf("identity found in JWT: %+v", *identity)
 
-	return identity.Superuser
+	// superuser only applies in the tenant of the user
+	if identity.Superuser {
+		if identity.TID != nil && *identity.TID == auth.owner.UID {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Classification returns the user classication object
