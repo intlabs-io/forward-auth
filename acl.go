@@ -26,8 +26,7 @@ type AccessSystem struct {
 
 type Owner struct {
 	Name       string      `json:"name"`
-	UUID       string      `json:"uuid"`
-	Superuser  string      `json:"superuser"`
+	UID        string      `json:"uid"`
 	Bearer     *Token      `json:"bearer"`
 	PublicKey  *PublicKey  `json:"publicKey"`
 	PrivateKey *PrivateKey `json:"privateKey"`
