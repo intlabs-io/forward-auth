@@ -41,6 +41,8 @@ const (
 // Auth type holds data for authorization
 //   - jwtHeader is the name of the header containing the user's JWT
 //   - keyFunc is a function passed to JWT parse function to return the key for decrypting the JWT token
+//   - owner is the owner of the current forward-auth deployment
+//   - publicKeys maps key names to their rsa.PublicKey value
 //   - tokens maps token values passed in a request to token names referenced in
 //     access control functions; eg: bearer(ROOT_KEY) returns true if the bearer
 //     auth token in the request maps to the token name ROOT_KEY
