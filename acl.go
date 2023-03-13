@@ -10,7 +10,7 @@ import (
 //   - Checks: a collection of host/path checks with access rules
 //   - PublicKeys: mappings of public key names to key values
 //   - Tokens: mappings of bearer token values to token names
-//   - JWTSecretKey: the secret key used to validate user JSON Web Tokens
+//   - JWTSecretKey (optional): the secret key used to validate user JSON Web Tokens if using shared secret
 type AccessSystem struct {
 	Owner        Owner             `json:"owner"`
 	Blocks       map[string]bool   `json:"blocks"`
