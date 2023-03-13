@@ -2,5 +2,5 @@
 
 source owner.env
 
-envtpl -in base.json.tmpl > base.json
+envtpl -in access.json.tmpl > access.json
 
