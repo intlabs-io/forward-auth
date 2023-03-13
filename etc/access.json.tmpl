@@ -1,0 +1,18 @@
+{
+  "owner": {
+    "name": "{{ .OWNER_NAME }}",
+    "uid": "{{ .OWNER_UID }}",
+    "bearer": {
+       "source": "env",
+       "name": "ROOT_KEY",
+       "root": true
+    }
+  },
+  "blocks": {},
+  "applications": [],
+  "authorization": {
+    "rootCheck": "bearer('ROOT_KEY')",
+    "overrides": {},
+    "hostGroups": []
+  }
+}
