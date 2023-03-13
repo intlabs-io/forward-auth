@@ -56,17 +56,18 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
-                key: global_client_bearer_token
+                key: root_key
           - name: MC_APP_KEY
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
-                key: management_console_app_bearer_token
+                key: mc_app_key
           - name: IDENTITY_PROVIDER_PUBLIC_KEY
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
                 key: idp_public_key
+                optional: true
           - name: IDENTITY_PROVIDER_PUBLIC_KEY_URL
             valueFrom:
               secretKeyRef:

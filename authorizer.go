@@ -124,8 +124,16 @@ func (auth *Auth) CheckJWT(jwt, context, category, action string) bool {
 
 	log.Debugf("identity found in JWT: %+v", *identity)
 
+	// RNM - replaced with below on 2023-03-13
+	// if identity.Superuser {
+	// 	return true
+	// }
+
+	// superuser only applies in the tenant of the user
 	if identity.Superuser {
-		return true
+		if identity.TID != nil && *identity.TID == auth.owner.UID {
+			return true
+		}
 	}
 
 	log.Debugf("evaluating user permissions: %+v", identity.UserPermissions)
@@ -148,8 +156,8 @@ func (auth *Auth) JWTIdentity(tknStr string) (identity *Identity, err error) {
 	return jwtIdentity(tknStr, auth)
 }
 
-// Root returns true if jwt has root privilege
-func (auth *Auth) Root(jwt string) bool {
+// Superuser returns true if jwt has superuser privilege
+func (auth *Auth) Superuser(jwt string) bool {
 	if jwt == "" {
 		return false
 	}
@@ -213,30 +221,6 @@ func (auth *Auth) User(jwt string) (uid string) {
 
 	return *identity.UID
 }
-
-/*
-// Identity type
-type Identity struct {
-	UID            *string             `json:"uid"`
-	Name           *string             `json:"name"`
-	Root           bool                `json:"superuser"`
-	Classification *string             `json:"classification"`
-	Permissions    []TenantPermissions `json:"userPerms"`
-}
-
-// TenantPermissions defines the permissions of a user for a tenant
-type TenantPermissions struct {
-	TenantID string            `json:"tenantID"`
-	Actions  []CategoryActions `json:"perms"`
-}
-
-// CategoryActions type
-type CategoryActions struct {
-	Context  string   `json:"context"`
-	Category string   `json:"category"`
-	Action   []string `json:"actions"`
-}
-*/
 
 // User type
 type UserRequest struct {
@@ -524,8 +508,8 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 			log.Debugf("calling bearer(%v)", tokens)
 			return auth.CheckBearerAuth(credentials.Token, tokens...), nil
 		},
-		// return the binding of a path or (TODO query parameter)
-		// eg: param(':tenantID')
+		// return the binding of a path or query parameter
+		// eg: param(':tenantID'), param('summary')
 		"param": func(args ...interface{}) (interface{}, error) {
 			param := args[0].(string)
 			log.Debugf("calling param(%s)", param)
@@ -560,8 +544,8 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 		},
 		// return true if identity has root permission
 		"root": func(args ...interface{}) (interface{}, error) {
-			log.Debug("calling root()")
-			return auth.Root(credentials.JWT), nil
+			log.Debug("calling Superuser()")
+			return auth.Superuser(credentials.JWT), nil
 		},
 		"classification": func(args ...interface{}) (interface{}, error) {
 			log.Debug("calling classification()")

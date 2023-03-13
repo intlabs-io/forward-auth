@@ -10,7 +10,7 @@ import (
 //   - Checks: a collection of host/path checks with access rules
 //   - PublicKeys: mappings of public key names to key values
 //   - Tokens: mappings of bearer token values to token names
-//   - JWTSecretKey: the secret key used to validate user JSON Web Tokens
+//   - JWTSecretKey (optional): the secret key used to validate user JSON Web Tokens if using shared secret
 type AccessSystem struct {
 	Owner        Owner             `json:"owner"`
 	Blocks       map[string]bool   `json:"blocks"`
@@ -34,7 +34,7 @@ type Owner struct {
 
 // HostChecks ...
 type HostChecks struct {
-	Hash       string
+	RootCheck  string            `json:"rootCheck"`
 	Overrides  map[string]string `json:"overrides,omitempty"`
 	HostGroups []HostGroup       `json:"hostGroups"`
 }
@@ -125,4 +125,12 @@ func (p Path) Validate() error {
 type Rule struct {
 	Description string `json:"description"`
 	Expression  string `json:"expression"`
+}
+
+// construct a root check function
+// eg RootTech("bearer('ROOT_KEY') || (bearer('MC_APP_KEY') && root())")
+func RootCheck(check string) func() string {
+	return func() string {
+		return check
+	}
 }

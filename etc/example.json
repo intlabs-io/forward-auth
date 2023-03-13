@@ -1,0 +1,77 @@
+{
+  "owner": {
+    "name": "Acme Supply Company",
+    "uid": "ACME",
+    "bearer": {
+       "source": "env",
+       "name": "ROOT_KEY",
+       "root": true
+    }
+  },
+  "blocks": {},
+  "applications": [
+    {
+      "name": "Define your front-end applications with their application bearer token here",
+      "bearer": {
+        "source": "file",
+        "name": "EXAMPLE_APP_KEY",
+        "value": "**REDACTED**"
+      }
+    }
+  ],
+  "authorization": {
+    "overrides": {},
+    "hostGroups": [
+      {
+        "name": "No Auth Application Hosts",
+        "hosts": [
+          "example-frontend.localhost"
+        ],
+        "default": "allow"
+      },
+      {
+        "name": "API Hosts",
+        "hosts": [
+          "example-apis.localhost",
+          "apis.example.com"
+        ],
+        "default": "deny",
+        "checks": [
+          {
+            "name": "example-api",
+            "base": "/example-api/v1",
+            "paths": [
+              {
+                "path": "/health",
+                "rules": {
+                  "GET": {
+                    "description": "get API health",
+                    "expression": "true"
+                  }
+                }
+              },
+              {
+                "path": "/info",
+                "rules": {
+                  "GET": {
+                    "description": "get API info",
+                    "expression": "bearer('ROOT_KEY')"
+                  }
+                }
+              },
+              {
+                "path": "/openapi/:any",
+                "rules": {
+                  "GET": {
+                    "description": "get Swagger API documentation",
+                    "expression": "true"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
