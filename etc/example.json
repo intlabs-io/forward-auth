@@ -1,4 +1,13 @@
 {
+  "owner": {
+    "name": "Acme Supply Company",
+    "uid": "ACME",
+    "bearer": {
+       "source": "env",
+       "name": "ROOT_KEY",
+       "root": true
+    }
+  },
   "blocks": {},
   "applications": [
     {
