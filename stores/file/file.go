@@ -1,7 +1,6 @@
 package file
 
 import (
-	"crypto/md5"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,16 +8,20 @@ import (
 	"os"
 	"path/filepath"
 
+	_ "embed"
+
 	"bitbucket.org/_metalogic_/config"
 	fauth "bitbucket.org/_metalogic_/forward-auth"
 	"bitbucket.org/_metalogic_/log"
 	"github.com/fsnotify/fsnotify"
 )
 
+//go:embed base.json
+var base []byte
+
 // FileStore implements the forward-auth file storage interface
 type FileStore struct {
 	directory string
-	base      string
 	access    string
 	watcher   *fsnotify.Watcher
 }
@@ -36,14 +39,13 @@ func New(dir string) (store *FileStore, err error) {
 		log.Fatal(err)
 	}
 
-	base, access, err := getFiles(dir)
+	access, err := getFile(dir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	store = &FileStore{
 		directory: dir,
-		base:      base,
 		access:    access,
 		watcher:   watcher,
 	}
@@ -81,19 +83,15 @@ func (store *FileStore) Load() (acs *fauth.AccessSystem, err error) {
 func load(store *FileStore) (acs *fauth.AccessSystem, err error) {
 
 	// load the base Access Control System
-	data, _, err := readFile(store.base)
-	if err != nil {
-		return acs, err
-	}
 
 	acs = &fauth.AccessSystem{}
 
-	err = json.Unmarshal(data, acs)
+	err = json.Unmarshal(base, acs)
 	if err != nil {
 		return acs, err
 	}
 
-	log.Debugf("loaded base ACS from '%s': %+v", store.base, acs)
+	log.Debugf("loaded base ACS: %+v", acs)
 
 	// publicKeys maps tenantIDs to their publicKeys; forward-auth uses the tenant public key
 	// to verify request signatures signed with the corresponding private key of the tenant
@@ -106,7 +104,27 @@ func load(store *FileStore) (acs *fauth.AccessSystem, err error) {
 	//
 	acs.Tokens = make(map[string]string, 0)
 
-	owner := acs.Owner
+	err = loadTokens(acs, acs.Tokens, acs.PublicKeys)
+	if err != nil {
+		return acs, err
+	}
+
+	// load the application Access Control System
+	data, err := readFile(store.access)
+	if err != nil {
+		return acs, err
+	}
+
+	access := &fauth.AccessSystem{}
+
+	err = json.Unmarshal(data, access)
+	if err != nil {
+		return acs, err
+	}
+
+	log.Debugf("loaded access ACS from '%s': %+v", store.access, access)
+
+	owner := access.Owner
 	if owner.Bearer == nil {
 		return acs, fmt.Errorf("owner root bearer token is undefined")
 	}
@@ -127,25 +145,7 @@ func load(store *FileStore) (acs *fauth.AccessSystem, err error) {
 		return acs, fmt.Errorf("invalid bearer token source for owner %s: %s", owner.Name, owner.Bearer.Source)
 	}
 
-	err = loadTokens(acs, acs.Tokens, acs.PublicKeys)
-	if err != nil {
-		return acs, err
-	}
-
-	// load the application Access Control System
-	data, _, err = readFile(store.access)
-	if err != nil {
-		return acs, err
-	}
-
-	access := &fauth.AccessSystem{}
-
-	err = json.Unmarshal(data, access)
-	if err != nil {
-		return acs, err
-	}
-
-	log.Debugf("loaded access ACS from '%s': %+v", store.access, access)
+	acs.Owner = owner
 
 	err = loadTokens(access, acs.Tokens, acs.PublicKeys)
 	if err != nil {
@@ -242,31 +242,24 @@ func (store *FileStore) Stats() (stats string) {
 	return stats
 }
 
-func readFile(file string) (data []byte, hash string, err error) {
+func readFile(file string) (data []byte, err error) {
 	data, err = ioutil.ReadFile(file)
 	if err != nil {
-		return data, hash, err
+		return data, err
 	}
-	return data, fmt.Sprintf("%x", md5.Sum(data)), nil
+	return data, nil
 }
 
-func getFiles(dir string) (base, access string, err error) {
-
-	base = filepath.Join(dir, "base.json")
-	if e, err := exists(base); err != nil {
-		return base, base, err
-	} else if !e {
-		return base, base, fmt.Errorf("%s does not exist", base)
-	}
+func getFile(dir string) (access string, err error) {
 
 	access = filepath.Join(dir, "access.json")
 	if e, err := exists(access); err != nil {
-		return base, access, err
+		return access, err
 	} else if !e {
-		return base, access, fmt.Errorf("%s does not exist", access)
+		return access, fmt.Errorf("%s does not exist", access)
 	}
 
-	return base, access, nil
+	return access, nil
 }
 
 func exists(name string) (bool, error) {
