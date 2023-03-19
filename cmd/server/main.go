@@ -55,7 +55,7 @@ func init() {
 
 	version, err = info.Format(projTemplate)
 	if err != nil {
-		log.Warning("Failed to format openapi version from template %s: %s", projTemplate, err)
+		log.Warningf("Failed to format openapi version from template %s: %s", projTemplate, err)
 	} else {
 		docs.SwaggerInfo.Description = fmt.Sprintf("%s%s", version, docs.SwaggerInfo.Description)
 	}
