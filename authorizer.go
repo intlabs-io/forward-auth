@@ -306,6 +306,10 @@ func (i *Identity) TenantID() string {
 func (i *Identity) Contexts() []string {
 	contexts := make([]string, 1)
 	for _, perm := range i.UserPermissions {
+		if perm.Context == "ALL" {
+			contexts = []string{"ALL"}
+			break
+		}
 		contexts = append(contexts, perm.Context)
 	}
 	return contexts
