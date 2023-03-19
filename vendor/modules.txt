@@ -30,11 +30,11 @@ bitbucket.org/_metalogic_/ident
 # bitbucket.org/_metalogic_/isatty v1.0.4
 ## explicit; go 1.15
 bitbucket.org/_metalogic_/isatty
-# bitbucket.org/_metalogic_/log v1.4.1
+# bitbucket.org/_metalogic_/log v1.5.0
 ## explicit; go 1.15
 bitbucket.org/_metalogic_/log
-# bitbucket.org/_metalogic_/pat v0.9.3
-## explicit; go 1.15
+# bitbucket.org/_metalogic_/pat v0.0.0-20230318094011-d9a42688f91a
+## explicit; go 1.20
 bitbucket.org/_metalogic_/pat
 # bitbucket.org/_metalogic_/validation v0.0.0-20210601150612-ed58a6ac8ba6
 ## explicit; go 1.13
