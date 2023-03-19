@@ -125,6 +125,7 @@ func (p Path) Validate() error {
 type Rule struct {
 	Description string `json:"description"`
 	Expression  string `json:"expression"`
+	MustAuth    bool   `json:"mustAuth,omitempty"`
 }
 
 // construct a root check function

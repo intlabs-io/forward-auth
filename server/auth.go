@@ -101,7 +101,7 @@ func Auth(auth *fauth.Auth, userHeader, traceHeader string) func(w http.Response
 		}
 
 		switch status {
-		case 401: // TODO send WWW-Authenticate in response header
+		case 401: // upstream should handle login
 			ErrJSON(w, NewUnauthorizedError(message))
 		case 403:
 			ErrJSON(w, NewForbiddenError(message))

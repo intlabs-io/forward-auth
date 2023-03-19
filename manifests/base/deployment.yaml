@@ -70,9 +70,15 @@ spec:
                 optional: true
           - name: IDENTITY_PROVIDER_PUBLIC_KEY_URL
             valueFrom:
-              secretKeyRef:
-                name: forward-auth-secrets
-                key: idp_public_key_url
+              configMapKeyRef:
+                name: forward-auth-config
+                key: IDENTITY_PROVIDER_PUBLIC_KEY_URL
+                optional: true
+          - name: INSECURE_SKIP_VERIFY
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: INSECURE_SKIP_VERIFY
                 optional: true
           - name: JWT_SECRET_KEY
             valueFrom:

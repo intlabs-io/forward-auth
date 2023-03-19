@@ -6,3 +6,6 @@ metadata:
 spec:
   forwardAuth:
     address: http://forward-auth-service.metalogic.svc.cluster.local:8080/auth
+    authResponseHeaders:
+      - X-User-Header
+      - X-Trace-Header

@@ -38,6 +38,20 @@ const (
 	EXISTS = "EXISTS"
 )
 
+var level = map[string]int{
+	"ALL":    0,
+	"CREATE": 1,
+	"DELETE": 1,
+	"UPDATE": 2,
+	"READ":   3,
+	"EXISTS": 4,
+}
+
+func allows(action, permission string) bool {
+	log.Debugf("level[%s] = %d, level[%s] = %d", action, level[action], permission, level[permission])
+	return level[action] <= level[permission]
+}
+
 // Auth type holds data for authorization
 //   - jwtHeader is the name of the header containing the user's JWT
 //   - keyFunc is a function passed to JWT parse function to return the key for decrypting the JWT token
@@ -110,7 +124,7 @@ func (auth *Auth) CheckBearerAuth(token string, tokens ...string) bool {
 }
 
 // CheckJWT returns true if jwt has action permission on category in the tenantID
-func (auth *Auth) CheckJWT(jwt, context, category, action string) bool {
+func (auth *Auth) CheckJWT(jwt, context, action, category string) (allow bool) {
 	if jwt == "" {
 		return false
 	}
@@ -124,11 +138,6 @@ func (auth *Auth) CheckJWT(jwt, context, category, action string) bool {
 
 	log.Debugf("identity found in JWT: %+v", *identity)
 
-	// RNM - replaced with below on 2023-03-13
-	// if identity.Superuser {
-	// 	return true
-	// }
-
 	// superuser only applies in the tenant of the user
 	if identity.Superuser {
 		if identity.TID != nil && *identity.TID == auth.owner.UID {
@@ -138,12 +147,23 @@ func (auth *Auth) CheckJWT(jwt, context, category, action string) bool {
 
 	log.Debugf("evaluating user permissions: %+v", identity.UserPermissions)
 
+	// example:
+	// [
+	//	{Context:1b7c3bed-8472-4a54-9058-4154d345abf8 Permissions:[{Category:CONTENT Actions:[READ]} {Category:MEDIA Actions:[ANNOTATE READ]}]},
+	//  {Context:5273d8a1-6bbd-4ccd-9bda-8340acb8cfe9 Permissions:[{Category:CONTENT Actions:[ALL]} {Category:MEDIA Actions:[ALL]}]},
+	//  {Context:ccd660fc-5680-44b2-a570-17cf8229f694 Permissions:[{Category:ANY Actions:[ALL]}]}
+	// ]
 	for _, up := range identity.UserPermissions {
-		for _, perm := range up.Permissions {
-			if (up.Context == ALL || up.Context == context) && (perm.Category == ANY || perm.Category == category) {
-				for _, a := range perm.Actions {
-					if a == ALL || a == action {
-						return true
+		log.Debugf("evaluating permission context %s against %s", up.Context, context)
+		if up.Context == ALL || up.Context == context {
+			for _, perm := range up.Permissions {
+				log.Debugf("evaluating permission category %s against category %s", perm.Category, category)
+				if perm.Category == ANY || perm.Category == category {
+					for _, a := range perm.Actions {
+						log.Debugf("evaluating permission action %s against action %s", a, action)
+						if allows(a, action) {
+							return true
+						}
 					}
 				}
 			}
@@ -199,6 +219,34 @@ func (auth *Auth) Classification(jwt string) *Classification {
 	return identity.Classification
 }
 
+// Identify returns the Identity found in jwt
+func (auth *Auth) Identity(jwt string) error {
+	if jwt == "" {
+		return fmt.Errorf("empty JWT")
+	}
+
+	identity, err := jwtIdentity(jwt, auth)
+	if err != nil {
+		return fmt.Errorf("JWT is invalid: %s", err)
+	}
+
+	if identity == nil {
+		return fmt.Errorf("no identity found in JWT: %s", jwt)
+	}
+
+	if identity.TID == nil {
+		return fmt.Errorf("tenant ID in JWT cannot be nil")
+	}
+
+	if *identity.TID != auth.owner.UID {
+		return fmt.Errorf("tenant ID (%s) in JWT does not match owner (%s)", *identity.TID, auth.owner.UID)
+	}
+
+	log.Debugf("identity found in JWT: %+v", *identity)
+
+	return nil
+}
+
 // User returns the user UID in jwt
 func (auth *Auth) User(jwt string) (uid string) {
 	if jwt == "" {
@@ -239,6 +287,28 @@ type Identity struct {
 	Superuser       bool             `json:"superuser"`
 	Classification  *Classification  `json:"classification"`
 	UserPermissions []UserPermission `json:"userPerms"`
+}
+
+func (i *Identity) UserID() string {
+	if i.UID == nil {
+		return ""
+	}
+	return *i.UID
+}
+
+func (i *Identity) TenantID() string {
+	if i.TID == nil {
+		return ""
+	}
+	return *i.TID
+}
+
+func (i *Identity) Contexts() []string {
+	contexts := make([]string, 1)
+	for _, perm := range i.UserPermissions {
+		contexts = append(contexts, perm.Context)
+	}
+	return contexts
 }
 
 type Classification struct {
@@ -318,13 +388,19 @@ func Action(method string) string {
 
 // Handler returns a handler implementing rule evaluation for an auth environment and authorizer
 func Handler(rule Rule, auth *Auth) func(method, path string, params map[string][]string, header http.Header) (status int, message, username string) {
-	if rule.Expression == "true" {
-		return pat.AllowHandler
+	mustAuth := rule.MustAuth
+
+	if !mustAuth {
+		if rule.Expression == "true" {
+			return pat.AllowHandler
+		}
+		if rule.Expression == "false" {
+			return pat.DenyHandler
+		}
 	}
-	if rule.Expression == "false" {
-		return pat.DenyHandler
-	}
+
 	return func(method, path string, params map[string][]string, header http.Header) (status int, message, username string) {
+		log.Debugf("running handler on %s: %s", method, path)
 
 		// Request Headers
 		authHeader := header.Get("Authorization")
@@ -340,6 +416,16 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 
 		jwt := header.Get(auth.jwtHeader)
 
+		if mustAuth {
+			if jwt == "" {
+				return http.StatusUnauthorized, "rule requires authentication but no JWT is present in request header", username
+			}
+			if err := auth.Identity(jwt); err != nil {
+				return http.StatusUnauthorized, fmt.Sprintf("rule requires authentication but JWT contains invalid identity: %s", err), username
+			}
+		}
+
+		// credentials carry the bearer token and JWT if present
 		credentials := &ident.Credentials{
 			Token: token,
 			JWT:   jwt,
@@ -524,23 +610,23 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 		"role": func(args ...interface{}) (interface{}, error) {
 			var (
 				context  string
-				category string
 				action   string
+				category string
 			)
 			if len(args) == 2 {
 				context = ALL // default if not provided
-				category = args[0].(string)
-				action = args[1].(string)
+				action = args[0].(string)
+				category = args[1].(string)
 			} else if len(args) == 3 {
 				context = args[0].(string)
-				category = args[1].(string)
-				action = args[2].(string)
+				action = args[1].(string)
+				category = args[2].(string)
 			} else {
 				return false, fmt.Errorf("function role takes 2 or 3 arguments")
 			}
 
-			log.Debugf("calling role(%s,%s,%s)", context, category, action)
-			return auth.CheckJWT(credentials.JWT, context, category, action), nil
+			log.Debugf("calling role(%s,%s,%s)", context, action, category)
+			return auth.CheckJWT(credentials.JWT, context, action, category), nil
 		},
 		// return true if identity has root permission
 		"root": func(args ...interface{}) (interface{}, error) {

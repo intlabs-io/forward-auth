@@ -10,8 +10,8 @@ require (
 	bitbucket.org/_metalogic_/httpsig v0.0.0-20211209010019-f2554fb89eae
 	bitbucket.org/_metalogic_/httptreemux-swagger v1.1.0
 	bitbucket.org/_metalogic_/ident v1.2.0
-	bitbucket.org/_metalogic_/log v1.4.1
-	bitbucket.org/_metalogic_/pat v0.9.3
+	bitbucket.org/_metalogic_/log v1.5.0
+	bitbucket.org/_metalogic_/pat v0.0.0-20230318094011-d9a42688f91a
 	bitbucket.org/_metalogic_/validation v0.0.0-20210601150612-ed58a6ac8ba6
 	github.com/denisenkom/go-mssqldb v0.12.2
 	github.com/dimfeld/httptreemux/v5 v5.2.2
