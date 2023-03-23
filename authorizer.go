@@ -24,7 +24,7 @@ import (
 const (
 	// ANY wildcard category matches any individual category (eg FINANCE, CONTENT, IMAGE, etc)
 	ANY = "ANY"
-	// ALL wildcard action matches any of CREATE, READ, UPDATE, DELETE, EXISTS
+	// ALL wildcard action matches any of CREATE, READ, UPDATE, DELETE, EXISTS; also used for all contexts
 	ALL = "ALL"
 )
 
@@ -37,20 +37,6 @@ const (
 	DELETE = "DELETE"
 	EXISTS = "EXISTS"
 )
-
-var level = map[string]int{
-	"ALL":    0,
-	"CREATE": 1,
-	"DELETE": 1,
-	"UPDATE": 2,
-	"READ":   3,
-	"EXISTS": 4,
-}
-
-func allows(action, permission string) bool {
-	log.Debugf("level[%s] = %d, level[%s] = %d", action, level[action], permission, level[permission])
-	return level[action] <= level[permission]
-}
 
 // Auth type holds data for authorization
 //   - jwtHeader is the name of the header containing the user's JWT
@@ -161,7 +147,7 @@ func (auth *Auth) CheckJWT(jwt, context, action, category string) (allow bool) {
 				if perm.Category == ANY || perm.Category == category {
 					for _, a := range perm.Actions {
 						log.Debugf("evaluating permission action %s against action %s", a, action)
-						if allows(a, action) {
+						if a == ALL || a == action {
 							return true
 						}
 					}
