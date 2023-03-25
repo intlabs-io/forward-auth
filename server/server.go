@@ -106,7 +106,8 @@ func (svc *AuthzServer) Shutdown(ctx context.Context) {
 
 // create the router for Service
 func router(auth *fauth.Auth, store fauth.Store, userHeader, traceHeader string) *httptreemux.TreeMux {
-	// initialize HTTP router
+	// initialize HTTP router;
+	// forward-auth expects to be deployed at the root of a unique host (eg auth.example.com)
 	treemux := httptreemux.New()
 	api := treemux.NewGroup("/")
 
@@ -130,6 +131,11 @@ func router(auth *fauth.Auth, store fauth.Store, userHeader, traceHeader string)
 	// Auth endpoints
 	api.GET("/auth", Auth(auth, userHeader, traceHeader))
 	api.POST("/auth/update", Update(auth, store)) // called by deployment-api broadcast to trigger update from store
+
+	// Session endpoints
+	api.GET("/sessions", Sessions(auth))
+	api.POST("/login", Login(auth))
+	api.PUT("/logout", Logout(auth))
 	api.GET("/block", Blocked(auth))
 	api.POST("/block/:userGUID", Block(auth))
 	api.DELETE("/block/:userGUID", Unblock(auth))
