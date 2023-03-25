@@ -1,5 +1,7 @@
 package server
 
+//lint:file-ignore ST1001 dot import avoids package prefix in reference
+
 import (
 	"encoding/json"
 	"fmt"
@@ -8,7 +10,7 @@ import (
 
 	"bitbucket.org/_metalogic_/build"
 	fauth "bitbucket.org/_metalogic_/forward-auth"
-	. "bitbucket.org/_metalogic_/glib/http" // dot import fo avoid package prefix in reference (shutup lint)
+	. "bitbucket.org/_metalogic_/glib/http"
 	_ "bitbucket.org/_metalogic_/glib/types"
 	"bitbucket.org/_metalogic_/log"
 )

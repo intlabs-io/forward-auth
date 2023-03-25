@@ -1,11 +1,13 @@
 package server
 
+//lint:file-ignore ST1001 dot import avoids package prefix in reference
+
 import (
 	"encoding/json"
 	"net/http"
 
 	fauth "bitbucket.org/_metalogic_/forward-auth"
-	. "bitbucket.org/_metalogic_/glib/http" // dot import fo avoid package prefix in reference (shutup lint)
+	. "bitbucket.org/_metalogic_/glib/http"
 )
 
 // @Tags ACS endpoints
