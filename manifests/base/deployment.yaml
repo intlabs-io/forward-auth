@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: forward-auth
-          image: metalogic/forward-auth:1.11
+          image: metalogic/forward-auth:latest
           imagePullPolicy: "IfNotPresent"
           ports:
             - containerPort: 8080
@@ -37,6 +37,51 @@ spec:
               configMapKeyRef:
                 name: forward-auth-config
                 key: LOG_LEVEL
+          - name: SESSION_COOKIE_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: SESSION_COOKIE_NAME
+          - name: SESSION_COOKIE_DOMAIN
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: SESSION_COOKIE_DOMAIN
+          - name: FORWARD_AUTH_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: FORWARD_AUTH_HOST
+          - name: ACCESS_APIS_ROOT_URL
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: ACCESS_APIS_ROOT_URL
+                optional: true
+          - name: ACCESS_APIS_TENANT_ID
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: ACCESS_APIS_TENANT_ID
+                optional: true
+          - name: ACCESS_APIS_TENANT_API_KEY
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: ACCESS_APIS_TENANT_API_KEY
+                optional: true
+          - name: IDENTITY_PROVIDER_PUBLIC_KEY_URL
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: IDENTITY_PROVIDER_PUBLIC_KEY_URL
+                optional: true
+          - name: INSECURE_SKIP_VERIFY
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: INSECURE_SKIP_VERIFY
+                optional: true
           - name: DB_NAME
             valueFrom:
               secretKeyRef:
@@ -67,19 +112,7 @@ spec:
               secretKeyRef:
                 name: forward-auth-secrets
                 key: idp_public_key
-                optional: true
-          - name: IDENTITY_PROVIDER_PUBLIC_KEY_URL
-            valueFrom:
-              configMapKeyRef:
-                name: forward-auth-config
-                key: IDENTITY_PROVIDER_PUBLIC_KEY_URL
-                optional: true
-          - name: INSECURE_SKIP_VERIFY
-            valueFrom:
-              configMapKeyRef:
-                name: forward-auth-config
-                key: INSECURE_SKIP_VERIFY
-                optional: true
+                optional: true                
           - name: JWT_SECRET_KEY
             valueFrom:
               secretKeyRef:
