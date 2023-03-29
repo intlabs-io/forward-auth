@@ -46,7 +46,7 @@ func Start(addr, runMode, tenantParam, jwtHeader, userHeader, traceHeader string
 	cookieDomain = config.MustGetConfig("SESSION_COOKIE_DOMAIN")
 	accessRootURL = config.IfGetenv("ACCESS_APIS_ROOT_URL", "http://access-apis-service.metalogic.svc.cluster.local:8080")
 	accessTenantID = config.IfGetenv("ACCESS_APIS_TENANT_ID", "UNDEFINED")
-	accessAPIKey = config.IfGetenv("ACCESS_APIS_API_KEY", "UNDEFINED")
+	accessAPIKey = config.IfGetenv("ACCESS_APIS_TENANT_API_KEY", "UNDEFINED")
 	insecureSkipVerify = config.IfGetBool("INSECURE_SKIP_VERIFY", false)
 
 	// it must be available either by HTTP request or in the environment
