@@ -1,9 +1,11 @@
 package file
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -82,11 +84,36 @@ func (store *FileStore) Load() (acs *fauth.AccessSystem, err error) {
 // load acs from store
 func load(store *FileStore) (acs *fauth.AccessSystem, err error) {
 
-	// load the base Access Control System
+	// execute base template
+	type ForwardAuth struct {
+		Host string
+	}
+
+	host := config.MustGetConfig("FORWARD_AUTH_HOST")
+	fa := &ForwardAuth{
+		Host: host,
+	}
+
+	// Create a new template from base
+	tpl, err := template.New("base").Parse(string(base))
+	if err != nil {
+		return acs, fmt.Errorf("error creating template: %s", err)
+	}
+
+	// Create a buffer to hold the parsed template
+	buf := new(bytes.Buffer)
+
+	// Execute the template and write the output to the buffer
+	err = tpl.Execute(buf, fa)
+	if err != nil {
+		return acs, err
+	}
+
+	// load the templated base Access Control System
 
 	acs = &fauth.AccessSystem{}
 
-	err = json.Unmarshal(base, acs)
+	err = json.Unmarshal(buf.Bytes(), acs)
 	if err != nil {
 		return acs, err
 	}
