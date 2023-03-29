@@ -11,6 +11,9 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
+
+	acc "bitbucket.org/_metalogic_/access-apis"
 
 	"bitbucket.org/_metalogic_/config"
 	"bitbucket.org/_metalogic_/eval"
@@ -19,6 +22,7 @@ import (
 	"bitbucket.org/_metalogic_/log"
 	"bitbucket.org/_metalogic_/pat"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 )
 
 const (
@@ -42,6 +46,7 @@ const (
 //   - jwtHeader is the name of the header containing the user's JWT
 //   - keyFunc is a function passed to JWT parse function to return the key for decrypting the JWT token
 //   - owner is the owner of the current forward-auth deployment
+//   - sessions is a map of session IDs to session objects containing user JWT tokens
 //   - publicKeys maps key names to their rsa.PublicKey value
 //   - tokens maps token values passed in a request to token names referenced in
 //     access control functions; eg: bearer(ROOT_KEY) returns true if the bearer
@@ -52,9 +57,11 @@ const (
 // an instance of Auth is passed to handlers to drive authorization calculations
 type Auth struct {
 	runMode    string
+	cookieName string
 	jwtHeader  string
 	keyFunc    func(token *jwt.Token) (interface{}, error)
 	owner      Owner
+	sessions   map[string]session
 	publicKeys map[string]*rsa.PublicKey
 	tokens     map[string]string
 	blocks     map[string]bool
@@ -63,10 +70,35 @@ type Auth struct {
 	hostMuxers map[string]*pat.HostMux
 }
 
+type session struct {
+	uid          string // the uid of the session user
+	jwtToken     string
+	refreshToken string
+	expiry       int64 // the expiry in Unix seconds of the JWT
+}
+
+func (s session) UID() string {
+	return s.uid
+}
+
+func (s *session) JWT() string {
+	return s.jwtToken
+}
+
+func (s *session) RefreshJWT() string {
+	return s.refreshToken
+}
+
+func (s *session) IsExpired() bool {
+	return time.Unix(s.expiry, 0).Before(time.Now())
+}
+
 // NewAuth returns a new RSA Auth
-func NewAuth(acs *AccessSystem, jwtHeader string, publicKey, secret []byte) (auth *Auth, err error) {
+func NewAuth(acs *AccessSystem, cookieName, jwtHeader string, publicKey, secret []byte) (auth *Auth, err error) {
 	auth = &Auth{
+		cookieName: cookieName,
 		jwtHeader:  jwtHeader,
+		sessions:   make(map[string]session),
 		hostMuxers: make(map[string]*pat.HostMux),
 		owner:      acs.Owner,
 		publicKeys: make(map[string]*rsa.PublicKey),
@@ -95,6 +127,49 @@ func NewAuth(acs *AccessSystem, jwtHeader string, publicKey, secret []byte) (aut
 		return key, fmt.Errorf("invalid JWT alg: %s", token.Method.Alg())
 	}
 	return auth, nil
+}
+
+func (auth *Auth) CreateSession(a *acc.Auth) (id string) {
+	id = uuid.New().String()
+	auth.sessions[id] = session{
+		uid:          *a.Identity.UID,
+		jwtToken:     a.JWT,
+		refreshToken: a.JwtRefresh,
+		expiry:       a.ExpiresAt,
+	}
+	return id
+}
+
+func (auth *Auth) UpdateSession(id string, a *acc.Auth) {
+	auth.sessions[id] = session{
+		uid:          *a.Identity.UID,
+		jwtToken:     a.JWT,
+		refreshToken: a.JwtRefresh,
+		expiry:       a.ExpiresAt,
+	}
+}
+
+func (auth *Auth) Sessions() (sessionsJSON string) {
+	sessions := make([]string, 0)
+	for id, sess := range auth.sessions {
+		if !sess.IsExpired() {
+			sessions = append(sessions, id)
+		}
+	}
+	data, _ := json.Marshal(sessions)
+	return string(data)
+}
+
+func (auth *Auth) Session(id string) (s session, err error) {
+	s, ok := auth.sessions[id]
+	if !ok {
+		return s, fmt.Errorf("session not found for session id %s", id)
+	}
+	return s, nil
+}
+
+func (auth *Auth) DeleteSession(id string) {
+	delete(auth.sessions, id)
 }
 
 // CheckBearerAuth checks for token in list of tokens returning true if found
@@ -404,15 +479,28 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 			}
 		}
 
-		jwt := header.Get(auth.jwtHeader)
-
+		var jwt string
 		if mustAuth {
-			if jwt == "" {
-				return http.StatusUnauthorized, "rule requires authentication but no JWT is present in request header", username
+			log.Debugf("MustAuth rule requires authentication")
+			id, err := getSessionID(header, auth.cookieName)
+			if err != nil {
+				jwt = header.Get(auth.jwtHeader)
+				if jwt == "" {
+					return http.StatusUnauthorized, "rule requires authentication but no session cookie or raw JWT token is present in request header", username
+				}
 			}
+			sess := auth.sessions[id]
+			if sess.IsExpired() {
+				return http.StatusUnauthorized, "rule requires authentication but session is expired", username
+			}
+
+			jwt = sess.JWT()
+
 			if err := auth.Identity(jwt); err != nil {
 				return http.StatusUnauthorized, fmt.Sprintf("rule requires authentication but JWT contains invalid identity: %s", err), username
 			}
+		} else {
+			jwt = header.Get(auth.jwtHeader)
 		}
 
 		// credentials carry the bearer token and JWT if present
