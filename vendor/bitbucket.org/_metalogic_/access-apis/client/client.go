@@ -14,7 +14,7 @@ import (
 )
 
 type Client struct {
-	hostname string
+	rootURL  string
 	tenantID string
 	apiKey   string
 	client   *http.Client
@@ -22,7 +22,7 @@ type Client struct {
 }
 
 // TODO add options allowing specification of custom timeout, insecure etc
-func New(hostname, tenantID, apiKey string, insecure bool) (client *Client, err error) {
+func New(rootURL, tenantID, apiKey string, insecure bool) (client *Client, err error) {
 
 	httpClient := &http.Client{
 		Timeout: http.DefaultClient.Timeout,
@@ -37,13 +37,13 @@ func New(hostname, tenantID, apiKey string, insecure bool) (client *Client, err 
 	}
 
 	// construct and validate logout URI
-	baseURL, err := url.Parse(fmt.Sprintf("https://%s/tenant-api/v1/tenants/%s", hostname, tenantID))
+	baseURL, err := url.Parse(fmt.Sprintf("%s/tenant-api/v1/tenants/%s", rootURL, tenantID))
 	if err != nil {
 		return client, err
 	}
 
 	return &Client{
-		hostname: hostname,
+		rootURL:  rootURL,
 		tenantID: tenantID,
 		apiKey:   apiKey,
 		client:   httpClient,
@@ -104,6 +104,8 @@ func (c *Client) refreshRequest(jwtRefresh, uid string) (req *http.Request, err 
 
 func (c *Client) Login(email, password string) (a *auth.Auth, err error) {
 
+	log.Debugf("executing tenant user %s login %s", email, c.loginURI())
+
 	var loginData = []byte(fmt.Sprintf(`{
 		"email": "%s",
 		"password": "%s"
@@ -143,6 +145,8 @@ func (c *Client) Logout(uid string) (err error) {
 }
 
 func (c *Client) Refresh(uid, refreshToken string) (a *auth.Auth, err error) {
+	log.Debugf("executing refresh request %s", c.refreshURI(uid))
+
 	req, err := c.refreshRequest(refreshToken, uid)
 	if err != nil {
 		return a, err
@@ -153,7 +157,7 @@ func (c *Client) Refresh(uid, refreshToken string) (a *auth.Auth, err error) {
 		return a, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return a, fmt.Errorf("rrefresh request to %s failed with HTTP status %d", c.refreshURI(uid), resp.StatusCode)
+		return a, fmt.Errorf("refresh request to %s failed with HTTP status %d", c.refreshURI(uid), resp.StatusCode)
 	}
 
 	data, err := io.ReadAll(resp.Body)
