@@ -51,6 +51,23 @@ func BoolHeader(r *http.Request, name, value string) bool {
 	return (value == r.Header.Get(name))
 }
 
+// TernaryBoolHeader implements ternary header (true/false/nil) via bool pointer to implement
+func TernaryBoolHeader(r *http.Request, name string) (*bool, error) {
+	var b bool
+	v := r.Header.Get(name)
+	switch v {
+	case "":
+		return nil, nil
+	case "yes", "true":
+		b = true
+		return &b, nil
+	case "no", "false":
+		b = false
+		return &b, nil
+	}
+	return nil, fmt.Errorf("provided bool header '%s' must have value 'yes/true' or 'no/false'", name)
+}
+
 // IntHeader returns the int value of header with name if found, else dflt
 func IntHeader(r *http.Request, name string, dflt int) (int, error) {
 	value := r.Header.Get(name)
@@ -95,26 +112,26 @@ func StringHeader(r *http.Request, name, dflt string) string {
 	return value
 }
 
-// TernaryHeader implements ternary header (true/false/nil) via bool pointer to implement
-func TernaryHeader(r *http.Request, name string) (*bool, error) {
-	var b bool
-	v := r.Header.Get(name)
-	switch v {
-	case "":
-		return nil, nil
-	case "yes":
-		b = true
-		return &b, nil
-	case "no":
-		b = false
-		return &b, nil
-	}
-	return nil, fmt.Errorf("provided bool parameter '%s' must have value 'yes' or 'no'", name)
-}
-
 // BoolParam returns true if query parameter is set to value, else false
 func BoolParam(r *http.Request, name, value string) bool {
 	return (value == r.URL.Query().Get(name))
+}
+
+// TernaryParam implements ternary query parameter :q(true/false/nil) via bool pointer
+func TernaryBoolParam(r *http.Request, name string) (*bool, error) {
+	var b bool
+	v := strings.ToLower(r.URL.Query().Get(name))
+	switch v {
+	case "":
+		return nil, nil
+	case "yes", "true":
+		b = true
+		return &b, nil
+	case "no", "false":
+		b = false
+		return &b, nil
+	}
+	return nil, fmt.Errorf("provided bool parameter '%s' must have value 'yes/true' or 'no/false'", name)
 }
 
 // DateParam returns the time.Time value of query parameter with name if found, else the zero time.Time
@@ -168,23 +185,6 @@ func StringParam(r *http.Request, name, dflt string) string {
 		return dflt
 	}
 	return value
-}
-
-// TernaryParam implements ternary query parameter :q(true/false/nil) via bool pointer to implement
-func TernaryParam(r *http.Request, name string) (*bool, error) {
-	var b bool
-	v := r.URL.Query().Get(name)
-	switch v {
-	case "":
-		return nil, nil
-	case "yes":
-		b = true
-		return &b, nil
-	case "no":
-		b = false
-		return &b, nil
-	}
-	return nil, fmt.Errorf("provided bool parameter '%s' must have value 'yes' or 'no'", name)
 }
 
 // OkJSON writes an HTTP status 200 OK response with body JSON

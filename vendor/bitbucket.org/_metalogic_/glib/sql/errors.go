@@ -20,6 +20,10 @@ func DBError(err error) error {
 		switch code {
 		case 400:
 			return http.NewBadRequestError(mssqlErr.SQLErrorMessage())
+		case 401:
+			return http.NewUnauthorizedError(mssqlErr.SQLErrorMessage())
+		case 403:
+			return http.NewForbiddenError(mssqlErr.Message)
 		case 404:
 			return http.NewNotFoundError(mssqlErr.SQLErrorMessage())
 		case 500:
@@ -29,11 +33,15 @@ func DBError(err error) error {
 		}
 	} else if postgresErr, ok := err.(*pq.Error); ok {
 		// PostgreSQL API errors use string "HS" followed by HTTP status code
-		code := postgresErr.Code.Name()
+		code := string(postgresErr.Code)
 
 		switch code {
 		case "HS400":
 			return http.NewBadRequestError(postgresErr.Message)
+		case "HS401":
+			return http.NewUnauthorizedError(postgresErr.Message)
+		case "HS403":
+			return http.NewForbiddenError(postgresErr.Message)
 		case "HS404":
 			return http.NewNotFoundError(postgresErr.Message)
 		case "HS500":

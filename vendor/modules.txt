@@ -1,3 +1,7 @@
+# bitbucket.org/_metalogic_/access-apis v0.0.0-20230325172559-231602f936e7
+## explicit; go 1.19
+bitbucket.org/_metalogic_/access-apis
+bitbucket.org/_metalogic_/access-apis/client
 # bitbucket.org/_metalogic_/build v1.0.2
 ## explicit; go 1.18
 bitbucket.org/_metalogic_/build
@@ -13,7 +17,7 @@ bitbucket.org/_metalogic_/config
 # bitbucket.org/_metalogic_/eval v1.0.1
 ## explicit; go 1.15
 bitbucket.org/_metalogic_/eval
-# bitbucket.org/_metalogic_/glib v1.0.0
+# bitbucket.org/_metalogic_/glib v1.2.0
 ## explicit; go 1.16
 bitbucket.org/_metalogic_/glib/http
 bitbucket.org/_metalogic_/glib/sql
@@ -70,10 +74,10 @@ github.com/go-openapi/jsonreference
 # github.com/go-openapi/spec v0.20.4
 ## explicit; go 1.13
 github.com/go-openapi/spec
-# github.com/go-openapi/swag v0.19.15
+# github.com/go-openapi/swag v0.21.1
 ## explicit; go 1.11
 github.com/go-openapi/swag
-# github.com/golang-jwt/jwt/v4 v4.4.2
+# github.com/golang-jwt/jwt/v4 v4.4.3
 ## explicit; go 1.16
 github.com/golang-jwt/jwt/v4
 # github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
@@ -93,7 +97,7 @@ github.com/josharian/intern
 github.com/lib/pq
 github.com/lib/pq/oid
 github.com/lib/pq/scram
-# github.com/mailru/easyjson v0.7.6
+# github.com/mailru/easyjson v0.7.7
 ## explicit; go 1.12
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
@@ -107,28 +111,29 @@ github.com/swaggo/files
 # github.com/swaggo/swag v1.8.0
 ## explicit; go 1.17
 github.com/swaggo/swag
-# golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
-## explicit; go 1.11
+# golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+## explicit; go 1.17
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blake2s
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/curve25519
+golang.org/x/crypto/curve25519/internal/field
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
+golang.org/x/crypto/internal/poly1305
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/md4
-golang.org/x/crypto/poly1305
 golang.org/x/crypto/ripemd160
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
-# golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d
+# golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 ## explicit; go 1.17
 golang.org/x/net/idna
 golang.org/x/net/webdav
 golang.org/x/net/webdav/internal/xml
-# golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e
+# golang.org/x/sys v0.0.0-20220317061510-51cd9980dadf
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -141,7 +146,7 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
-# golang.org/x/tools v0.1.7
+# golang.org/x/tools v0.1.10
 ## explicit; go 1.17
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/buildutil
