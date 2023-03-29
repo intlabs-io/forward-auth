@@ -64,12 +64,6 @@ spec:
                 name: forward-auth-config
                 key: ACCESS_APIS_TENANT_ID
                 optional: true
-          - name: ACCESS_APIS_TENANT_API_KEY
-            valueFrom:
-              configMapKeyRef:
-                name: forward-auth-config
-                key: ACCESS_APIS_TENANT_API_KEY
-                optional: true
           - name: IDENTITY_PROVIDER_PUBLIC_KEY_URL
             valueFrom:
               configMapKeyRef:
@@ -107,6 +101,12 @@ spec:
               secretKeyRef:
                 name: forward-auth-secrets
                 key: mc_app_key
+          - name: ACCESS_APIS_TENANT_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: forward-auth-secrets
+                key: access_apis_tenant_api_key
+                optional: true
           - name: IDENTITY_PROVIDER_PUBLIC_KEY
             valueFrom:
               secretKeyRef:
