@@ -18,6 +18,15 @@ import (
 
 const rootGUID = "ROOT"
 
+var (
+	cookieName         string
+	cookieDomain       string
+	accessRootURL      string
+	accessTenantID     string
+	accessAPIKey       string
+	insecureSkipVerify bool
+)
+
 // AuthzServer ...
 type AuthzServer struct {
 	server *http.Server
@@ -33,7 +42,13 @@ func Start(addr, runMode, tenantParam, jwtHeader, userHeader, traceHeader string
 		log.Fatal(err)
 	}
 
-	// RSA Public Key is used to verify a JWT signed with IDP RSA private key;
+	cookieName = config.MustGetConfig("SESSION_COOKIE_NAME")
+	cookieDomain = config.MustGetConfig("SESSION_COOKIE_DOMAIN")
+	accessRootURL = config.IfGetenv("ACCESS_APIS_ROOT_URL", "http://access-apis-service.metalogic.svc.cluster.local:8080")
+	accessTenantID = config.IfGetenv("ACCESS_APIS_TENANT_ID", "UNDEFINED")
+	accessAPIKey = config.IfGetenv("ACCESS_APIS_API_KEY", "UNDEFINED")
+	insecureSkipVerify = config.IfGetBool("INSECURE_SKIP_VERIFY", false)
+
 	// it must be available either by HTTP request or in the environment
 	url := config.IfGetenv("IDENTITY_PROVIDER_PUBLIC_KEY_URL", "")
 	var publicKey []byte
@@ -50,7 +65,7 @@ func Start(addr, runMode, tenantParam, jwtHeader, userHeader, traceHeader string
 	secretKey := []byte(config.MustGetConfig("JWT_SECRET_KEY"))
 	// TODO jwtRefreshKey := []byte(config.MustGetConfig("JWT_REFRESH_SECRET_KEY"))
 
-	auth, err := fauth.NewAuth(acs, jwtHeader, publicKey, secretKey)
+	auth, err := fauth.NewAuth(acs, cookieName, jwtHeader, publicKey, secretKey)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -133,37 +148,39 @@ func router(auth *fauth.Auth, store fauth.Store, userHeader, traceHeader string)
 	api.POST("/auth/update", Update(auth, store)) // called by deployment-api broadcast to trigger update from store
 
 	// Session endpoints
-	api.GET("/sessions", Sessions(auth))
 	api.POST("/login", Login(auth))
 	api.PUT("/logout", Logout(auth))
-	api.GET("/block", Blocked(auth))
-	api.POST("/block/:userGUID", Block(auth))
-	api.DELETE("/block/:userGUID", Unblock(auth))
+	api.PUT("/refresh", Refresh(auth))
+	api.GET("/sessions", Sessions(auth))
+	api.GET("/sessions/:sid", Session(auth))
+	api.GET("/blocks", Blocked(auth))
+	api.PUT("/blocks/:uid", Block(auth))
+	api.DELETE("/blocks/:uid", Unblock(auth))
 
 	// ACS endpoints - the file storage adapter does not implement these endpoints
 	api.GET("/hostgroups", HostGroups(store))
 	api.POST("/hostgroups", CreateHostGroup(userHeader, store))
-	api.GET("/hostgroups/:groupGUID", HostGroup(store))
-	api.PUT("/hostgroups/:groupGUID", UpdateHostGroup(userHeader, store))
-	api.DELETE("/hostgroups/:groupGUID", DeleteHostGroup(store))
+	api.GET("/hostgroups/:gid", HostGroup(store))
+	api.PUT("/hostgroups/:gid", UpdateHostGroup(userHeader, store))
+	api.DELETE("/hostgroups/:gid", DeleteHostGroup(store))
 
-	api.GET("/hostgroups/:groupGUID/hosts", Hosts(store))
-	api.POST("/hostgroups/:groupGUID/hosts", CreateHost(userHeader, store))
-	api.GET("/hostgroups/:groupGUID/hosts/:hostGUID", Host(store))
-	api.PUT("/hostgroups/:groupGUID/hosts/:hostGUID", UpdateHost(userHeader, store))
-	api.DELETE("/hostgroups/:groupGUID/hosts/:hostGUID", DeleteHost(store))
+	api.GET("/hostgroups/:gid/hosts", Hosts(store))
+	api.POST("/hostgroups/:gid/hosts", CreateHost(userHeader, store))
+	api.GET("/hostgroups/:gid/hosts/:hid", Host(store))
+	api.PUT("/hostgroups/:gid/hosts/:hid", UpdateHost(userHeader, store))
+	api.DELETE("/hostgroups/:gid/hosts/:hid", DeleteHost(store))
 
-	api.GET("/hostgroups/:groupGUID/checks", Checks(store))
-	api.POST("/hostgroups/:groupGUID/checks", CreateCheck(userHeader, store))
-	api.GET("/hostgroups/:groupGUID/checks/:checkGUID", Check(store))
-	api.PUT("/hostgroups/:groupGUID/checks/:checkGUID", UpdateCheck(userHeader, store))
-	api.DELETE("/hostgroups/:groupGUID/checks/:checkGUID", DeleteCheck(store))
+	api.GET("/hostgroups/:gid/checks", Checks(store))
+	api.POST("/hostgroups/:gid/checks", CreateCheck(userHeader, store))
+	api.GET("/hostgroups/:gid/checks/:ckid", Check(store))
+	api.PUT("/hostgroups/:gid/checks/:ckid", UpdateCheck(userHeader, store))
+	api.DELETE("/hostgroups/:gid/checks/:ckid", DeleteCheck(store))
 
-	api.GET("/hostgroups/:groupGUID/checks/:checkGUID/paths", Paths(store))
-	api.POST("/hostgroups/:groupGUID/checks/:checkGUID/paths", CreatePath(userHeader, store))
-	api.GET("/hostgroups/:groupGUID/checks/:checkGUID/paths/:pathGUID", Path(store))
-	api.PUT("/hostgroups/:groupGUID/checks/:checkGUID/paths/:pathGUID", UpdatePath(userHeader, store))
-	api.DELETE("/hostgroups/:groupGUID/checks/:checkGUID/paths/:pathGUID", DeletePath(store))
+	api.GET("/hostgroups/:gid/checks/:ckid/paths", Paths(store))
+	api.POST("/hostgroups/:gid/checks/:ckid/paths", CreatePath(userHeader, store))
+	api.GET("/hostgroups/:gid/checks/:ckid/paths/:pid", Path(store))
+	api.PUT("/hostgroups/:gid/checks/:ckid/paths/:pid", UpdatePath(userHeader, store))
+	api.DELETE("/hostgroups/:gid/checks/:ckid/paths/:pid", DeletePath(store))
 
 	return treemux
 }
@@ -172,7 +189,7 @@ func getPublicKey(url string) (publicKey []byte, err error) {
 	log.Debugf("getting RSA public key from %s", url)
 	client := &http.Client{}
 
-	if config.IfGetBool("INSECURE_SKIP_VERIFY", false) {
+	if insecureSkipVerify {
 		log.Warning("InsecureSkipVerify is enabled for http.Client - DO NOT DO THIS IN PRODUCTION")
 		client.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
