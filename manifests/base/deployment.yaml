@@ -107,21 +107,15 @@ spec:
                 name: forward-auth-secrets
                 key: access_apis_tenant_api_key
                 optional: true
-          - name: IDENTITY_PROVIDER_PUBLIC_KEY
-            valueFrom:
-              secretKeyRef:
-                name: forward-auth-secrets
-                key: idp_public_key
-                optional: true                
           - name: JWT_SECRET_KEY
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
                 key: jwt_secret_key
           volumeMounts:
-            - mountPath: /usr/local/etc/forward-auth
-              name: etcdata
+            - name: config-volume
+              mountPath: /usr/local/etc/forward-auth
       volumes:
-        - name: etcdata
-          persistentVolumeClaim:
-            claimName: etc-forward-auth-volume-claim
+        - name: config-volume
+          configMap:
+            name: forward-auth-config
