@@ -36,7 +36,7 @@ func New(rootURL, tenantID, apiKey string, insecure bool) (client *Client, err e
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
 	}
 
-	// construct and validate logout URI
+	// construct and validate tenant base URI
 	baseURL, err := url.Parse(fmt.Sprintf("%s/tenant-api/v1/tenants/%s", rootURL, tenantID))
 	if err != nil {
 		return client, err
@@ -51,15 +51,114 @@ func New(rootURL, tenantID, apiKey string, insecure bool) (client *Client, err e
 	}, nil
 }
 
+/******************************************
+ * User account registration requests ...
+ ******************************************/
+
+func (c *Client) usersURI() string {
+	u := c.baseURL.JoinPath("/users")
+	return u.String()
+}
+
+func (c *Client) userURI(uid string) string {
+	u := c.baseURL.JoinPath("/users", uid)
+	return u.String()
+}
+
+func (c *Client) passwordURI(uid string) string {
+	u := c.baseURL.JoinPath("/users", uid, "password")
+	return u.String()
+}
+
+func (c *Client) userRequest(uid string) (req *http.Request, err error) {
+
+	req, err = http.NewRequest("GET", c.userURI(uid), nil)
+	if err != nil {
+		return req, err
+	}
+
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	req.Header.Add("Authorization", "Bearer "+c.apiKey)
+
+	return req, err
+}
+
+func (c *Client) usersRequest() (req *http.Request, err error) {
+
+	req, err = http.NewRequest("GET", c.usersURI(), nil)
+	if err != nil {
+		return req, err
+	}
+
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	req.Header.Add("Authorization", "Bearer "+c.apiKey)
+
+	return req, err
+}
+
+func (c *Client) createUserRequest(data []byte) (req *http.Request, err error) {
+
+	req, err = http.NewRequest("POST", c.usersURI(), bytes.NewBuffer(data))
+	if err != nil {
+		return req, err
+	}
+
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	req.Header.Add("Authorization", "Bearer "+c.apiKey)
+
+	return req, err
+}
+
+func (c *Client) updateUserRequest(uid string, data []byte) (req *http.Request, err error) {
+
+	req, err = http.NewRequest("PUT", c.userURI(uid), bytes.NewBuffer(data))
+	if err != nil {
+		return req, err
+	}
+
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	req.Header.Add("Authorization", "Bearer "+c.apiKey)
+
+	return req, err
+}
+
+func (c *Client) deleteUserRequest(uid string) (req *http.Request, err error) {
+
+	req, err = http.NewRequest("DELETE", c.userURI(uid), nil)
+	if err != nil {
+		return req, err
+	}
+
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	req.Header.Add("Authorization", "Bearer "+c.apiKey)
+
+	return req, err
+}
+
+func (c *Client) changePasswordRequest(uid string, data []byte) (req *http.Request, err error) {
+
+	req, err = http.NewRequest("POST", c.passwordURI(uid), bytes.NewBuffer(data))
+	if err != nil {
+		return req, err
+	}
+
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	req.Header.Add("Authorization", "Bearer "+c.apiKey)
+
+	return req, err
+}
+
+/*******************************
+ * User account login/logout ...
+ *******************************/
+
 func (c *Client) loginURI() string {
 	u := c.baseURL.JoinPath("/login")
 	return u.String()
 }
 
 func (c *Client) loginRequest(data []byte) (req *http.Request, err error) {
-	u := c.baseURL.JoinPath("/login")
-
-	req, err = http.NewRequest("POST", u.String(), bytes.NewBuffer(data))
+	req, err = http.NewRequest("POST", c.loginURI(), bytes.NewBuffer(data))
 	if err != nil {
 		return req, err
 	}
@@ -102,6 +201,293 @@ func (c *Client) refreshRequest(jwtRefresh, uid string) (req *http.Request, err 
  * client endpoint wrapper functions
  ************************************/
 
+func (c *Client) GetUsers() (u []auth.UserResponse, err error) {
+
+	data, err := c.GetUsersRaw()
+	if err != nil {
+		return u, err
+	}
+
+	ur := &auth.UsersResponse{}
+
+	err = json.Unmarshal(data, &ur)
+	if err != nil {
+		return u, err
+	}
+
+	return ur.Users, nil
+}
+
+func (c *Client) GetUsersRaw() (usersJSON []byte, err error) {
+
+	log.Debugf("executing tenant get users")
+
+	req, err := c.usersRequest()
+	if err != nil {
+		return usersJSON, err
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return usersJSON, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return usersJSON, fmt.Errorf("get users request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+	}
+
+	usersJSON, err = io.ReadAll(resp.Body)
+	if err != nil {
+		return usersJSON, err
+	}
+
+	return usersJSON, nil
+}
+
+func (c *Client) GetUser(uid string) (u *auth.User, err error) {
+
+	data, err := c.GetUserRaw(uid)
+	if err != nil {
+		return u, err
+	}
+
+	u = &auth.User{}
+	err = json.Unmarshal(data, u)
+	if err != nil {
+		return u, err
+	}
+
+	return u, nil
+}
+
+func (c *Client) GetUserRaw(uid string) (userJSON []byte, err error) {
+
+	log.Debugf("executing tenant get user %s", uid)
+
+	req, err := c.userRequest(uid)
+	if err != nil {
+		return userJSON, err
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return userJSON, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return userJSON, fmt.Errorf("get user request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+	}
+
+	userJSON, err = io.ReadAll(resp.Body)
+	if err != nil {
+		return userJSON, err
+	}
+
+	return userJSON, nil
+}
+
+func (c *Client) CreateUser(email, password string, superuser bool) (u *auth.User, err error) {
+
+	log.Debugf("executing tenant create user %s", email)
+
+	var userData = []byte(fmt.Sprintf(`{
+		"email": "%s",
+		"password": "%s",
+		"superuser": "%t"
+	}`, email, password, superuser))
+
+	// Convert the byte array to an io.ReadCloser
+	reader := io.NopCloser(bytes.NewReader(userData))
+
+	data, err := c.CreateUserRaw(reader)
+	if err != nil {
+		return u, err
+	}
+
+	u = &auth.User{}
+	err = json.Unmarshal(data, u)
+	if err != nil {
+		return u, err
+	}
+
+	return u, nil
+}
+
+func (c *Client) CreateUserRaw(body io.ReadCloser) (userData []byte, err error) {
+
+	data, err := io.ReadAll(body)
+	if err != nil {
+		return userData, err
+	}
+
+	req, err := c.createUserRequest(data)
+	if err != nil {
+		return userData, err
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return userData, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return userData, fmt.Errorf("create user request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+	}
+
+	userData, err = io.ReadAll(resp.Body)
+	if err != nil {
+		return userData, err
+	}
+
+	return userData, nil
+}
+
+func (c *Client) UpdateUser(uid, status, comment string, superuser bool) (u *auth.User, err error) {
+
+	log.Debugf("executing tenant update user %s", uid)
+
+	var userData = []byte(fmt.Sprintf(`{
+		"status": "%s",
+		"comment": "%s",
+		"superuser": "%t"
+	}`, status, comment, superuser))
+
+	// Convert the byte array to an io.ReadCloser
+	reader := io.NopCloser(bytes.NewReader(userData))
+
+	data, err := c.UpdateUserRaw(uid, reader)
+	if err != nil {
+		return u, err
+	}
+
+	u = &auth.User{}
+	err = json.Unmarshal(data, u)
+	if err != nil {
+		return u, err
+	}
+
+	return u, nil
+}
+
+func (c *Client) UpdateUserRaw(uid string, body io.ReadCloser) (userData []byte, err error) {
+
+	data, err := io.ReadAll(body)
+	if err != nil {
+		return userData, err
+	}
+
+	req, err := c.updateUserRequest(uid, data)
+	if err != nil {
+		return userData, err
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return userData, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return userData, fmt.Errorf("update user request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+	}
+
+	userData, err = io.ReadAll(resp.Body)
+	if err != nil {
+		return userData, err
+	}
+
+	return userData, nil
+}
+
+func (c *Client) DeleteUser(uid string) (ok bool, err error) {
+
+	_, err = c.DeleteUserRaw(uid)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (c *Client) DeleteUserRaw(uid string) (deleteJSON []byte, err error) {
+
+	log.Debugf("executing tenant delete user %s", uid)
+
+	req, err := c.deleteUserRequest(uid)
+	if err != nil {
+		return deleteJSON, err
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return deleteJSON, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return deleteJSON, fmt.Errorf("delete user request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+	}
+
+	deleteJSON, err = io.ReadAll(resp.Body)
+	if err != nil {
+		return deleteJSON, err
+	}
+
+	return deleteJSON, nil
+}
+
+func (c *Client) ChangePassword(uid, old, new string) (u *auth.User, err error) {
+
+	var userData = []byte(fmt.Sprintf(`{
+		"password": "%s",
+		"newPassword": "%s"
+	}`, old, new))
+
+	// Convert the byte array to an io.ReadCloser
+	reader := io.NopCloser(bytes.NewReader(userData))
+
+	data, err := c.ChangePasswordRaw(uid, reader)
+	if err != nil {
+		return u, err
+	}
+
+	u = &auth.User{}
+	err = json.Unmarshal(data, u)
+	if err != nil {
+		return u, err
+	}
+
+	return u, nil
+}
+
+func (c *Client) ChangePasswordRaw(uid string, body io.ReadCloser) (userJSON []byte, err error) {
+
+	log.Debugf("executing tenant change user password %s", uid)
+
+	data, err := io.ReadAll(body)
+	if err != nil {
+		return userJSON, err
+	}
+
+	req, err := c.changePasswordRequest(uid, data)
+	if err != nil {
+		return userJSON, err
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return userJSON, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return userJSON, fmt.Errorf("get user request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+	}
+
+	userJSON, err = io.ReadAll(resp.Body)
+	if err != nil {
+		return userJSON, err
+	}
+
+	return userJSON, nil
+}
+
+// ========================================================================
+
 func (c *Client) Login(email, password string) (a *auth.Auth, err error) {
 
 	log.Debugf("executing tenant user %s login %s", email, c.loginURI())
@@ -121,7 +507,7 @@ func (c *Client) Login(email, password string) (a *auth.Auth, err error) {
 		return a, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return a, fmt.Errorf("login request to %s failed with HTTP status %d", c.loginURI(), resp.StatusCode)
+		return a, fmt.Errorf("login request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
 	}
 
 	data, err := io.ReadAll(resp.Body)
@@ -157,7 +543,7 @@ func (c *Client) Refresh(uid, refreshToken string) (a *auth.Auth, err error) {
 		return a, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return a, fmt.Errorf("refresh request to %s failed with HTTP status %d", c.refreshURI(uid), resp.StatusCode)
+		return a, fmt.Errorf("refresh request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
 	}
 
 	data, err := io.ReadAll(resp.Body)

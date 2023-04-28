@@ -1,5 +1,10 @@
 package acc
 
+/*********************************************************************************************************
+ * Response types are generated directly by database stored procedures/functions called by API endpoints.
+ * Changes to stored procedures/functions should be reflected in updates to these types.
+ *********************************************************************************************************/
+
 type createUpdate struct {
 	Created    string
 	CreateUser string
@@ -191,4 +196,39 @@ type PublicKeyResponse struct {
 	TenantGUID string `json:"tenantGUID"`
 	PublicKey  string `json:"publicKey"`
 	createUpdate
+}
+
+// Registration Request
+type RegistrationRequest struct {
+	Email string `json:"email"`
+	Name  string `json:"name"`
+	Tel   string `json:"tel"`
+	Note  string `json:"note"`
+}
+
+type UsersResponse struct {
+	Total  int            `json:"total"`
+	Offset int            `json:"offset"`
+	Count  int            `json:"count"`
+	Users  []UserResponse `json:"data"`
+}
+
+type UserResponse struct {
+	TenantID  string     `json:"tid"`
+	UserID    string     `json:"uid"`
+	Email     string     `json:"email"`
+	Superuser bool       `json:"superuser"`
+	Status    string     `json:"status"`
+	Comment   string     `json:"comment"`
+	Profile   Profile    `json:"profile"`
+	Contacts  []Contact  `json:"contacts"`
+	Roles     []UserRole `json:"roles"`
+	Meta      Meta       `json:"meta"`
+}
+
+type Meta struct {
+	Created    string `json:"created"`
+	CreateUser string `json:"createUser"`
+	Updated    string `json:"updated,omitempty"`
+	UpdateUser string `json:"updateUser,omitempty"`
 }

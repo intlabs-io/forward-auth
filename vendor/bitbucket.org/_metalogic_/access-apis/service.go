@@ -33,7 +33,16 @@ type Service interface {
 	ChangeAccountEmail(sessionID, tid, uid, emailGUID string) (userJSON string, err error)
 	CreateCategoryContext(sessionID, tid, code, categoryCode, description string, active bool) (categoryContextJSON string, err error)
 	CreateRoleForTenant(sessionID, tid, name, description string) (roleJSON string, err error)
-	CreateUser(sessionID, tid, email, password, firstname, lastname, token, status string) (userJSON string, err error)
+
+	// Tenant User Accounts
+	CreateUser(sessionID, tid, email, password string, superuser bool, status, comment, firstname, lastname, tel, role, context string) (userJSON string, err error)
+
+	// Tenant User Registration Requests
+	RegistrationRequests(tid string) (requestsJSON string, err error)
+	RegistrationRequest(tid, rid string) (requestJSON string, err error)
+	DeleteRegistrationRequest(tid, rid string) (deleteJSON string, err error)
+	RequestRegistration(sessionID, tid, email, name, tel, note string) (requestJSON string, err error)
+	UpdateRegistrationRequest(sessionID, tid, ridd, action string) (requestJSON string, err error)
 
 	// API Keys
 	APIKey(tid, name string) (keyJSON string, err error)
@@ -49,7 +58,7 @@ type Service interface {
 	// User Roles
 	DeleteTenantUserRole(tid, uid, rid string) (rolesJSON string, err error)
 	DeleteRole(sessionID, tid, rid string) (err error)
-	DeleteUser(sessionID, tid, uid string) (msg, action, userRef string, err error)
+	DeleteUser(sessionID, tid, uid string) (deleteJSON string, err error)
 	Identity(tid, email, password string) (identityJSON string, err error)
 	Invitation(tid, email, token string) (userJSON string, err error)
 	Invitations(tid, email, status string) (invitationsJSON string, err error)
@@ -70,7 +79,7 @@ type Service interface {
 	UpdateCategoryContext(sessionID, tid, code, updateCode, categoryCode, description string, active *bool) (categoryContextJSON string, err error)
 	UpdateInvitation(sessionID, tid, token, email, status string) (updateInvitationJSON string, err error)
 	UpdateRole(sessionID, tid, rid, name, description string) (roleJSON string, err error)
-	UpdateUser(sessionID, tid, uid, email, status, comment string) (userJSON string, err error)
+	UpdateUser(sessionID, tid, uid, password string, superuser *bool, status, comment string) (userJSON string, err error)
 	User(tid, idtype, identifier string) (userJSON string, err error)
 	UserUID(tid, email string) (uid string, err error)
 	Users(tid, email, name, status string, offset, limit int) (usersJSON string, err error)

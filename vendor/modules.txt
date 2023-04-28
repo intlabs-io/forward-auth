@@ -1,4 +1,4 @@
-# bitbucket.org/_metalogic_/access-apis v0.0.0-20230329105528-3de036ad3114
+# bitbucket.org/_metalogic_/access-apis v0.0.0-20230420151559-5aa49e86077e => ../access-apis
 ## explicit; go 1.19
 bitbucket.org/_metalogic_/access-apis
 bitbucket.org/_metalogic_/access-apis/client
@@ -156,3 +156,4 @@ golang.org/x/tools/internal/typeparams
 # gopkg.in/yaml.v2 v2.4.0
 ## explicit; go 1.15
 gopkg.in/yaml.v2
+# bitbucket.org/_metalogic_/access-apis => ../access-apis

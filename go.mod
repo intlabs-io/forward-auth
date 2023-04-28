@@ -1,9 +1,11 @@
 module bitbucket.org/_metalogic_/forward-auth
 
-go 1.18
+go 1.20
+
+replace bitbucket.org/_metalogic_/access-apis => ../access-apis
 
 require (
-	bitbucket.org/_metalogic_/access-apis v0.0.0-20230329105528-3de036ad3114
+	bitbucket.org/_metalogic_/access-apis v0.0.0-20230420151559-5aa49e86077e
 	bitbucket.org/_metalogic_/build v1.0.2
 	bitbucket.org/_metalogic_/config v1.4.0
 	bitbucket.org/_metalogic_/eval v1.0.1

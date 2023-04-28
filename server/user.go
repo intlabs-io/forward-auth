@@ -86,10 +86,22 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 func Logout(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		cookie, err := r.Cookie(cookieName)
+
+		var id string
 		if err == nil {
-			id := cookie.Value
+			id = cookie.Value
 			svc.DeleteSession(id)
 		}
+
+		expired := &http.Cookie{
+			Name:     cookieName,
+			Domain:   cookieDomain,
+			Expires:  time.Unix(0, 0),
+			HttpOnly: true,
+		}
+		// set expired session cookie in response and return user identity JSON
+		http.SetCookie(w, expired)
+		MsgJSON(w, "logged out session "+id)
 	}
 }
 
