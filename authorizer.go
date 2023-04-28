@@ -240,6 +240,7 @@ func (auth *Auth) JWTIdentity(tknStr string) (identity *Identity, err error) {
 // Superuser returns true if jwt has superuser privilege
 func (auth *Auth) Superuser(jwt string) bool {
 	if jwt == "" {
+		log.Debugf("empty JWT in request")
 		return false
 	}
 
@@ -489,18 +490,29 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 					return http.StatusUnauthorized, "rule requires authentication but no session cookie or raw JWT token is present in request header", username
 				}
 			}
-			sess := auth.sessions[id]
+
+			log.Debug("using session id %s", id)
+
+			sess, ok := auth.sessions[id]
+			if !ok {
+				return http.StatusUnauthorized, "rule requires authentication there is no session with id " + id, username
+			}
+
 			if sess.IsExpired() {
 				return http.StatusUnauthorized, "rule requires authentication but session is expired", username
 			}
 
+			log.Debugf("using active session %+v", sess)
+
 			jwt = sess.JWT()
+			log.Debugf("setting JWT from session: %s", jwt)
 
 			if err := auth.Identity(jwt); err != nil {
 				return http.StatusUnauthorized, fmt.Sprintf("rule requires authentication but JWT contains invalid identity: %s", err), username
 			}
 		} else {
 			jwt = header.Get(auth.jwtHeader)
+			log.Debugf("setting JWT from request header: %s", jwt)
 		}
 
 		// credentials carry the bearer token and JWT if present
@@ -511,6 +523,7 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 
 		if jwt != "" {
 			username = auth.User(jwt)
+			log.Debugf("setting user from JWT: %s", username)
 		}
 
 		u, err := url.Parse(path)
