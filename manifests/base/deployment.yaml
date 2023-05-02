@@ -70,6 +70,12 @@ spec:
                 name: forward-auth-config
                 key: IDENTITY_PROVIDER_PUBLIC_KEY_URL
                 optional: true
+          - name: IDENTITY_PROVIDER_PUBLIC_KEY
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: idp.pub
+                optional: true
           - name: INSECURE_SKIP_VERIFY
             valueFrom:
               configMapKeyRef:
