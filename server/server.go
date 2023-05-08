@@ -127,7 +127,7 @@ func router(auth *fauth.Auth, store fauth.Store, userHeader, traceHeader string)
 	corsFunc := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, gtvets-session")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Cookie")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, HEAD, OPTIONS")
 			next.ServeHTTP(w, r)
 		})
@@ -161,7 +161,7 @@ func router(auth *fauth.Auth, store fauth.Store, userHeader, traceHeader string)
 	api.POST("/auth/update", Update(auth, store)) // called by deployment-api broadcast to trigger update from store
 
 	// Session endpoints
-	api.OPTIONS("/login", Options(auth))
+	api.OPTIONS("/login", Options())
 
 	api.POST("/login", Login(auth))
 	api.PUT("/logout", Logout(auth))
