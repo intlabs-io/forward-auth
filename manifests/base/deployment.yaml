@@ -121,6 +121,7 @@ spec:
           volumeMounts:
             - name: config-volume
               mountPath: /usr/local/etc/forward-auth
+              readOnly: false
       volumes:
         - name: config-volume
           configMap:
