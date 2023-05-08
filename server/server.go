@@ -161,6 +161,8 @@ func router(auth *fauth.Auth, store fauth.Store, userHeader, traceHeader string)
 	api.POST("/auth/update", Update(auth, store)) // called by deployment-api broadcast to trigger update from store
 
 	// Session endpoints
+	api.OPTIONS("/login", Options(auth))
+
 	api.POST("/login", Login(auth))
 	api.PUT("/logout", Logout(auth))
 	api.PUT("/refresh", Refresh(auth))
