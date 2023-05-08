@@ -123,7 +123,18 @@ func (svc *AuthzServer) Shutdown(ctx context.Context) {
 func router(auth *fauth.Auth, store fauth.Store, userHeader, traceHeader string) *httptreemux.TreeMux {
 	// initialize HTTP router;
 	// forward-auth expects to be deployed at the root of a unique host (eg auth.example.com)
+
+	corsFunc := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			next.ServeHTTP(w, r)
+		})
+	}
+
 	treemux := httptreemux.New()
+
+	treemux.UseHandler(corsFunc)
+
 	api := treemux.NewGroup("/")
 
 	// Common endpoints
