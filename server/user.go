@@ -58,6 +58,7 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 			Name:     cookieName,
 			Value:    id,
 			Domain:   cookieDomain,
+			Secure:   true, // TODO this should come from environment
 			Expires:  time.Unix(a.ExpiresAt, 0),
 			HttpOnly: true,
 		}
