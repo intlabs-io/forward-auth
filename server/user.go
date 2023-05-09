@@ -9,8 +9,10 @@ import (
 	"time"
 
 	"bitbucket.org/_metalogic_/access-apis/client"
+	"bitbucket.org/_metalogic_/config"
 	fauth "bitbucket.org/_metalogic_/forward-auth"
 	. "bitbucket.org/_metalogic_/glib/http"
+	"bitbucket.org/_metalogic_/log"
 )
 
 // @Tags User endpoints
@@ -53,15 +55,21 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 			return
 		}
 
+		secure := config.IfGetBool("SESSION_SECURE_COOKIE", true)
+		httpOnly := config.IfGetBool("SESSION_HTTP_ONLY", true)
+
 		id := svc.CreateSession(a)
 		cookie := http.Cookie{
 			Name:     cookieName,
 			Value:    id,
 			Domain:   cookieDomain,
-			Secure:   true, // TODO this should come from environment
+			Secure:   secure, // TODO this should come from environment
 			Expires:  time.Unix(a.ExpiresAt, 0),
-			HttpOnly: true,
+			HttpOnly: httpOnly,
 		}
+
+		log.Debugf("setting session cookie: %+v", cookie)
+
 		// set session cookie in response and return user identity JSON
 		http.SetCookie(w, &cookie)
 
