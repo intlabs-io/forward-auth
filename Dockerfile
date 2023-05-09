@@ -8,7 +8,7 @@ WORKDIR /build/cmd/server
 
 RUN CGO_ENABLED=0 go build -o forward-auth .
 
-FROM metalogic/alpine:3.17
+FROM metalogic/alpine:3.15
 
 RUN adduser -u 25000 -g 'Application Runner' -D runner
 
