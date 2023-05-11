@@ -56,7 +56,6 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 		}
 
 		secure := config.IfGetBool("SESSION_SECURE_COOKIE", true)
-		httpOnly := config.IfGetBool("SESSION_HTTP_ONLY", true)
 
 		id := svc.CreateSession(a)
 		cookie := http.Cookie{
@@ -65,7 +64,7 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 			Domain:   cookieDomain,
 			Secure:   secure, // TODO this should come from environment
 			Expires:  time.Unix(a.ExpiresAt, 0),
-			HttpOnly: httpOnly,
+			HttpOnly: false,
 		}
 
 		log.Debugf("setting session cookie: %+v", cookie)
