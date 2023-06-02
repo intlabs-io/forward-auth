@@ -82,6 +82,12 @@ spec:
                 name: forward-auth-config
                 key: INSECURE_SKIP_VERIFY
                 optional: true
+          - name: SESSION_SECURE_COOKIE
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: SESSION_SECURE_COOKIE
+                optional: true
           - name: DB_NAME
             valueFrom:
               secretKeyRef:
