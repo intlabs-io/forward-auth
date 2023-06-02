@@ -491,14 +491,16 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 				}
 			}
 
-			log.Debug("using session id %s", id)
+			log.Debugf("using session id %s", id)
 
 			sess, ok := auth.sessions[id]
 			if !ok {
-				return http.StatusUnauthorized, "rule requires authentication there is no session with id " + id, username
+				log.Debugf("rule requires authentication but there is no session with id %s, %s", id, username)
+				return http.StatusUnauthorized, "rule requires authentication but there is no session with id " + id, username
 			}
 
 			if sess.IsExpired() {
+				log.Debugf("rule requires authentication but session %s is expired %s", id, time.Unix(sess.expiry, 0).Format("2006-01-02 15:04:05"))
 				return http.StatusUnauthorized, "rule requires authentication but session is expired", username
 			}
 
