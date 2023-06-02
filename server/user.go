@@ -59,10 +59,10 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 
 		id := svc.CreateSession(a)
 		cookie := http.Cookie{
-			Name:     cookieName,
-			Value:    id,
-			Domain:   cookieDomain,
-			Secure:   secure, // TODO this should come from environment
+			Name:  cookieName,
+			Value: id,
+			// for debugging from localhost	Domain:   cookieDomain,
+			Secure:   secure,
 			Expires:  time.Unix(a.ExpiresAt, 0),
 			HttpOnly: false,
 		}
@@ -71,6 +71,8 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 
 		// set session cookie in response and return user identity JSON
 		http.SetCookie(w, &cookie)
+
+		log.Debugf("response headers: %+v", w.Header())
 
 		data, err := json.Marshal(a.Identity)
 		if err != nil {
