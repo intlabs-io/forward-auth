@@ -55,6 +55,7 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 			return
 		}
 
+		httpOnly := config.IfGetBool("SESSION_HTTP_ONLY_COOKIE", true)
 		secure := config.IfGetBool("SESSION_SECURE_COOKIE", true)
 
 		id := svc.CreateSession(a)
@@ -62,9 +63,10 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 			Name:  cookieName,
 			Value: id,
 			// for debugging from localhost	Domain:   cookieDomain,
+			HttpOnly: httpOnly,
 			Secure:   secure,
 			Expires:  time.Unix(a.ExpiresAt, 0),
-			HttpOnly: false,
+			SameSite: http.SameSiteNoneMode,
 		}
 
 		log.Debugf("setting session cookie: %+v", cookie)
@@ -130,7 +132,7 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 		cookie, err := r.Cookie(cookieName)
 
 		if err != nil {
-			ErrJSON(w, NewBadRequestError("session cookie not found in request"))
+			ErrJSON(w, NewBadRequestError(fmt.Sprintf("session cookie '%s' not found in request", cookieName)))
 			return
 		}
 
@@ -138,7 +140,7 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 
 		sess, err := svc.Session(id)
 		if err != nil {
-			ErrJSON(w, NewBadRequestError("session not found"))
+			ErrJSON(w, NewBadRequestError(fmt.Sprintf("session id '%s' not found", id)))
 			return
 		}
 
