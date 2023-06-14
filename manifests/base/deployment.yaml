@@ -37,16 +37,6 @@ spec:
               configMapKeyRef:
                 name: forward-auth-config
                 key: LOG_LEVEL
-          - name: SESSION_COOKIE_NAME
-            valueFrom:
-              configMapKeyRef:
-                name: forward-auth-config
-                key: SESSION_COOKIE_NAME
-          - name: SESSION_COOKIE_DOMAIN
-            valueFrom:
-              configMapKeyRef:
-                name: forward-auth-config
-                key: SESSION_COOKIE_DOMAIN
           - name: FORWARD_AUTH_HOST
             valueFrom:
               configMapKeyRef:
@@ -82,6 +72,16 @@ spec:
                 name: forward-auth-config
                 key: INSECURE_SKIP_VERIFY
                 optional: true
+          - name: SESSION_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: SESSION_NAME
+          - name: SESSION_COOKIE_DOMAIN
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: SESSION_COOKIE_DOMAIN
           - name: SESSION_HTTP_ONLY_COOKIE
             valueFrom:
               configMapKeyRef:
@@ -94,6 +94,11 @@ spec:
                 name: forward-auth-config
                 key: SESSION_SECURE_COOKIE
                 optional: true
+          - name: SESSION_HEADER_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: SESSION_HEADER_NAME          
           - name: DB_NAME
             valueFrom:
               secretKeyRef:

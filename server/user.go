@@ -55,40 +55,25 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 			return
 		}
 
-		httpOnly := config.IfGetBool("SESSION_HTTP_ONLY_COOKIE", true)
-		secure := config.IfGetBool("SESSION_SECURE_COOKIE", true)
-
-		id := svc.CreateSession(a)
-		cookie := http.Cookie{
-			Name:  cookieName,
-			Value: id,
-			// for debugging from localhost	Domain:   cookieDomain,
-			HttpOnly: httpOnly,
-			Secure:   secure,
-			Expires:  time.Unix(a.ExpiresAt, 0),
-			SameSite: http.SameSiteNoneMode,
-		}
-
-		log.Debugf("setting session cookie: %+v", cookie)
-
-		// set session cookie in response and return user identity JSON
-		http.SetCookie(w, &cookie)
-
-		log.Debugf("response headers: %+v", w.Header())
-
 		data, err := json.Marshal(a.Identity)
 		if err != nil {
 			ErrJSON(w, NewServerError("failed to parse login response as Auth.Identity: "+err.Error()))
 			return
 		}
 
+		id, expiresAt := svc.CreateSession(a)
+
+		setSessionID(w, id, sessionMode, expiresAt)
+
+		log.Debugf("response headers: %+v", w.Header())
+
 		OkJSON(w, string(data))
 	}
 }
 
 // @Tags User endpoints
-// @Summary executes a logout for the attached session cookie
-// @Description executes a logout for the attached session cookie
+// @Summary executes a logout for the attached session token
+// @Description executes a logout for the attached session token
 // @ID logout
 // @Produce json
 // @Success 200 {object} types.Message
@@ -97,29 +82,20 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 // @Failure 500 {object} ErrorResponse
 func Logout(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		cookie, err := r.Cookie(cookieName)
 
-		var id string
-		if err == nil {
-			id = cookie.Value
+		if id, err := invalidateSessionID(w, r, sessionMode); err != nil {
+			ErrJSON(w, fmt.Errorf("error loggin out session id %s: %s", id, err))
+			return
+		} else {
 			svc.DeleteSession(id)
+			MsgJSON(w, fmt.Sprintf("logged out session with id %s", id))
 		}
-
-		expired := &http.Cookie{
-			Name:     cookieName,
-			Domain:   cookieDomain,
-			Expires:  time.Unix(0, 0),
-			HttpOnly: true,
-		}
-		// set expired session cookie in response and return user identity JSON
-		http.SetCookie(w, expired)
-		MsgJSON(w, "logged out session "+id)
 	}
 }
 
 // @Tags User endpoints
-// @Summary executes a refresh for the attached session cookie
-// @Description executes a refresh for the attached session cookie by doing
+// @Summary executes a refresh for the attached session token
+// @Description executes a refresh for the attached session token by doing
 // @Description a refresh request against the access-apis with the session refreshToken
 // @ID logout
 // @Produce json
@@ -129,14 +105,20 @@ func Logout(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params
 // @Failure 500 {object} ErrorResponse
 func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		cookie, err := r.Cookie(cookieName)
+		// cookie, err := r.Cookie(sessionName)
 
+		// if err != nil {
+		// 	ErrJSON(w, NewBadRequestError(fmt.Sprintf("session cookie '%s' not found in request", sessionName)))
+		// 	return
+		// }
+
+		// id := cookie.Value
+
+		id, err := sessionID(r, sessionMode)
 		if err != nil {
-			ErrJSON(w, NewBadRequestError(fmt.Sprintf("session cookie '%s' not found in request", cookieName)))
+			ErrJSON(w, err)
 			return
 		}
-
-		id := cookie.Value
 
 		sess, err := svc.Session(id)
 		if err != nil {
@@ -160,23 +142,25 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 			return
 		}
 
-		svc.UpdateSession(id, a)
-
-		// set updated cookie in response and return user identity JSON
-		cookie = &http.Cookie{
-			Name:     cookieName,
-			Value:    id,
-			Domain:   cookieDomain,
-			Expires:  time.Unix(a.ExpiresAt, 0),
-			HttpOnly: true,
-		}
-		http.SetCookie(w, cookie)
-
 		data, err := json.Marshal(a.Identity)
 		if err != nil {
 			ErrJSON(w, NewServerError("failed to parse refresh response from access-apis as Auth.Identity: "+err.Error()))
 			return
 		}
+
+		expiresAt := svc.UpdateSession(id, a)
+
+		setSessionID(w, id, sessionMode, expiresAt)
+
+		// // set updated cookie in response and return user identity JSON
+		// cookie = &http.Cookie{
+		// 	Name:     sessionName,
+		// 	Value:    id,
+		// 	Domain:   cookieDomain,
+		// 	Expires:  time.Unix(a.ExpiresAt, 0),
+		// 	HttpOnly: true,
+		// }
+		// http.SetCookie(w, cookie)
 
 		OkJSON(w, string(data))
 	}
@@ -206,10 +190,10 @@ func Sessions(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, para
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
+// TODO return session details (should we do this?)
 func Session(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		// sid := params["sid"]
-
 		w.Header().Set("Content-Type", "application/json")
 	}
 }
@@ -265,4 +249,97 @@ func Unblock(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 		b := fmt.Sprintf("{ \"unblocked\" : \"%s\" }", uid)
 		MsgJSON(w, b)
 	}
+}
+
+func sessionID(r *http.Request, sessionMode string) (id string, err error) {
+	switch sessionMode {
+	case "cookie":
+		if cookie, err := r.Cookie(sessionName); err != nil {
+			return id, err
+		} else if cookie == nil {
+			return id, fmt.Errorf("session cookie not found with name %s", sessionName)
+		} else {
+			return cookie.Name, nil
+		}
+	case "header":
+		id := r.Header.Get(sessionName)
+		if id == "" {
+			return id, fmt.Errorf("session header not found with name %s", sessionName)
+		}
+		return id, nil
+	default:
+		return id, fmt.Errorf("invalid session mode %s", sessionMode)
+	}
+}
+
+func setSessionID(w http.ResponseWriter, sessionID, sessionMode string, expiresAt time.Time) (err error) {
+
+	switch sessionMode {
+	case "cookie":
+		httpOnly := config.IfGetBool("SESSION_HTTP_ONLY_COOKIE", false)
+		secure := config.IfGetBool("SESSION_SECURE_COOKIE", true)
+		cookie := http.Cookie{
+			Name:  sessionName,
+			Value: sessionID,
+			// for debugging from localhost	Domain:   cookieDomain,
+			HttpOnly: httpOnly,
+			Secure:   secure,
+			Expires:  expiresAt,
+			SameSite: http.SameSiteNoneMode,
+		}
+
+		log.Debugf("setting session cookie: %+v", cookie)
+
+		// set session cookie in response and return user identity JSON
+		http.SetCookie(w, &cookie)
+		return nil
+	case "header":
+		cookie := http.Cookie{
+			Value:   sessionID,
+			Expires: expiresAt,
+		}
+		w.Header().Set(sessionName, cookie.String())
+		return nil
+	default:
+		return fmt.Errorf("invalid session mode: %s", sessionMode)
+	}
+
+}
+
+func invalidateSessionID(w http.ResponseWriter, r *http.Request, sessionMode string) (id string, err error) {
+
+	switch sessionMode {
+	case "cookie":
+		httpOnly := config.IfGetBool("SESSION_HTTP_ONLY_COOKIE", false)
+		secure := config.IfGetBool("SESSION_SECURE_COOKIE", true)
+		cookieDomain := config.IfGetenv("SESSION_COOKIE_DOMAIN", "")
+
+		cookie, err := r.Cookie(sessionName)
+
+		if err == nil {
+			id = cookie.Value
+
+		}
+
+		expired := &http.Cookie{
+			Name:     sessionName,
+			Domain:   cookieDomain,
+			Expires:  time.Unix(0, 0),
+			HttpOnly: httpOnly,
+			Secure:   secure,
+		}
+		// set expired session cookie in response and return user identity JSON
+		http.SetCookie(w, expired)
+		return id, nil
+
+	case "header":
+		id := r.Header.Get(sessionName)
+		if id == "" {
+			return id, fmt.Errorf("session header not found with name %s", sessionName)
+		}
+		return id, nil
+	default:
+		return id, fmt.Errorf("invalid session mode %s", sessionMode)
+	}
+
 }

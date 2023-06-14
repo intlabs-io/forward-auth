@@ -129,7 +129,7 @@ func NewAuth(acs *AccessSystem, cookieName, jwtHeader string, publicKey, secret 
 	return auth, nil
 }
 
-func (auth *Auth) CreateSession(a *acc.Auth) (id string) {
+func (auth *Auth) CreateSession(a *acc.Auth) (id string, expiresAt time.Time) {
 	id = uuid.New().String()
 	auth.sessions[id] = session{
 		uid:          *a.Identity.UID,
@@ -137,16 +137,17 @@ func (auth *Auth) CreateSession(a *acc.Auth) (id string) {
 		refreshToken: a.JwtRefresh,
 		expiry:       a.ExpiresAt,
 	}
-	return id
+	return id, time.Unix(a.ExpiresAt, 0)
 }
 
-func (auth *Auth) UpdateSession(id string, a *acc.Auth) {
+func (auth *Auth) UpdateSession(id string, a *acc.Auth) (expiresAt time.Time) {
 	auth.sessions[id] = session{
 		uid:          *a.Identity.UID,
 		jwtToken:     a.JWT,
 		refreshToken: a.JwtRefresh,
 		expiry:       a.ExpiresAt,
 	}
+	return time.Unix(a.ExpiresAt, 0)
 }
 
 func (auth *Auth) Sessions() (sessionsJSON string) {
