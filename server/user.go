@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"bitbucket.org/_metalogic_/access-apis/client"
@@ -252,7 +253,7 @@ func Unblock(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 }
 
 func sessionID(r *http.Request, sessionMode string) (id string, err error) {
-	switch sessionMode {
+	switch strings.ToLower(sessionMode) {
 	case "cookie":
 		if cookie, err := r.Cookie(sessionName); err != nil {
 			return id, err
@@ -274,7 +275,7 @@ func sessionID(r *http.Request, sessionMode string) (id string, err error) {
 
 func setSessionID(w http.ResponseWriter, sessionID, sessionMode string, expiresAt time.Time) (err error) {
 
-	switch sessionMode {
+	switch strings.ToLower(sessionMode) {
 	case "cookie":
 		httpOnly := config.IfGetBool("SESSION_HTTP_ONLY_COOKIE", false)
 		secure := config.IfGetBool("SESSION_SECURE_COOKIE", true)
@@ -308,7 +309,7 @@ func setSessionID(w http.ResponseWriter, sessionID, sessionMode string, expiresA
 
 func invalidateSessionID(w http.ResponseWriter, r *http.Request, sessionMode string) (id string, err error) {
 
-	switch sessionMode {
+	switch strings.ToLower(sessionMode) {
 	case "cookie":
 		httpOnly := config.IfGetBool("SESSION_HTTP_ONLY_COOKIE", false)
 		secure := config.IfGetBool("SESSION_SECURE_COOKIE", true)
@@ -320,7 +321,6 @@ func invalidateSessionID(w http.ResponseWriter, r *http.Request, sessionMode str
 			id = cookie.Value
 
 		}
-
 		expired := &http.Cookie{
 			Name:     sessionName,
 			Domain:   cookieDomain,

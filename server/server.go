@@ -43,7 +43,7 @@ func Start(addr, runMode, tenantParam, jwtHeader, userHeader, traceHeader string
 	}
 
 	sessionName = config.MustGetConfig("SESSION_NAME")
-	sessionMode = config.IfGetenv("SESSION_MODE", "HEADER")
+	sessionMode = config.IfGetenv("SESSION_MODE", "COOKIE")
 	accessRootURL = config.IfGetenv("ACCESS_APIS_ROOT_URL", "http://access-apis-service.metalogic.svc.cluster.local:8080")
 	accessTenantID = config.IfGetenv("ACCESS_APIS_TENANT_ID", "UNDEFINED")
 	accessAPIKey = config.IfGetenv("ACCESS_APIS_TENANT_API_KEY", "UNDEFINED")
