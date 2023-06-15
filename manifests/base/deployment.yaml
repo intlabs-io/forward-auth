@@ -76,7 +76,7 @@ spec:
             valueFrom:
               configMapKeyRef:
                 name: forward-auth-config
-                key: SESSION_NAME
+                key: SESSION_COOKIE_NAME
                 optional: true
           - name: SESSION_COOKIE_DOMAIN
             valueFrom:
