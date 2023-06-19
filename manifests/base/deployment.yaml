@@ -57,11 +57,6 @@ spec:
               secretKeyRef:
                 name: forward-auth-secrets
                 key: root_key
-          - name: MC_APP_KEY
-            valueFrom:
-              secretKeyRef:
-                name: forward-auth-secrets
-                key: mc_app_key
           - name: IDENTITY_PROVIDER_PUBLIC_KEY
             valueFrom:
               secretKeyRef:
