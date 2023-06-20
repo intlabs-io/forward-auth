@@ -72,6 +72,12 @@ spec:
                 name: forward-auth-config
                 key: INSECURE_SKIP_VERIFY
                 optional: true
+          - name: SESSION_MODE
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: SESSION_MODE
+                optional: true
           - name: SESSION_COOKIE_NAME
             valueFrom:
               configMapKeyRef:
