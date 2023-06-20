@@ -64,7 +64,7 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 
 		id, expiresAt := svc.CreateSession(a)
 
-		setSessionID(w, id, sessionMode, expiresAt)
+		setSessionID(w, sessionMode, sessionName, id, expiresAt)
 
 		log.Debugf("response headers: %+v", w.Header())
 
@@ -84,8 +84,8 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 func Logout(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
-		if id, err := invalidateSessionID(w, r, sessionMode); err != nil {
-			ErrJSON(w, fmt.Errorf("error loggin out session id %s: %s", id, err))
+		if id, err := invalidateSessionID(w, r, sessionMode, sessionName); err != nil {
+			ErrJSON(w, fmt.Errorf("error logging out session id %s: %s", id, err))
 			return
 		} else {
 			svc.DeleteSession(id)
@@ -115,7 +115,7 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 
 		// id := cookie.Value
 
-		id, err := sessionID(r, sessionMode)
+		id, err := sessionID(r, sessionMode, sessionName)
 		if err != nil {
 			ErrJSON(w, err)
 			return
@@ -151,7 +151,7 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 
 		expiresAt := svc.UpdateSession(id, a)
 
-		setSessionID(w, id, sessionMode, expiresAt)
+		setSessionID(w, sessionMode, sessionName, id, expiresAt)
 
 		// // set updated cookie in response and return user identity JSON
 		// cookie = &http.Cookie{
@@ -252,7 +252,7 @@ func Unblock(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 	}
 }
 
-func sessionID(r *http.Request, sessionMode string) (id string, err error) {
+func sessionID(r *http.Request, sessionMode, sessionName string) (id string, err error) {
 	switch strings.ToLower(sessionMode) {
 	case "cookie":
 		if cookie, err := r.Cookie(sessionName); err != nil {
@@ -273,10 +273,10 @@ func sessionID(r *http.Request, sessionMode string) (id string, err error) {
 	}
 }
 
-func setSessionID(w http.ResponseWriter, sessionID, sessionMode string, expiresAt time.Time) (err error) {
+func setSessionID(w http.ResponseWriter, sessionMode, sessionName, sessionID string, expiresAt time.Time) (err error) {
 
 	switch strings.ToLower(sessionMode) {
-	case "cookie":
+	case "cookie", "header":
 		httpOnly := config.IfGetBool("SESSION_HTTP_ONLY_COOKIE", false)
 		secure := config.IfGetBool("SESSION_SECURE_COOKIE", true)
 		cookie := http.Cookie{
@@ -294,23 +294,23 @@ func setSessionID(w http.ResponseWriter, sessionID, sessionMode string, expiresA
 		// set session cookie in response and return user identity JSON
 		http.SetCookie(w, &cookie)
 		return nil
-	case "header":
-		cookie := http.Cookie{
-			Value:   sessionID,
-			Expires: expiresAt,
-		}
-		w.Header().Set(sessionName, cookie.String())
-		return nil
+	// case "header":
+	// 	cookie := http.Cookie{
+	// 		Value:   sessionID,
+	// 		Expires: expiresAt,
+	// 	}
+	// 	w.Header().Set(sessionName, cookie.String())
+	// 	return nil
 	default:
 		return fmt.Errorf("invalid session mode: %s", sessionMode)
 	}
 
 }
 
-func invalidateSessionID(w http.ResponseWriter, r *http.Request, sessionMode string) (id string, err error) {
+func invalidateSessionID(w http.ResponseWriter, r *http.Request, sessionMode, sessionName string) (id string, err error) {
 
 	switch strings.ToLower(sessionMode) {
-	case "cookie":
+	case "cookie", "header":
 		httpOnly := config.IfGetBool("SESSION_HTTP_ONLY_COOKIE", false)
 		secure := config.IfGetBool("SESSION_SECURE_COOKIE", true)
 		cookieDomain := config.IfGetenv("SESSION_COOKIE_DOMAIN", "")
@@ -332,12 +332,13 @@ func invalidateSessionID(w http.ResponseWriter, r *http.Request, sessionMode str
 		http.SetCookie(w, expired)
 		return id, nil
 
-	case "header":
-		id := r.Header.Get(sessionName)
-		if id == "" {
-			return id, fmt.Errorf("session header not found with name %s", sessionName)
-		}
-		return id, nil
+	// case "header":
+	// 	id := r.Header.Get(sessionName)
+	// 	if id == "" {
+	// 		return id, fmt.Errorf("session header not found with name %s", sessionName)
+	// 	}
+	// 	// set empty header
+	// 	return "", nil
 	default:
 		return id, fmt.Errorf("invalid session mode %s", sessionMode)
 	}
