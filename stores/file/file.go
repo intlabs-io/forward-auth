@@ -153,7 +153,7 @@ func load(store *FileStore) (acs *fauth.AccessSystem, err error) {
 
 	owner := access.Owner
 	if owner.Bearer == nil {
-		return acs, fmt.Errorf("owner root bearer token is undefined")
+		return acs, fmt.Errorf("owner root key is undefined")
 	}
 
 	switch owner.Bearer.Source {
@@ -191,7 +191,9 @@ func loadTokens(acs *fauth.AccessSystem, tokens map[string]string, publicKeys ma
 			case "database":
 				// TODO
 			case "env":
-				tokens[config.MustGetConfig(application.Bearer.Name)] = application.Bearer.Name
+				if !application.Bearer.Optional {
+					tokens[config.MustGetConfig(application.Bearer.Name)] = application.Bearer.Name
+				}
 			case "file":
 				tokens[application.Bearer.Value] = application.Bearer.Name
 			default:
