@@ -209,8 +209,9 @@ func loadTokens(acs *fauth.AccessSystem, tokens map[string]string, publicKeys ma
 			case "database":
 				// TODO
 			case "env":
-				value := config.MustGetConfig(tenant.Bearer.Name)
-				tokens[value] = tenant.UUID
+				if !tenant.Bearer.Optional {
+					tokens[config.MustGetConfig(tenant.Bearer.Name)] = tenant.UUID
+				}
 			case "file":
 				value := tenant.Bearer.Value
 				if value == "" {
