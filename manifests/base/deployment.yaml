@@ -17,8 +17,8 @@ spec:
         - name: ghcr-dockerconfigjson
       containers:
         - name: forward-auth
-          image: ghcr.io/intlabs-io/forward-auth:v1.11.2
-          imagePullPolicy: "Always"
+          image: ghcr.io/intlabs-io/forward-auth:latest
+          imagePullPolicy: "IfNotPresent"
           ports:
             - containerPort: 8080
           readinessProbe:
