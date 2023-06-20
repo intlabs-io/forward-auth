@@ -126,23 +126,24 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
-                key: root_key
-          - name: MC_APP_KEY
+                key: ROOT_KEY
+          - name: FORWARD_AUTH_CONSOLE_APP_KEY
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
-                key: mc_app_key
+                key: FORWARD_AUTH_CONSOLE_APP_KEY
+                optional: true
           - name: ACCESS_APIS_TENANT_API_KEY
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
-                key: access_apis_tenant_api_key
+                key: ACCESS_APIS_TENANT_API_KEY
                 optional: true
           - name: JWT_SECRET_KEY
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
-                key: jwt_secret_key
+                key: JWT_SECRET_KEY
           volumeMounts:
             - name: config-volume
               mountPath: /usr/local/etc/forward-auth
