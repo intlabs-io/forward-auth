@@ -4,7 +4,8 @@
       "name": "Forward Auth Management Console Web Application",
       "bearer": {
         "source": "env",
-        "name": "MC_APP_KEY"
+        "name": "FORWARD_AUTH_CONSOLE_APP_KEY",
+        "optional": true
       }
     }
   ],
@@ -91,7 +92,7 @@
                 "path": "/logout",
                 "rules": {
                   "PUT": {
-                    "description": "logout the session found in the session cookie",
+                    "description": "logout the session found in the session",
                     "expression": "true"
                   },
                   "OPTIONS": {
