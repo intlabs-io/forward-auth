@@ -13,10 +13,12 @@ spec:
       labels:
         app: forward-auth
     spec:
+      imagePullSecrets:
+        - name: ghcr-dockerconfigjson
       containers:
         - name: forward-auth
-          image: metalogic/forward-auth:1.11
-          imagePullPolicy: "IfNotPresent"
+          image: ghcr.io/intlabs-io/forward-auth:v1.11.2
+          imagePullPolicy: "Always"
           ports:
             - containerPort: 8080
           readinessProbe:
