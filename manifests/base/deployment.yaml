@@ -37,16 +37,6 @@ spec:
               configMapKeyRef:
                 name: forward-auth-config
                 key: LOG_LEVEL
-          - name: SESSION_COOKIE_NAME
-            valueFrom:
-              configMapKeyRef:
-                name: forward-auth-config
-                key: SESSION_COOKIE_NAME
-          - name: SESSION_COOKIE_DOMAIN
-            valueFrom:
-              configMapKeyRef:
-                name: forward-auth-config
-                key: SESSION_COOKIE_DOMAIN
           - name: FORWARD_AUTH_HOST
             valueFrom:
               configMapKeyRef:
@@ -82,6 +72,23 @@ spec:
                 name: forward-auth-config
                 key: INSECURE_SKIP_VERIFY
                 optional: true
+          - name: SESSION_MODE
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: SESSION_MODE
+                optional: true
+          - name: SESSION_COOKIE_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: SESSION_COOKIE_NAME
+                optional: true
+          - name: SESSION_COOKIE_DOMAIN
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: SESSION_COOKIE_DOMAIN
           - name: SESSION_HTTP_ONLY_COOKIE
             valueFrom:
               configMapKeyRef:
@@ -93,6 +100,12 @@ spec:
               configMapKeyRef:
                 name: forward-auth-config
                 key: SESSION_SECURE_COOKIE
+                optional: true
+          - name: SESSION_HEADER_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: SESSION_HEADER_NAME
                 optional: true
           - name: DB_NAME
             valueFrom:
@@ -113,23 +126,24 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
-                key: root_key
-          - name: MC_APP_KEY
+                key: ROOT_KEY
+          - name: FORWARD_AUTH_CONSOLE_APP_KEY
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
-                key: mc_app_key
+                key: FORWARD_AUTH_CONSOLE_APP_KEY
+                optional: true
           - name: ACCESS_APIS_TENANT_API_KEY
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
-                key: access_apis_tenant_api_key
+                key: ACCESS_APIS_TENANT_API_KEY
                 optional: true
           - name: JWT_SECRET_KEY
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
-                key: jwt_secret_key
+                key: JWT_SECRET_KEY
           volumeMounts:
             - name: config-volume
               mountPath: /usr/local/etc/forward-auth

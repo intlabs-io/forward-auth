@@ -56,18 +56,19 @@ const (
 //
 // an instance of Auth is passed to handlers to drive authorization calculations
 type Auth struct {
-	runMode    string
-	cookieName string
-	jwtHeader  string
-	keyFunc    func(token *jwt.Token) (interface{}, error)
-	owner      Owner
-	sessions   map[string]session
-	publicKeys map[string]*rsa.PublicKey
-	tokens     map[string]string
-	blocks     map[string]bool
-	overrides  map[string]string
-	mutex      sync.RWMutex
-	hostMuxers map[string]*pat.HostMux
+	runMode     string
+	sessionMode string
+	sessionName string
+	jwtHeader   string
+	keyFunc     func(token *jwt.Token) (interface{}, error)
+	owner       Owner
+	sessions    map[string]session
+	publicKeys  map[string]*rsa.PublicKey
+	tokens      map[string]string
+	blocks      map[string]bool
+	overrides   map[string]string
+	mutex       sync.RWMutex
+	hostMuxers  map[string]*pat.HostMux
 }
 
 type session struct {
@@ -94,16 +95,17 @@ func (s *session) IsExpired() bool {
 }
 
 // NewAuth returns a new RSA Auth
-func NewAuth(acs *AccessSystem, cookieName, jwtHeader string, publicKey, secret []byte) (auth *Auth, err error) {
+func NewAuth(acs *AccessSystem, sessionMode, sessionName, jwtHeader string, publicKey, secret []byte) (auth *Auth, err error) {
 	auth = &Auth{
-		cookieName: cookieName,
-		jwtHeader:  jwtHeader,
-		sessions:   make(map[string]session),
-		hostMuxers: make(map[string]*pat.HostMux),
-		owner:      acs.Owner,
-		publicKeys: make(map[string]*rsa.PublicKey),
-		tokens:     acs.Tokens,
-		blocks:     acs.Blocks,
+		sessionMode: sessionMode,
+		sessionName: sessionName,
+		jwtHeader:   jwtHeader,
+		sessions:    make(map[string]session),
+		hostMuxers:  make(map[string]*pat.HostMux),
+		owner:       acs.Owner,
+		publicKeys:  make(map[string]*rsa.PublicKey),
+		tokens:      acs.Tokens,
+		blocks:      acs.Blocks,
 	}
 
 	auth.setRSAPublicKeys(acs.PublicKeys)
@@ -129,7 +131,7 @@ func NewAuth(acs *AccessSystem, cookieName, jwtHeader string, publicKey, secret 
 	return auth, nil
 }
 
-func (auth *Auth) CreateSession(a *acc.Auth) (id string) {
+func (auth *Auth) CreateSession(a *acc.Auth) (id string, expiresAt time.Time) {
 	id = uuid.New().String()
 	auth.sessions[id] = session{
 		uid:          *a.Identity.UID,
@@ -137,16 +139,17 @@ func (auth *Auth) CreateSession(a *acc.Auth) (id string) {
 		refreshToken: a.JwtRefresh,
 		expiry:       a.ExpiresAt,
 	}
-	return id
+	return id, time.Unix(a.ExpiresAt, 0)
 }
 
-func (auth *Auth) UpdateSession(id string, a *acc.Auth) {
+func (auth *Auth) UpdateSession(id string, a *acc.Auth) (expiresAt time.Time) {
 	auth.sessions[id] = session{
 		uid:          *a.Identity.UID,
 		jwtToken:     a.JWT,
 		refreshToken: a.JwtRefresh,
 		expiry:       a.ExpiresAt,
 	}
+	return time.Unix(a.ExpiresAt, 0)
 }
 
 func (auth *Auth) Sessions() (sessionsJSON string) {
@@ -482,8 +485,8 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 
 		var jwt string
 		if mustAuth {
-			log.Debugf("MustAuth rule requires authentication")
-			id, err := getSessionID(header, auth.cookieName)
+			log.Debugf("MustAuth rule requires valid user session")
+			id, err := getSessionID(header, auth.sessionMode, auth.sessionName)
 			if err != nil {
 				jwt = header.Get(auth.jwtHeader)
 				if jwt == "" {

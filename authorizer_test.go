@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	cookieName = "test-session"
-	jwtHeader  = "test"
+	sessionMode = "cookie"
+	sessionName = "test-session"
+	jwtHeader   = "test"
 )
 
 var (
@@ -71,7 +72,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	auth, err = fauth.NewAuth(acs, cookieName, jwtHeader, publicKey, secret)
+	auth, err = fauth.NewAuth(acs, sessionMode, sessionName, jwtHeader, publicKey, secret)
 	if err != nil {
 		log.Fatal(err)
 	}
