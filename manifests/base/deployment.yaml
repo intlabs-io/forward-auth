@@ -72,6 +72,18 @@ spec:
                 name: forward-auth-config
                 key: INSECURE_SKIP_VERIFY
                 optional: true
+          - name: CORS_ALLOW_ORIGIN
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: CORS_ALLOW_ORIGIN
+                optional: true
+          - name: CORS_ALLOW_HEADERS
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: CORS_ALLOW_HEADERS
+                optional: true
           - name: SESSION_MODE
             valueFrom:
               configMapKeyRef:

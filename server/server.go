@@ -133,13 +133,14 @@ func router(auth *fauth.Auth, store fauth.Store, userHeader, traceHeader string)
 	// initialize HTTP router;
 	// forward-auth expects to be deployed at the root of a unique host (eg auth.example.com)
 
+	allowOrigin := config.IfGetenv("CORS_ALLOW_ORIGIN", "*")
+	allowHeaders := config.IfGetenv("CORS_ALLOW_HEADERS", "*")
+
 	corsFunc := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			// w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Cookie")
-			// w.Header().Set("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, HEAD, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "*")
+			w.Header().Set("Access-Control-Allow-Origin", allowOrigin)
+			w.Header().Set("Access-Control-Allow-Headers", allowHeaders)
+			w.Header().Set("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, HEAD, OPTIONS")
 			w.Header().Add("Access-Control-Allow-Credentials", "true")
 
 			next.ServeHTTP(w, r)
