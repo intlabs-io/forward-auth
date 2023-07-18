@@ -9,7 +9,7 @@ require (
 	bitbucket.org/_metalogic_/build v1.0.2
 	bitbucket.org/_metalogic_/config v1.4.0
 	bitbucket.org/_metalogic_/eval v1.0.1
-	bitbucket.org/_metalogic_/glib v1.2.0
+	bitbucket.org/_metalogic_/glib v1.4.0
 	bitbucket.org/_metalogic_/httpsig v0.0.0-20211209010019-f2554fb89eae
 	bitbucket.org/_metalogic_/httptreemux-swagger v1.1.0
 	bitbucket.org/_metalogic_/ident v1.2.0

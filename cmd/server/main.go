@@ -18,6 +18,7 @@ import (
 	"bitbucket.org/_metalogic_/forward-auth/stores/file"
 	"bitbucket.org/_metalogic_/forward-auth/stores/mssql"
 	"bitbucket.org/_metalogic_/forward-auth/stores/postgres"
+	"bitbucket.org/_metalogic_/glib/http"
 	"bitbucket.org/_metalogic_/log"
 )
 
@@ -41,6 +42,7 @@ func init() {
 	var err error
 	info = build.Info
 
+	http.Module = info.Project
 	version := info.String()
 	command := info.Name()
 
