@@ -58,7 +58,7 @@ func Start(addr, runMode, tenantParam, jwtHeader, userHeader, traceHeader string
 		sessionName = config.IfGetenv("SESSION_HEADER_NAME", strings.ToLower(accessTenantID+"-session"))
 	}
 
-	// it must be available either by HTTP request or in the environment
+	// public key must be available either by HTTP request or in the environment
 	url := config.IfGetenv("IDENTITY_PROVIDER_PUBLIC_KEY_URL", "")
 	var publicKey []byte
 	if url != "" {
