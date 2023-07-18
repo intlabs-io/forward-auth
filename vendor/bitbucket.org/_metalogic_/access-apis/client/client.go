@@ -10,6 +10,7 @@ import (
 	"net/url"
 
 	auth "bitbucket.org/_metalogic_/access-apis"
+	. "bitbucket.org/_metalogic_/glib/http"
 	"bitbucket.org/_metalogic_/log"
 )
 
@@ -329,7 +330,18 @@ func (c *Client) CreateUserRaw(body io.ReadCloser) (userData []byte, err error) 
 		return userData, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return userData, fmt.Errorf("create user request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+		errorData, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return userData, fmt.Errorf("create user request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+		}
+		e := &ErrorResponse{}
+		err = json.Unmarshal(errorData, &e)
+		if err != nil {
+			log.Errorf("failed to unmarshal error response %s", err)
+			return userData, fmt.Errorf("create user request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+
+		}
+		return userData, fmt.Errorf("%s", e.Message)
 	}
 
 	userData, err = io.ReadAll(resp.Body)
@@ -384,7 +396,11 @@ func (c *Client) UpdateUserRaw(uid string, body io.ReadCloser) (userData []byte,
 		return userData, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return userData, fmt.Errorf("update user request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+		errorData, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return userData, fmt.Errorf("update user request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+		}
+		return userData, fmt.Errorf("%s", string(errorData))
 	}
 
 	userData, err = io.ReadAll(resp.Body)
@@ -420,7 +436,11 @@ func (c *Client) DeleteUserRaw(uid string) (deleteJSON []byte, err error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return deleteJSON, fmt.Errorf("delete user request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+		errorData, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return deleteJSON, fmt.Errorf("delete user request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+		}
+		return deleteJSON, fmt.Errorf("%s", string(errorData))
 	}
 
 	deleteJSON, err = io.ReadAll(resp.Body)
@@ -475,7 +495,11 @@ func (c *Client) ChangePasswordRaw(uid string, body io.ReadCloser) (userJSON []b
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return userJSON, fmt.Errorf("get user request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+		errorData, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return userJSON, fmt.Errorf("get user request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+		}
+		return userJSON, fmt.Errorf("%s", string(errorData))
 	}
 
 	userJSON, err = io.ReadAll(resp.Body)
@@ -507,7 +531,11 @@ func (c *Client) Login(email, password string) (a *auth.Auth, err error) {
 		return a, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return a, fmt.Errorf("login request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+		errorData, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return a, fmt.Errorf("login request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+		}
+		return a, fmt.Errorf("%s", string(errorData))
 	}
 
 	data, err := io.ReadAll(resp.Body)
@@ -543,7 +571,11 @@ func (c *Client) Refresh(uid, refreshToken string) (a *auth.Auth, err error) {
 		return a, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return a, fmt.Errorf("refresh request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+		errorData, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return a, fmt.Errorf("refresh request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+		}
+		return a, fmt.Errorf("%s", string(errorData))
 	}
 
 	data, err := io.ReadAll(resp.Body)

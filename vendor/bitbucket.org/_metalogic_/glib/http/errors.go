@@ -7,7 +7,10 @@ import (
 	"time"
 )
 
+var Module = "unknown"
+
 type ErrorResponse struct {
+	Module    string `json:"module"`
 	Status    int    `json:"-"`
 	Message   string `json:"message"`
 	Timestamp int64  `json:"timestamp"`
@@ -33,6 +36,7 @@ func (r *ErrorResponse) Text() (j string) {
 // NewBadRequestError - HTTP Status 400
 func NewBadRequestError(message string) *ErrorResponse {
 	return &ErrorResponse{
+		Module,
 		http.StatusBadRequest,
 		message,
 		time.Now().UnixNano(),
@@ -42,6 +46,7 @@ func NewBadRequestError(message string) *ErrorResponse {
 // NewUnauthorizedError - HTTP Status 401
 func NewUnauthorizedError(message string) *ErrorResponse {
 	return &ErrorResponse{
+		Module,
 		http.StatusUnauthorized,
 		message,
 		time.Now().UnixNano(),
@@ -51,6 +56,7 @@ func NewUnauthorizedError(message string) *ErrorResponse {
 // NewForbiddenError - HTTP Status 403
 func NewForbiddenError(message string) *ErrorResponse {
 	return &ErrorResponse{
+		Module,
 		http.StatusForbidden,
 		message,
 		time.Now().UnixNano(),
@@ -60,6 +66,7 @@ func NewForbiddenError(message string) *ErrorResponse {
 // NewNotFoundError - HTTP Status 404
 func NewNotFoundError(message string) *ErrorResponse {
 	return &ErrorResponse{
+		Module,
 		http.StatusNotFound,
 		message,
 		time.Now().UnixNano(),
@@ -69,6 +76,7 @@ func NewNotFoundError(message string) *ErrorResponse {
 // NewServerError - HTTP Status 500
 func NewServerError(message string) *ErrorResponse {
 	return &ErrorResponse{
+		Module,
 		http.StatusInternalServerError,
 		message,
 		time.Now().UnixNano(),
@@ -78,6 +86,7 @@ func NewServerError(message string) *ErrorResponse {
 // NewServiceUnavailableError - HTTP Status 503
 func NewServiceUnavailableError(message string) *ErrorResponse {
 	return &ErrorResponse{
+		Module,
 		http.StatusServiceUnavailable,
 		message,
 		time.Now().UnixNano(),
@@ -87,6 +96,7 @@ func NewServiceUnavailableError(message string) *ErrorResponse {
 // NewDBError - HTTP Status 500
 func NewDBError(message string) *ErrorResponse {
 	return &ErrorResponse{
+		Module,
 		http.StatusInternalServerError,
 		message,
 		time.Now().UnixNano(),
