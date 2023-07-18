@@ -187,6 +187,15 @@ func StringParam(r *http.Request, name, dflt string) string {
 	return value
 }
 
+// StringsParam returns the []string value of query parameter with name if found, else dflt
+func StringsParam(r *http.Request, name string, dflt []string) []string {
+	value, ok := r.URL.Query()[name]
+	if !ok {
+		return dflt
+	}
+	return value
+}
+
 // OkJSON writes an HTTP status 200 OK response with body JSON
 func OkJSON(w http.ResponseWriter, json string) {
 	w.Header().Set("Content-Type", "application/json")

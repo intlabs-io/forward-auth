@@ -690,6 +690,22 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 			log.Debugf("calling bearer(%v)", tokens)
 			return auth.CheckBearerAuth(credentials.Token, tokens...), nil
 		},
+		"classification": func(args ...interface{}) (interface{}, error) {
+			log.Debug("calling classification()")
+			return auth.Classification(credentials.JWT), nil
+		},
+		// return the result of concatenating each argument;
+		// arguments may be string literals or calls to other built-ins
+		// eg: concat(param(':tenantID'), '-', param(':userID'))
+		"concat": func(args ...interface{}) (interface{}, error) {
+			var parts []string
+
+			for _, arg := range args {
+				parts = append(parts, arg.(string))
+			}
+
+			return strings.Join(parts, ""), nil
+		},
 		// return the binding of a path or query parameter
 		// eg: param(':tenantID'), param('summary')
 		"param": func(args ...interface{}) (interface{}, error) {
@@ -728,10 +744,6 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 		"root": func(args ...interface{}) (interface{}, error) {
 			log.Debug("calling Superuser()")
 			return auth.Superuser(credentials.JWT), nil
-		},
-		"classification": func(args ...interface{}) (interface{}, error) {
-			log.Debug("calling classification()")
-			return auth.Classification(credentials.JWT), nil
 		},
 		// return true if a request signed with tenant's private key is valid
 		// with respect to tenant's public key

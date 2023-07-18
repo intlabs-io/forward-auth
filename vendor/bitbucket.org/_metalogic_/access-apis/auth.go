@@ -65,11 +65,14 @@ type CreateUserRequest struct {
 	Status    string `json:"status"`
 	Comment   string `json:"comment"`
 	Profile   struct {
-		Firstname string `json:"firstName"`
-		Lastname  string `json:"lastName"`
-		Tel       string `json:"tel"`
+		Firstname     string `json:"firstName"`
+		Lastname      string `json:"lastName"`
+		PreferredName string `json:"preferredName"`
+		Birthdate     string `json:"birthdate"`
+		Gender        string `json:"gender"`
 	}
-	Role struct {
+	Contacts []Contact `json:"contacts"`
+	Role     struct {
 		Name    string `json:"name"`
 		Context string `json:"context"`
 	} `json:"role"`
@@ -80,6 +83,15 @@ type UpdateUserRequest struct {
 	Superuser *bool  `json:"superuser"`
 	Status    string `json:"status"`
 	Comment   string `json:"comment"`
+	Profile   struct {
+		Firstname string `json:"firstName"`
+		Lastname  string `json:"lastName"`
+		Tel       string `json:"tel"`
+	}
+	Role struct {
+		Name    string `json:"name"`
+		Context string `json:"context"`
+	} `json:"role"`
 }
 
 /******************************
