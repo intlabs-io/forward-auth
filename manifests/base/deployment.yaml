@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: forward-auth
-          image: metalogic/forward-auth:latest
+          image: metalogic/forward-auth
           imagePullPolicy: "IfNotPresent"
           ports:
             - containerPort: 8080
@@ -163,4 +163,4 @@ spec:
       volumes:
         - name: config-volume
           configMap:
-            name: forward-auth-config
+            name: forward-auth-access-config
