@@ -68,6 +68,14 @@ func Auth(auth *fauth.Auth, userHeader, traceHeader string) func(w http.Response
 		method := r.Header.Get("X-Forwarded-Method")
 		path := r.Header.Get("X-Forwarded-Uri")
 
+		// allow all OPTIONS requests regardless of path;
+		// we need this to avoid going mad allowing CORS preflight checks
+		if method == http.MethodOptions {
+			log.Debug("allowing OPTIONS request")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
 		// check for host overrides
 		if auth.Override(host) == "allow" {
 			if testing {
