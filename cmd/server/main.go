@@ -43,6 +43,7 @@ func init() {
 	info = build.Info
 
 	http.Module = info.Project
+
 	version := info.String()
 	command := info.Name()
 
