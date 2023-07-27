@@ -128,6 +128,24 @@ func (svc *AuthzServer) Shutdown(ctx context.Context) {
 	log.Warning("shutdown Authz server")
 }
 
+// TODO get headers from environment
+func optionsHandler(w http.ResponseWriter, r *http.Request, params map[string]string) {
+	// Implement your logic here to handle OPTIONS requests
+	// For example, you can set CORS headers or handle preflight requests
+
+	// Set CORS headers to allow requests from any origin (you may modify this based on your requirements)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Cookie")
+
+	// Respond to the preflight request with a 204 No Content status
+	// TODO no need to check - we must be handling an OPTIONS request
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+}
+
 // create the router for Service
 func router(auth *fauth.Auth, store fauth.Store, userHeader, traceHeader string) *httptreemux.TreeMux {
 	// initialize HTTP router;
@@ -149,9 +167,10 @@ func router(auth *fauth.Auth, store fauth.Store, userHeader, traceHeader string)
 
 	treemux := httptreemux.New()
 
-	treemux.UseHandler(corsFunc)
+	treemux.OptionsHandler = optionsHandler
 
 	api := treemux.NewGroup("/")
+	api.UseHandler(corsFunc)
 
 	// Common endpoints
 	api.GET("/health", Health(store))
