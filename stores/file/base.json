@@ -81,10 +81,6 @@
                   "POST": {
                     "description": "execute a tenant login through access-apis",
                     "expression": "true"
-                  },
-                  "OPTIONS": {
-                    "description": "allow OPTIONS",
-                    "expression": "true"
                   }
                 }
               },
@@ -93,10 +89,6 @@
                 "rules": {
                   "PUT": {
                     "description": "logout the session found in the session",
-                    "expression": "true"
-                  },
-                  "OPTIONS": {
-                    "description": "allow OPTIONS",
                     "expression": "true"
                   }
                 }
@@ -107,10 +99,6 @@
                   "PUT": {
                     "description": "refresh the JWT for the session found in the session cookie",
                     "expression": "true"
-                  },
-                  "OPTIONS": {
-                    "description": "allow OPTIONS",
-                    "expression": "true"
                   }
                 }
               },
@@ -119,10 +107,6 @@
                 "rules": {
                   "GET": {
                     "description": "get active sessions",
-                    "expression": "true"
-                  },
-                  "OPTIONS": {
-                    "description": "allow OPTIONS",
                     "expression": "true"
                   }
                 }
@@ -133,10 +117,6 @@
                   "GET": {
                     "description": "get session for sid",
                     "expression": "true"
-                  },
-                  "OPTIONS": {
-                    "description": "allow OPTIONS",
-                    "expression": "true"
                   }
                 }
               },
@@ -145,10 +125,6 @@
                 "rules": {
                   "PUT": {
                     "description": "get tenant blocked users through access-apis",
-                    "expression": "true"
-                  },
-                  "OPTIONS": {
-                    "description": "allow OPTIONS",
                     "expression": "true"
                   }
                 }
@@ -159,10 +135,6 @@
                   "PUT": {
                     "description": "execute a tenant block user through access-apis",
                     "expression": "true"
-                  },
-                  "OPTIONS": {
-                    "description": "allow OPTIONS",
-                    "expression": "true"
                   }
                 }
               },
@@ -171,10 +143,6 @@
                 "rules": {
                   "DELETE": {
                     "description": "remove a tenant block user through access-apis",
-                    "expression": "true"
-                  },
-                  "OPTIONS": {
-                    "description": "allow OPTIONS",
                     "expression": "true"
                   }
                 }
