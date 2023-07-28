@@ -53,7 +53,7 @@
                 "rules": {
                   "GET": {
                     "description": "get Swagger API documentation",
-                    "expression": "true"
+                    "expression": "bearer('ROOT_KEY')"
                   }
                 }
               },
@@ -88,7 +88,7 @@
                 "path": "/logout",
                 "rules": {
                   "PUT": {
-                    "description": "logout the session found in the session",
+                    "description": "logout session",
                     "expression": "true"
                   }
                 }
@@ -98,7 +98,70 @@
                 "rules": {
                   "PUT": {
                     "description": "refresh the JWT for the session found in the session cookie",
-                    "expression": "true"
+                    "expression": "bearer('ROOT_KEY')"
+                  }
+                }
+              },
+              {
+                "path": "/users",
+                "rules": {
+                  "GET": {
+                    "mustAuth": true,
+                    "description": "get users requires root",
+                    "expression": "bearer({{.ClientAppKeys}}) && root()"
+                  },
+                  "POST": {
+                    "mustAuth": true,
+                    "description": "create user requires root",
+                    "expression": "bearer({{.ClientAppKeys}}) && root()"
+                  }
+                }
+              },
+              {
+                "path": "/users/:id",
+                "rules": {
+                  "GET": {
+                    "mustAuth": true,
+                    "description": "get user requires root",
+                    "expression": "bearer({{.ClientAppKeys}}) && root()"
+                  },
+                  "PUT": {
+                    "mustAuth": true,
+                    "description": "update user requires root",
+                    "expression": "bearer({{.ClientAppKeys}}) && root()"
+                  },
+                  "DELETE": {
+                    "mustAuth": true,
+                    "description": "delete user requires root",
+                    "expression": "bearer({{.ClientAppKeys}}) && root()"
+                  }
+                }
+              },
+              {
+                "path": "/users/:id/password",
+                "rules": {
+                  "POST": {
+                    "mustAuth": true,
+                    "description": "change password requires root or authenticated matching user",
+                    "expression": "bearer({{.ClientAppKeys}}) && (root() || user(param(':id')))"
+                  }
+                }
+              },
+              {
+                "path": "/users/:id/set-password/:token",
+                "rules": {
+                  "PUT": {
+                    "description": "reset password requires valid reset token",
+                    "expression": "bearer({{.ClientAppKeys}} && usertoken(param(':id'),param(':token'))"
+                  }
+                }
+              },
+              {
+                "path": "/recover-account",
+                "rules": {
+                  "POST": {
+                    "description": "recover user account requires client app",
+                    "expression": "bearer({{.ClientAppKeys}})"
                   }
                 }
               },
@@ -107,7 +170,7 @@
                 "rules": {
                   "GET": {
                     "description": "get active sessions",
-                    "expression": "true"
+                    "expression": "bearer('ROOT_KEY')"
                   }
                 }
               },
@@ -116,7 +179,7 @@
                 "rules": {
                   "GET": {
                     "description": "get session for sid",
-                    "expression": "true"
+                    "expression": "bearer('ROOT_KEY')"
                   }
                 }
               },
@@ -125,7 +188,7 @@
                 "rules": {
                   "PUT": {
                     "description": "get tenant blocked users through access-apis",
-                    "expression": "true"
+                    "expression": "bearer('ROOT_KEY')"
                   }
                 }
               },
@@ -134,7 +197,7 @@
                 "rules": {
                   "PUT": {
                     "description": "execute a tenant block user through access-apis",
-                    "expression": "true"
+                    "expression": "bearer('ROOT_KEY')"
                   }
                 }
               },
@@ -143,7 +206,7 @@
                 "rules": {
                   "DELETE": {
                     "description": "remove a tenant block user through access-apis",
-                    "expression": "true"
+                    "expression": "bearer('ROOT_KEY')"
                   }
                 }
               }

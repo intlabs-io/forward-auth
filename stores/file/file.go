@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	_ "embed"
 
@@ -84,14 +85,18 @@ func (store *FileStore) Load() (acs *fauth.AccessSystem, err error) {
 // load acs from store
 func load(store *FileStore) (acs *fauth.AccessSystem, err error) {
 
-	// execute base template
+	// execute base template;
+	// we use template.HTML rather than string to avoid Go template escaping single quotes
 	type ForwardAuth struct {
-		Host string
+		Host          template.HTML
+		ClientAppKeys template.HTML
 	}
 
 	host := config.MustGetConfig("FORWARD_AUTH_HOST")
+	clientAppKeys := config.MustGetConfig("CLIENT_APP_KEYS") // eg "ACME_ADMIN_APP_KEY,ACME_FINANCE_APP_KEY"
 	fa := &ForwardAuth{
-		Host: host,
+		Host:          template.HTML(host),
+		ClientAppKeys: template.HTML(quoteCSV(clientAppKeys)),
 	}
 
 	// Create a new template from base
@@ -118,7 +123,12 @@ func load(store *FileStore) (acs *fauth.AccessSystem, err error) {
 		return acs, err
 	}
 
-	log.Debugf("loaded base ACS: %+v", acs)
+	o, err := json.Marshal((acs))
+	if err != nil {
+		log.Fatal("base marshaled to invalid ACS")
+	}
+
+	log.Debugf("loaded base ACS: %s", o)
 
 	// publicKeys maps tenantIDs to their publicKeys; forward-auth uses the tenant public key
 	// to verify request signatures signed with the corresponding private key of the tenant
@@ -301,4 +311,19 @@ func exists(name string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+func quoteCSV(input string) (output string) {
+	// Split the input string by commas
+	elements := strings.Split(input, ",")
+
+	// Trim leading and trailing spaces from each element
+	for i, element := range elements {
+		elements[i] = strings.TrimSpace(element)
+	}
+
+	// Build the output string with single quotes around each element
+	output = "'" + strings.Join(elements, "','") + "'"
+
+	return output
 }
