@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"bitbucket.org/_metalogic_/access-apis/client"
 	"bitbucket.org/_metalogic_/build"
 	"bitbucket.org/_metalogic_/config"
 	fauth "bitbucket.org/_metalogic_/forward-auth"
@@ -29,6 +30,8 @@ var (
 	levelFlg   log.Level
 	portFlg    string
 	storageFlg string
+
+	accessClient *client.Client
 )
 
 func init() {
@@ -63,10 +66,18 @@ func init() {
 		docs.SwaggerInfo.Description = fmt.Sprintf("%s%s", version, docs.SwaggerInfo.Description)
 	}
 
+	accessURL := config.IfGetenv("ACCESS_APIS_ROOT_URL", "https://apis.metalogicsoftware.ca")
+	accessClient, err = client.New(accessURL, config.MustGetenv("ACCESS_APIS_TENANT_ID"), config.MustGetenv("ACCESS_APIS_TENANT_KEY"), config.IfGetBool("INSECURE_SKIP_VERIFY", true))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 }
 
 func main() {
 	flag.Parse()
+
+	server.SetMaxUploadSize(int64(config.IfGetInt("MAX_UPLOAD_BYTES", 15000000)))
 
 	runMode := config.IfGetenv("RUN_MODE", "")
 
@@ -120,7 +131,7 @@ func main() {
 	exitDone := &sync.WaitGroup{}
 	exitDone.Add(2)
 
-	authzSrv := server.Start(portFlg, runMode, tenantParam, jwtHeader, userHeader, traceHeader, store, exitDone)
+	authzSrv := server.Start(portFlg, runMode, tenantParam, jwtHeader, userHeader, traceHeader, accessClient, store, exitDone)
 
 	log.Infof("forward-auth started with %s storage adapter", store.ID())
 
