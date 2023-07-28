@@ -54,6 +54,11 @@ spec:
                 name: forward-auth-config
                 key: ACCESS_APIS_TENANT_ID
                 optional: true
+          - name: CLIENT_APP_KEYS
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: CLIENT_APP_KEYS
           - name: IDENTITY_PROVIDER_PUBLIC_KEY_URL
             valueFrom:
               configMapKeyRef:
@@ -145,11 +150,11 @@ spec:
                 name: forward-auth-secrets
                 key: FORWARD_AUTH_CONSOLE_APP_KEY
                 optional: true
-          - name: ACCESS_APIS_TENANT_API_KEY
+          - name: ACCESS_APIS_TENANT_KEY
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
-                key: ACCESS_APIS_TENANT_API_KEY
+                key: ACCESS_APIS_TENANT_KEY
                 optional: true
           - name: JWT_SECRET_KEY
             valueFrom:
