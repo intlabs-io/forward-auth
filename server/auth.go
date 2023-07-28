@@ -76,6 +76,13 @@ func Auth(auth *fauth.Auth, userHeader, traceHeader string) func(w http.Response
 			return
 		}
 
+		// TODO this should be a configurable option
+		if rootAuth(r, auth) {
+			log.Debug("allowing request with root token")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
 		// check for host overrides
 		if auth.Override(host) == "allow" {
 			if testing {
@@ -172,4 +179,20 @@ func Update(auth *fauth.Auth, store fauth.Store) func(w http.ResponseWriter, r *
 		}
 		MsgJSON(w, "access system update succeeded")
 	}
+}
+
+func rootAuth(r *http.Request, auth *fauth.Auth) bool {
+	authHeader := r.Header.Get("Authorization")
+
+	var token string
+	if authHeader != "" {
+		// Get the Bearer auth token
+		splitToken := strings.Split(authHeader, "Bearer ")
+		if len(splitToken) == 2 {
+			token = splitToken[1]
+		}
+	}
+
+	// allow all requests with ROOT_KEY
+	return auth.CheckBearerAuth(token, []string{"ROOT_KEY"}...)
 }
