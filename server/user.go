@@ -345,16 +345,16 @@ func invalidateSessionID(w http.ResponseWriter, r *http.Request, sessionMode, se
 
 }
 
-// @Users TVET base-scoped endpoints
+// @Users User endpoints
 // @Summary get User User UUID
 // @Description get User UUID
 // @Produce json
 // @Param uuid path string false "UUID of the tag"
-// @Success 200 {object} tvet.UserResponse
+// @Success 200 {object} fauth.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /tags/{uuid} [get]
+// @Router /users/{uuid} [get]
 func User(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
@@ -369,12 +369,12 @@ func User(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r 
 	}
 }
 
-// @Users TVET base-scoped
-// @Summary get tags
-// @Description get tags
+// @Users User endpoints
+// @Summary get users
+// @Description get users
 // @Produce json
 // @Param regex query string false "regex to match against tag names; uses * if none provided"
-// @Success 200 {array} tvet.UserResponse
+// @Success 200 {array} fauth.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -392,12 +392,12 @@ func Users(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r
 	}
 }
 
-// @Users TVET base-scoped endpoints
+// @Users User endpoints
 // @Summary create User
 // @Description create User
 // @Produce json
-// @Param body body tvet.User true "tag JSON object"
-// @Success 200 {object} tvet.UserResponse
+// @Param body body fauth.User true "tag JSON object"
+// @Success 200 {object} fauth.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -422,12 +422,12 @@ func CreateUser(svc *fauth.Auth, client *client.Client) func(w http.ResponseWrit
 	}
 }
 
-// @Users TVET base-scoped endpoints
+// @Users User endpoints
 // @Summary update Users
 // @Description update Users
 // @Produce json
 // @Param uuid path string true "UUID of the tag"
-// @Success 200 {object} tvet.UserResponse
+// @Success 200 {object} fauth.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -449,12 +449,12 @@ func UpdateUser(svc *fauth.Auth, client *client.Client) func(w http.ResponseWrit
 	}
 }
 
-// @Users TVET base-scoped endpoints
+// @Users User endpoints
 // @Summary delete User
 // @Description delete User
 // @Produce json
 // @Param uuid path string true "UUID of the tag"
-// @Success 200 {object} tvet.UserResponse
+// @Success 200 {object} fauth.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -474,12 +474,12 @@ func DeleteUser(svc *fauth.Auth, client *client.Client) func(w http.ResponseWrit
 	}
 }
 
-// @Users TVET base-scoped endpoints
+// @Users User endpoints
 // @Summary change password
 // @Description change password
 // @Produce json
 // @Param uid path string true "UID of the user"
-// @Success 200 {object} tvet.UserResponse
+// @Success 200 {object} fauth.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -499,12 +499,12 @@ func ChangePassword(svc *fauth.Auth, client *client.Client) func(w http.Response
 	}
 }
 
-// @Users TVET base-scoped endpoints
+// @Users User endpoints
 // @Summary set password
 // @Description set password
 // @Produce json
 // @Param uid path string true "UID of the user"
-// @Success 200 {object} tvet.UserResponse
+// @Success 200 {object} fauth.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -525,16 +525,16 @@ func SetPassword(svc *fauth.Auth, client *client.Client) func(w http.ResponseWri
 	}
 }
 
-// @Users TVET base-scoped endpoints
+// @Users User endpoints
 // @Summary recover user account
 // @Description recover user account
 // @Produce json
 // @Param uid path string true "UID of the user"
-// @Success 200 {object} tvet.UserResponse
+// @Success 200 {object} fauth.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /users/{uid}/recover [put]
+// @Router /recover-account [put]
 func RecoverAccount(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
