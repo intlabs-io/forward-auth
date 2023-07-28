@@ -37,7 +37,7 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 
 		login := &Login{}
 
-		// unmarshal JSON into &login
+		// unmarshal JSON into &Login
 		err := decoder.Decode(login)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
@@ -343,4 +343,209 @@ func invalidateSessionID(w http.ResponseWriter, r *http.Request, sessionMode, se
 		return id, fmt.Errorf("invalid session mode %s", sessionMode)
 	}
 
+}
+
+// @Users TVET base-scoped endpoints
+// @Summary get User User UUID
+// @Description get User UUID
+// @Produce json
+// @Param uuid path string false "UUID of the tag"
+// @Success 200 {object} tvet.UserResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /tags/{uuid} [get]
+func User(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+
+		uid := params["uid"]
+		userResponse, err := client.GetUserRaw(uid)
+		if err != nil {
+			ErrJSON(w, err)
+			return
+		}
+
+		OkJSON(w, string(userResponse))
+	}
+}
+
+// @Users TVET base-scoped
+// @Summary get tags
+// @Description get tags
+// @Produce json
+// @Param regex query string false "regex to match against tag names; uses * if none provided"
+// @Success 200 {array} tvet.UserResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /users [get]
+func Users(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+
+		usersResponse, err := client.GetUsersRaw()
+		if err != nil {
+			ErrJSON(w, err)
+			return
+		}
+
+		OkJSON(w, string(usersResponse))
+	}
+}
+
+// @Users TVET base-scoped endpoints
+// @Summary create User
+// @Description create User
+// @Produce json
+// @Param body body tvet.User true "tag JSON object"
+// @Success 200 {object} tvet.UserResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /users [post]
+func CreateUser(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+
+		maxsize := getMaxUploadSize()
+
+		// Limit maximum body size of POST
+		r.Body = http.MaxBytesReader(w, r.Body, maxsize)
+
+		log.Debugf("Body: %v", r.Body)
+
+		userResponse, err := client.CreateUserRaw(r.Body)
+		if err != nil {
+			ErrJSON(w, err)
+			return
+		}
+
+		OkJSON(w, string(userResponse))
+	}
+}
+
+// @Users TVET base-scoped endpoints
+// @Summary update Users
+// @Description update Users
+// @Produce json
+// @Param uuid path string true "UUID of the tag"
+// @Success 200 {object} tvet.UserResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /users/{uuid} [put]
+func UpdateUser(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+
+		uid := params["uid"]
+
+		log.Debugf("Body: %v", r.Body)
+
+		userJSON, err := client.UpdateUserRaw(uid, r.Body)
+		if err != nil {
+			ErrJSON(w, err)
+			return
+		}
+
+		OkJSON(w, string(userJSON))
+	}
+}
+
+// @Users TVET base-scoped endpoints
+// @Summary delete User
+// @Description delete User
+// @Produce json
+// @Param uuid path string true "UUID of the tag"
+// @Success 200 {object} tvet.UserResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /users/{uuid} [delete]
+func DeleteUser(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+
+		uid := params["uid"]
+
+		deleteJSON, err := client.DeleteUserRaw(uid)
+		if err != nil {
+			ErrJSON(w, err)
+			return
+		}
+
+		OkJSON(w, string(deleteJSON))
+	}
+}
+
+// @Users TVET base-scoped endpoints
+// @Summary change password
+// @Description change password
+// @Produce json
+// @Param uid path string true "UID of the user"
+// @Success 200 {object} tvet.UserResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /users/{uid}/password [put]
+func ChangePassword(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+
+		uid := params["uid"]
+
+		passwordJSON, err := client.ChangePasswordRaw(uid, r.Body)
+		if err != nil {
+			ErrJSON(w, err)
+			return
+		}
+
+		OkJSON(w, string(passwordJSON))
+	}
+}
+
+// @Users TVET base-scoped endpoints
+// @Summary set password
+// @Description set password
+// @Produce json
+// @Param uid path string true "UID of the user"
+// @Success 200 {object} tvet.UserResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /users/{uid}/password [put]
+func SetPassword(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+
+		uid := params["uid"]
+		// token := params["token"]
+
+		passwordJSON, err := client.SetPasswordRaw(uid, r.Body)
+		if err != nil {
+			ErrJSON(w, err)
+			return
+		}
+
+		OkJSON(w, string(passwordJSON))
+	}
+}
+
+// @Users TVET base-scoped endpoints
+// @Summary recover user account
+// @Description recover user account
+// @Produce json
+// @Param uid path string true "UID of the user"
+// @Success 200 {object} tvet.UserResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /users/{uid}/recover [put]
+func RecoverAccount(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+
+		var message []byte
+
+		// message, err := client.RecoverAccountRaw(r.Body)
+		// if err != nil {
+		// 	ErrJSON(w, err)
+		// 	return
+		// }
+
+		MsgJSON(w, string(message))
+	}
 }
