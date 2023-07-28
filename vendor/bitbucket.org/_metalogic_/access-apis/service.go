@@ -80,7 +80,7 @@ type Service interface {
 	UpdateInvitation(sessionID, tid, token, email, status string) (updateInvitationJSON string, err error)
 	UpdateRole(sessionID, tid, rid, name, description string) (roleJSON string, err error)
 	UpdateUser(sessionID, tid, uid, password string, superuser *bool, status, comment, roleName, context string) (userJSON string, err error)
-	User(tid, idtype, identifier string) (userJSON string, err error)
+	User(tid, uid string) (userJSON string, err error)
 	UserUID(tid, email string) (uid string, err error)
 	Users(tid, email, name, status string, offset, limit int) (usersJSON string, err error)
 	UserRoles(tid, uid string) (institutionUserRolesJSON string, err error)

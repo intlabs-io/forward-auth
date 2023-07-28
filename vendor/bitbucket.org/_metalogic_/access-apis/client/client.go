@@ -71,6 +71,11 @@ func (c *Client) passwordURI(uid string) string {
 	return u.String()
 }
 
+func (c *Client) recoverURI() string {
+	u := c.baseURL.JoinPath("/recover-account")
+	return u.String()
+}
+
 func (c *Client) userRequest(uid string) (req *http.Request, err error) {
 
 	req, err = http.NewRequest("GET", c.userURI(uid), nil)
@@ -139,6 +144,32 @@ func (c *Client) deleteUserRequest(uid string) (req *http.Request, err error) {
 func (c *Client) changePasswordRequest(uid string, data []byte) (req *http.Request, err error) {
 
 	req, err = http.NewRequest("POST", c.passwordURI(uid), bytes.NewBuffer(data))
+	if err != nil {
+		return req, err
+	}
+
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	req.Header.Add("Authorization", "Bearer "+c.apiKey)
+
+	return req, err
+}
+
+func (c *Client) setPasswordRequest(uid string, data []byte) (req *http.Request, err error) {
+
+	req, err = http.NewRequest("PUT", c.passwordURI(uid), bytes.NewBuffer(data))
+	if err != nil {
+		return req, err
+	}
+
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	req.Header.Add("Authorization", "Bearer "+c.apiKey)
+
+	return req, err
+}
+
+func (c *Client) recoverAccountRequest(data []byte) (req *http.Request, err error) {
+
+	req, err = http.NewRequest("POST", c.recoverURI(), bytes.NewBuffer(data))
 	if err != nil {
 		return req, err
 	}
@@ -497,7 +528,123 @@ func (c *Client) ChangePasswordRaw(uid string, body io.ReadCloser) (userJSON []b
 	if resp.StatusCode != http.StatusOK {
 		errorData, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return userJSON, fmt.Errorf("get user request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+			return userJSON, fmt.Errorf("change request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+		}
+		return userJSON, fmt.Errorf("%s", string(errorData))
+	}
+
+	userJSON, err = io.ReadAll(resp.Body)
+	if err != nil {
+		return userJSON, err
+	}
+
+	return userJSON, nil
+}
+
+func (c *Client) SetPassword(uid, new string) (u *auth.User, err error) {
+
+	var userData = []byte(fmt.Sprintf(`{
+		"password": "%s",
+	}`, new))
+
+	// Convert the byte array to an io.ReadCloser
+	reader := io.NopCloser(bytes.NewReader(userData))
+
+	data, err := c.SetPasswordRaw(uid, reader)
+	if err != nil {
+		return u, err
+	}
+
+	u = &auth.User{}
+	err = json.Unmarshal(data, u)
+	if err != nil {
+		return u, err
+	}
+
+	return u, nil
+}
+
+func (c *Client) SetPasswordRaw(uid string, body io.ReadCloser) (userJSON []byte, err error) {
+
+	log.Debugf("executing tenant set user password %s", uid)
+
+	data, err := io.ReadAll(body)
+	if err != nil {
+		return userJSON, err
+	}
+
+	req, err := c.setPasswordRequest(uid, data)
+	if err != nil {
+		return userJSON, err
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return userJSON, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		errorData, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return userJSON, fmt.Errorf("set password request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+		}
+		return userJSON, fmt.Errorf("%s", string(errorData))
+	}
+
+	userJSON, err = io.ReadAll(resp.Body)
+	if err != nil {
+		return userJSON, err
+	}
+
+	return userJSON, nil
+}
+
+func (c *Client) RecoverAccount(email string) (u *auth.User, err error) {
+
+	var userData = []byte(fmt.Sprintf(`{
+		"email": "%s"
+	}`, email))
+
+	// Convert the byte array to an io.ReadCloser
+	reader := io.NopCloser(bytes.NewReader(userData))
+
+	data, err := c.RecoverAccountRaw(reader)
+	if err != nil {
+		return u, err
+	}
+
+	u = &auth.User{}
+	err = json.Unmarshal(data, u)
+	if err != nil {
+		return u, err
+	}
+
+	return u, nil
+}
+
+func (c *Client) RecoverAccountRaw(body io.ReadCloser) (userJSON []byte, err error) {
+
+	log.Debugf("executing tenant recover user account %s")
+
+	data, err := io.ReadAll(body)
+	if err != nil {
+		return userJSON, err
+	}
+
+	req, err := c.recoverAccountRequest(data)
+	if err != nil {
+		return userJSON, err
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return userJSON, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		errorData, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return userJSON, fmt.Errorf("recover user account request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
 		}
 		return userJSON, fmt.Errorf("%s", string(errorData))
 	}
