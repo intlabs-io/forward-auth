@@ -148,20 +148,29 @@
                 }
               },
               {
-                "path": "/users/:id/set-password/:token",
+                "path": "/users/:id/set-password",
                 "rules": {
                   "PUT": {
-                    "description": "reset password requires valid reset token",
-                    "expression": "bearer({{.ClientAppKeys}} && usertoken(param(':id'),param(':token'))"
+                    "description": "set password requires valid root user",
+                    "expression": "bearer({{.ClientAppKeys}}) && root()"
                   }
                 }
               },
               {
-                "path": "/recover-account",
+                "path": "/password-reset",
                 "rules": {
                   "POST": {
-                    "description": "recover user account requires client app",
+                    "description": "initiate password reset requires client app",
                     "expression": "bearer({{.ClientAppKeys}})"
+                  }
+                }
+              },
+              {
+                "path": "/password-reset/:token",
+                "rules": {
+                  "POST": {
+                    "description": "execute password reset requires client app and reset token",
+                    "expression": "bearer({{.ClientAppKeys}}) && reset(param(':token'))"
                   }
                 }
               },
