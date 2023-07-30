@@ -599,7 +599,7 @@ func (c *Client) SetPasswordRaw(uid string, body io.ReadCloser) (userJSON []byte
 	return userJSON, nil
 }
 
-func (c *Client) RecoverAccount(email string) (u *auth.User, err error) {
+func (c *Client) StartResetPassword(email string) (u *auth.User, err error) {
 
 	var userData = []byte(fmt.Sprintf(`{
 		"email": "%s"
@@ -608,7 +608,7 @@ func (c *Client) RecoverAccount(email string) (u *auth.User, err error) {
 	// Convert the byte array to an io.ReadCloser
 	reader := io.NopCloser(bytes.NewReader(userData))
 
-	data, err := c.RecoverAccountRaw(reader)
+	data, err := c.ResetPasswordRaw(reader)
 	if err != nil {
 		return u, err
 	}
@@ -622,9 +622,9 @@ func (c *Client) RecoverAccount(email string) (u *auth.User, err error) {
 	return u, nil
 }
 
-func (c *Client) RecoverAccountRaw(body io.ReadCloser) (userJSON []byte, err error) {
+func (c *Client) StartResetPasswordRaw(body io.ReadCloser) (userJSON []byte, err error) {
 
-	log.Debugf("executing tenant recover user account %s")
+	log.Debugf("initiating tenant password reset workflow")
 
 	data, err := io.ReadAll(body)
 	if err != nil {
@@ -644,7 +644,65 @@ func (c *Client) RecoverAccountRaw(body io.ReadCloser) (userJSON []byte, err err
 	if resp.StatusCode != http.StatusOK {
 		errorData, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return userJSON, fmt.Errorf("recover user account request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+			return userJSON, fmt.Errorf("start reset password request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
+		}
+		return userJSON, fmt.Errorf("%s", string(errorData))
+	}
+
+	userJSON, err = io.ReadAll(resp.Body)
+	if err != nil {
+		return userJSON, err
+	}
+
+	return userJSON, nil
+}
+
+func (c *Client) ResetPassword(token string) (u *auth.User, err error) {
+
+	var userData = []byte(fmt.Sprintf(`{
+		"token": "%s"
+	}`, token))
+
+	// Convert the byte array to an io.ReadCloser
+	reader := io.NopCloser(bytes.NewReader(userData))
+
+	data, err := c.ResetPasswordRaw(reader)
+	if err != nil {
+		return u, err
+	}
+
+	u = &auth.User{}
+	err = json.Unmarshal(data, u)
+	if err != nil {
+		return u, err
+	}
+
+	return u, nil
+}
+
+func (c *Client) ResetPasswordRaw(body io.ReadCloser) (userJSON []byte, err error) {
+
+	log.Debugf("initiating tenant password reset workflow")
+
+	data, err := io.ReadAll(body)
+	if err != nil {
+		return userJSON, err
+	}
+
+	req, err := c.recoverAccountRequest(data)
+	if err != nil {
+		return userJSON, err
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return userJSON, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		errorData, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return userJSON, fmt.Errorf("reset password request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
 		}
 		return userJSON, fmt.Errorf("%s", string(errorData))
 	}
