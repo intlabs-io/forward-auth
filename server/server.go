@@ -214,8 +214,9 @@ func router(auth *fauth.Auth, client *client.Client, store fauth.Store, userHead
 	api.DELETE("/users/:uid", DeleteUser(auth, client))
 
 	api.POST("/users/:uid/password", ChangePassword(auth, client))
-	api.PUT("/users/:uid/set-password/:token", SetPassword(auth, client))
-	api.PUT("/recover-account", RecoverAccount(auth, client))
+	api.PUT("/users/:uid/set-password", SetPassword(auth, client))
+	api.POST("/password-reset", StartPasswordReset(auth, client))
+	api.POST("/password-reset/:token", PasswordReset(auth, client))
 
 	// ACS endpoints - the file storage adapter does not implement these endpoints
 	api.GET("/hostgroups", HostGroups(store))
