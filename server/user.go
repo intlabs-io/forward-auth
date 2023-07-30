@@ -535,16 +535,43 @@ func SetPassword(svc *fauth.Auth, client *client.Client) func(w http.ResponseWri
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /recover-account [put]
-func RecoverAccount(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func StartPasswordReset(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 		var message []byte
 
-		// message, err := client.RecoverAccountRaw(r.Body)
-		// if err != nil {
-		// 	ErrJSON(w, err)
-		// 	return
-		// }
+		message, err := client.StartResetPasswordRaw(r.Body)
+		if err != nil {
+			ErrJSON(w, err)
+			return
+		}
+
+		MsgJSON(w, string(message))
+	}
+}
+
+// @Users User endpoints
+// @Summary recover user account
+// @Description recover user account
+// @Produce json
+// @Param uid path string true "UID of the user"
+// @Success 200 {object} fauth.UserResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /recover-account [put]
+func PasswordReset(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+
+		// token := params["token"]
+
+		var message []byte
+
+		message, err := client.ResetPasswordRaw(r.Body)
+		if err != nil {
+			ErrJSON(w, err)
+			return
+		}
 
 		MsgJSON(w, string(message))
 	}
