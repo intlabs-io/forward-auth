@@ -204,14 +204,14 @@ type ClaimsResponse struct {
 
 // ResetClaims type
 type ResetClaims struct {
+	TID string `json:"tid"`
 	UID string `json:"uid"`
 	jwt.RegisteredClaims
 }
 
 // initiates user account recovery
-type SendResetPasswordRequest struct {
-	Email     string `json:"email"`
-	ReturnUrl string `json:"returnUrl"`
+type PasswordResetRequest struct {
+	Email string `json:"email"`
 }
 
 // executed by authenticated user as normal change password
@@ -223,8 +223,6 @@ type ChangePasswordRequest struct {
 
 // executed by a user at completion of user account recovery
 type SetPasswordRequest struct {
-	Token    string `json:"token"`
-	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 

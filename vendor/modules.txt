@@ -17,6 +17,9 @@ bitbucket.org/_metalogic_/config
 # bitbucket.org/_metalogic_/eval v1.0.1
 ## explicit; go 1.15
 bitbucket.org/_metalogic_/eval
+# bitbucket.org/_metalogic_/genstr v0.0.0-20230315132016-c6aea6ceb255
+## explicit; go 1.20
+bitbucket.org/_metalogic_/genstr
 # bitbucket.org/_metalogic_/glib v1.4.0
 ## explicit; go 1.20
 bitbucket.org/_metalogic_/glib/http
@@ -105,6 +108,13 @@ github.com/mailru/easyjson/jwriter
 # github.com/pborman/uuid v1.2.0
 ## explicit
 github.com/pborman/uuid
+# github.com/sendgrid/rest v2.6.9+incompatible
+## explicit
+github.com/sendgrid/rest
+# github.com/sendgrid/sendgrid-go v3.12.0+incompatible
+## explicit
+github.com/sendgrid/sendgrid-go
+github.com/sendgrid/sendgrid-go/helpers/mail
 # github.com/swaggo/files v0.0.0-20210815190702-a29dd2bc99b2
 ## explicit; go 1.15
 github.com/swaggo/files
