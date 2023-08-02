@@ -17,6 +17,7 @@ import (
 
 	"bitbucket.org/_metalogic_/config"
 	"bitbucket.org/_metalogic_/eval"
+	"bitbucket.org/_metalogic_/genstr"
 	"bitbucket.org/_metalogic_/httpsig"
 	"bitbucket.org/_metalogic_/ident"
 	"bitbucket.org/_metalogic_/log"
@@ -72,10 +73,15 @@ type Auth struct {
 }
 
 type session struct {
+	auth         *acc.Auth
 	uid          string // the uid of the session user
 	jwtToken     string
 	refreshToken string
-	expiry       int64 // the expiry in Unix seconds of the JWT
+	expiry       int64 // the expiry time in Unix seconds of the JWT
+}
+
+func (s session) Auth() *acc.Auth {
+	return s.auth
 }
 
 func (s session) UID() string {
@@ -131,9 +137,14 @@ func NewAuth(acs *AccessSystem, sessionMode, sessionName, jwtHeader string, publ
 	return auth, nil
 }
 
-func (auth *Auth) CreateSession(a *acc.Auth) (id string, expiresAt time.Time) {
-	id = uuid.New().String()
+func (auth *Auth) CreateSession(a *acc.Auth, reset bool) (id string, expiresAt time.Time) {
+	if reset {
+		id = genstr.Number(6)
+	} else {
+		id = uuid.New().String()
+	}
 	auth.sessions[id] = session{
+		auth:         a,
 		uid:          *a.Identity.UID,
 		jwtToken:     a.JWT,
 		refreshToken: a.JwtRefresh,
@@ -333,6 +344,10 @@ func (auth *Auth) User(jwt string) (uid string) {
 	log.Debugf("identity found in JWT: %+v", *identity)
 
 	return *identity.UID
+}
+
+type EmailRequest struct {
+	Email string `json:"email"`
 }
 
 // User type
