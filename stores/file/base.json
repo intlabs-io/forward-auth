@@ -144,15 +144,10 @@
                     "mustAuth": true,
                     "description": "change password requires root or authenticated matching user",
                     "expression": "bearer({{.ClientAppKeys}}) && (root() || user(param(':id')))"
-                  }
-                }
-              },
-              {
-                "path": "/users/:id/set-password",
-                "rules": {
+                  },
                   "PUT": {
-                    "description": "set password requires valid root user",
-                    "expression": "bearer({{.ClientAppKeys}}) && root()"
+                    "description": "set password requires valid root user or authenticated matching user",
+                    "expression": "bearer({{.ClientAppKeys}}) && (root() || user(param(':uid')))"
                   }
                 }
               },
@@ -166,15 +161,6 @@
                 }
               },
               {
-                "path": "/password-reset/:token",
-                "rules": {
-                  "POST": {
-                    "description": "execute password reset requires client app and reset token",
-                    "expression": "bearer({{.ClientAppKeys}}) && reset(param(':token'))"
-                  }
-                }
-              },
-              {
                 "path": "/sessions",
                 "rules": {
                   "GET": {
@@ -184,11 +170,11 @@
                 }
               },
               {
-                "path": "/session/:sid",
+                "path": "/sessions/:sid",
                 "rules": {
                   "GET": {
-                    "description": "get session for sid",
-                    "expression": "bearer('ROOT_KEY')"
+                    "description": "get session for session ID",
+                    "expression": "bearer({{.ClientAppKeys}})"
                   }
                 }
               },
