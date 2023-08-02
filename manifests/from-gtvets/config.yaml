@@ -1,6 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: forward-auth-config
-data:
-  LOG_LEVEL: DEBUG

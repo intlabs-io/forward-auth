@@ -11,14 +11,19 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
+
+	acc "bitbucket.org/_metalogic_/access-apis"
 
 	"bitbucket.org/_metalogic_/config"
 	"bitbucket.org/_metalogic_/eval"
+	"bitbucket.org/_metalogic_/genstr"
 	"bitbucket.org/_metalogic_/httpsig"
 	"bitbucket.org/_metalogic_/ident"
 	"bitbucket.org/_metalogic_/log"
 	"bitbucket.org/_metalogic_/pat"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 )
 
 const (
@@ -42,6 +47,7 @@ const (
 //   - jwtHeader is the name of the header containing the user's JWT
 //   - keyFunc is a function passed to JWT parse function to return the key for decrypting the JWT token
 //   - owner is the owner of the current forward-auth deployment
+//   - sessions is a map of session IDs to session objects containing user JWT tokens
 //   - publicKeys maps key names to their rsa.PublicKey value
 //   - tokens maps token values passed in a request to token names referenced in
 //     access control functions; eg: bearer(ROOT_KEY) returns true if the bearer
@@ -51,27 +57,61 @@ const (
 //
 // an instance of Auth is passed to handlers to drive authorization calculations
 type Auth struct {
-	runMode    string
-	jwtHeader  string
-	keyFunc    func(token *jwt.Token) (interface{}, error)
-	owner      Owner
-	publicKeys map[string]*rsa.PublicKey
-	tokens     map[string]string
-	blocks     map[string]bool
-	overrides  map[string]string
-	mutex      sync.RWMutex
-	hostMuxers map[string]*pat.HostMux
+	runMode     string
+	sessionMode string
+	sessionName string
+	jwtHeader   string
+	keyFunc     func(token *jwt.Token) (interface{}, error)
+	owner       Owner
+	sessions    map[string]session
+	publicKeys  map[string]*rsa.PublicKey
+	tokens      map[string]string
+	blocks      map[string]bool
+	overrides   map[string]string
+	mutex       sync.RWMutex
+	hostMuxers  map[string]*pat.HostMux
+}
+
+type session struct {
+	auth         *acc.Auth
+	uid          string // the uid of the session user
+	jwtToken     string
+	refreshToken string
+	expiry       int64 // the expiry time in Unix seconds of the JWT
+}
+
+func (s session) Auth() *acc.Auth {
+	return s.auth
+}
+
+func (s session) UID() string {
+	return s.uid
+}
+
+func (s *session) JWT() string {
+	return s.jwtToken
+}
+
+func (s *session) RefreshJWT() string {
+	return s.refreshToken
+}
+
+func (s *session) IsExpired() bool {
+	return time.Unix(s.expiry, 0).Before(time.Now())
 }
 
 // NewAuth returns a new RSA Auth
-func NewAuth(acs *AccessSystem, jwtHeader string, publicKey, secret []byte) (auth *Auth, err error) {
+func NewAuth(acs *AccessSystem, sessionMode, sessionName, jwtHeader string, publicKey, secret []byte) (auth *Auth, err error) {
 	auth = &Auth{
-		jwtHeader:  jwtHeader,
-		hostMuxers: make(map[string]*pat.HostMux),
-		owner:      acs.Owner,
-		publicKeys: make(map[string]*rsa.PublicKey),
-		tokens:     acs.Tokens,
-		blocks:     acs.Blocks,
+		sessionMode: sessionMode,
+		sessionName: sessionName,
+		jwtHeader:   jwtHeader,
+		sessions:    make(map[string]session),
+		hostMuxers:  make(map[string]*pat.HostMux),
+		owner:       acs.Owner,
+		publicKeys:  make(map[string]*rsa.PublicKey),
+		tokens:      acs.Tokens,
+		blocks:      acs.Blocks,
 	}
 
 	auth.setRSAPublicKeys(acs.PublicKeys)
@@ -95,6 +135,55 @@ func NewAuth(acs *AccessSystem, jwtHeader string, publicKey, secret []byte) (aut
 		return key, fmt.Errorf("invalid JWT alg: %s", token.Method.Alg())
 	}
 	return auth, nil
+}
+
+func (auth *Auth) CreateSession(a *acc.Auth, reset bool) (id string, expiresAt time.Time) {
+	if reset {
+		id = genstr.Number(6)
+	} else {
+		id = uuid.New().String()
+	}
+	auth.sessions[id] = session{
+		auth:         a,
+		uid:          *a.Identity.UID,
+		jwtToken:     a.JWT,
+		refreshToken: a.JwtRefresh,
+		expiry:       a.ExpiresAt,
+	}
+	return id, time.Unix(a.ExpiresAt, 0)
+}
+
+func (auth *Auth) UpdateSession(id string, a *acc.Auth) (expiresAt time.Time) {
+	auth.sessions[id] = session{
+		uid:          *a.Identity.UID,
+		jwtToken:     a.JWT,
+		refreshToken: a.JwtRefresh,
+		expiry:       a.ExpiresAt,
+	}
+	return time.Unix(a.ExpiresAt, 0)
+}
+
+func (auth *Auth) Sessions() (sessionsJSON string) {
+	sessions := make([]string, 0)
+	for id, sess := range auth.sessions {
+		if !sess.IsExpired() {
+			sessions = append(sessions, id)
+		}
+	}
+	data, _ := json.Marshal(sessions)
+	return string(data)
+}
+
+func (auth *Auth) Session(id string) (s session, err error) {
+	s, ok := auth.sessions[id]
+	if !ok {
+		return s, fmt.Errorf("session not found for session id %s", id)
+	}
+	return s, nil
+}
+
+func (auth *Auth) DeleteSession(id string) {
+	delete(auth.sessions, id)
 }
 
 // CheckBearerAuth checks for token in list of tokens returning true if found
@@ -165,6 +254,7 @@ func (auth *Auth) JWTIdentity(tknStr string) (identity *Identity, err error) {
 // Superuser returns true if jwt has superuser privilege
 func (auth *Auth) Superuser(jwt string) bool {
 	if jwt == "" {
+		log.Debugf("empty JWT in request")
 		return false
 	}
 
@@ -254,6 +344,10 @@ func (auth *Auth) User(jwt string) (uid string) {
 	log.Debugf("identity found in JWT: %+v", *identity)
 
 	return *identity.UID
+}
+
+type EmailRequest struct {
+	Email string `json:"email"`
 }
 
 // User type
@@ -404,15 +498,41 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 			}
 		}
 
-		jwt := header.Get(auth.jwtHeader)
-
+		var jwt string
 		if mustAuth {
-			if jwt == "" {
-				return http.StatusUnauthorized, "rule requires authentication but no JWT is present in request header", username
+			log.Debugf("MustAuth rule requires valid user session")
+			id, err := getSessionID(header, auth.sessionMode, auth.sessionName)
+			if err != nil {
+				jwt = header.Get(auth.jwtHeader)
+				if jwt == "" {
+					return http.StatusUnauthorized, "rule requires authentication but no session cookie or raw JWT token is present in request header", username
+				}
 			}
+
+			log.Debugf("using session id %s", id)
+
+			sess, ok := auth.sessions[id]
+			if !ok {
+				log.Debugf("rule requires authentication but there is no session with id %s, %s", id, username)
+				return http.StatusUnauthorized, "rule requires authentication but there is no session with id " + id, username
+			}
+
+			if sess.IsExpired() {
+				log.Debugf("rule requires authentication but session %s is expired %s", id, time.Unix(sess.expiry, 0).Format("2006-01-02 15:04:05"))
+				return http.StatusUnauthorized, "rule requires authentication but session is expired", username
+			}
+
+			log.Debugf("using active session %+v", sess)
+
+			jwt = sess.JWT()
+			log.Debugf("setting JWT from session: %s", jwt)
+
 			if err := auth.Identity(jwt); err != nil {
 				return http.StatusUnauthorized, fmt.Sprintf("rule requires authentication but JWT contains invalid identity: %s", err), username
 			}
+		} else {
+			jwt = header.Get(auth.jwtHeader)
+			log.Debugf("setting JWT from request header: %s", jwt)
 		}
 
 		// credentials carry the bearer token and JWT if present
@@ -423,6 +543,7 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 
 		if jwt != "" {
 			username = auth.User(jwt)
+			log.Debugf("setting user from JWT: %s", username)
 		}
 
 		u, err := url.Parse(path)
@@ -584,6 +705,22 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 			log.Debugf("calling bearer(%v)", tokens)
 			return auth.CheckBearerAuth(credentials.Token, tokens...), nil
 		},
+		"classification": func(args ...interface{}) (interface{}, error) {
+			log.Debug("calling classification()")
+			return auth.Classification(credentials.JWT), nil
+		},
+		// return the result of concatenating each argument;
+		// arguments may be string literals or calls to other built-ins
+		// eg: concat(param(':tenantID'), '-', param(':userID'))
+		"concat": func(args ...interface{}) (interface{}, error) {
+			var parts []string
+
+			for _, arg := range args {
+				parts = append(parts, arg.(string))
+			}
+
+			return strings.Join(parts, ""), nil
+		},
 		// return the binding of a path or query parameter
 		// eg: param(':tenantID'), param('summary')
 		"param": func(args ...interface{}) (interface{}, error) {
@@ -622,10 +759,6 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 		"root": func(args ...interface{}) (interface{}, error) {
 			log.Debug("calling Superuser()")
 			return auth.Superuser(credentials.JWT), nil
-		},
-		"classification": func(args ...interface{}) (interface{}, error) {
-			log.Debug("calling classification()")
-			return auth.Classification(credentials.JWT), nil
 		},
 		// return true if a request signed with tenant's private key is valid
 		// with respect to tenant's public key

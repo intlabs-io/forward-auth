@@ -1,15 +1,16 @@
 package server
 
+//lint:file-ignore ST1001 dot import avoids package prefix in reference
+
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"strconv"
 	"strings"
 
 	fauth "bitbucket.org/_metalogic_/forward-auth"
-	. "bitbucket.org/_metalogic_/glib/http" // dot import fo avoid package prefix in reference (shutup lint)
+	. "bitbucket.org/_metalogic_/glib/http"
 	"bitbucket.org/_metalogic_/log"
 	"github.com/pborman/uuid"
 )
@@ -67,6 +68,21 @@ func Auth(auth *fauth.Auth, userHeader, traceHeader string) func(w http.Response
 		method := r.Header.Get("X-Forwarded-Method")
 		path := r.Header.Get("X-Forwarded-Uri")
 
+		// allow all OPTIONS requests regardless of path;
+		// we need this to avoid going mad allowing CORS preflight checks
+		if method == http.MethodOptions {
+			log.Debug("allowing OPTIONS request")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		// TODO this should be a configurable option
+		if rootAuth(r, auth) {
+			log.Debug("allowing request with root token")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
 		// check for host overrides
 		if auth.Override(host) == "allow" {
 			if testing {
@@ -118,41 +134,6 @@ func Auth(auth *fauth.Auth, userHeader, traceHeader string) func(w http.Response
 }
 
 // @Tags Auth endpoints
-// @Summary returns an array of blocked users
-// @Description returns an array of blocked users
-// @ID get-blocked
-// @Produce json
-// @Success 200 {object} types.Message
-// @Failure 400 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-func Blocked(auth *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		w.Header().Set("Content-Type", "application/json")
-		msgJSONList(w, auth.Blocked())
-	}
-}
-
-// @Tags Auth endpoints
-// @Summary adds userGUID to the user blocklist
-// @Description adds userGUID to the user blocklist
-// @ID block
-// @Produce json
-// @Success 200 {object} types.Message
-// @Failure 400 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-func Block(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		w.Header().Set("Content-Type", "application/json")
-		userGUID := params["userGUID"]
-		svc.Block(userGUID)
-		b := fmt.Sprintf("{ \"blocked\" : \"%s\" }", userGUID)
-		MsgJSON(w, b)
-	}
-}
-
-// @Tags Auth endpoints
 // @Summary TODO: returns a text representation of the access tree
 // @Description TODO: returns a text representation of the access tree
 // @ID get-tree
@@ -169,24 +150,6 @@ func Tree(auth *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 			ErrJSON(w, err)
 		}
 		MsgJSON(w, string(data))
-	}
-}
-
-// @Tags Auth endpoints
-// @Summary removes userGUID from the user blocklist
-// @Description removes userGUID from the user blocklist
-// @ID unblock
-// @Produce json
-// @Success 200 {object} types.Message
-// @Failure 400 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-func Unblock(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		userGUID := params["userGUID"]
-		svc.Unblock(userGUID)
-		b := fmt.Sprintf("{ \"unblocked\" : \"%s\" }", userGUID)
-		MsgJSON(w, b)
 	}
 }
 
@@ -216,4 +179,20 @@ func Update(auth *fauth.Auth, store fauth.Store) func(w http.ResponseWriter, r *
 		}
 		MsgJSON(w, "access system update succeeded")
 	}
+}
+
+func rootAuth(r *http.Request, auth *fauth.Auth) bool {
+	authHeader := r.Header.Get("Authorization")
+
+	var token string
+	if authHeader != "" {
+		// Get the Bearer auth token
+		splitToken := strings.Split(authHeader, "Bearer ")
+		if len(splitToken) == 2 {
+			token = splitToken[1]
+		}
+	}
+
+	// allow all requests with ROOT_KEY
+	return auth.CheckBearerAuth(token, []string{"ROOT_KEY"}...)
 }

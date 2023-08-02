@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: forward-auth
-          image: metalogic/forward-auth:latest
+          image: metalogic/forward-auth
           imagePullPolicy: "IfNotPresent"
           ports:
             - containerPort: 8080
@@ -37,6 +37,93 @@ spec:
               configMapKeyRef:
                 name: forward-auth-config
                 key: LOG_LEVEL
+          - name: FORWARD_AUTH_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: FORWARD_AUTH_HOST
+          - name: ACCESS_APIS_ROOT_URL
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: ACCESS_APIS_ROOT_URL
+                optional: true
+          - name: ACCESS_APIS_TENANT_ID
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: ACCESS_APIS_TENANT_ID
+                optional: true
+          - name: CLIENT_APP_KEYS
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: CLIENT_APP_KEYS
+          - name: IDENTITY_PROVIDER_PUBLIC_KEY_URL
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: IDENTITY_PROVIDER_PUBLIC_KEY_URL
+                optional: true
+          - name: IDENTITY_PROVIDER_PUBLIC_KEY
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: idp.pub
+                optional: true
+          - name: INSECURE_SKIP_VERIFY
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: INSECURE_SKIP_VERIFY
+                optional: true
+          - name: CORS_ALLOW_ORIGIN
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: CORS_ALLOW_ORIGIN
+                optional: true
+          - name: CORS_ALLOW_HEADERS
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: CORS_ALLOW_HEADERS
+                optional: true
+          - name: SESSION_MODE
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: SESSION_MODE
+                optional: true
+          - name: SESSION_COOKIE_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: SESSION_COOKIE_NAME
+                optional: true
+          - name: SESSION_COOKIE_DOMAIN
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: SESSION_COOKIE_DOMAIN
+          - name: SESSION_HTTP_ONLY_COOKIE
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: SESSION_HTTP_ONLY_COOKIE
+                optional: true
+          - name: SESSION_SECURE_COOKIE
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: SESSION_SECURE_COOKIE
+                optional: true
+          - name: SESSION_HEADER_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: forward-auth-config
+                key: SESSION_HEADER_NAME
+                optional: true
           - name: DB_NAME
             valueFrom:
               secretKeyRef:
@@ -56,39 +143,29 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
-                key: root_key
-          - name: MC_APP_KEY
+                key: ROOT_KEY
+          - name: FORWARD_AUTH_CONSOLE_APP_KEY
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
-                key: mc_app_key
-          - name: IDENTITY_PROVIDER_PUBLIC_KEY
+                key: FORWARD_AUTH_CONSOLE_APP_KEY
+                optional: true
+          - name: ACCESS_APIS_TENANT_KEY
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
-                key: idp_public_key
-                optional: true
-          - name: IDENTITY_PROVIDER_PUBLIC_KEY_URL
-            valueFrom:
-              configMapKeyRef:
-                name: forward-auth-config
-                key: IDENTITY_PROVIDER_PUBLIC_KEY_URL
-                optional: true
-          - name: INSECURE_SKIP_VERIFY
-            valueFrom:
-              configMapKeyRef:
-                name: forward-auth-config
-                key: INSECURE_SKIP_VERIFY
+                key: ACCESS_APIS_TENANT_KEY
                 optional: true
           - name: JWT_SECRET_KEY
             valueFrom:
               secretKeyRef:
                 name: forward-auth-secrets
-                key: jwt_secret_key
+                key: JWT_SECRET_KEY
           volumeMounts:
-            - mountPath: /usr/local/etc/forward-auth
-              name: etcdata
+            - name: config-volume
+              mountPath: /usr/local/etc/forward-auth
+              readOnly: false
       volumes:
-        - name: etcdata
-          persistentVolumeClaim:
-            claimName: etc-forward-auth-volume-claim
+        - name: config-volume
+          configMap:
+            name: forward-auth-access-config

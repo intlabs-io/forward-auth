@@ -4,7 +4,8 @@
       "name": "Forward Auth Management Console Web Application",
       "bearer": {
         "source": "env",
-        "name": "MC_APP_KEY"
+        "name": "FORWARD_AUTH_CONSOLE_APP_KEY",
+        "optional": true
       }
     }
   ],
@@ -19,15 +20,15 @@
         "default": "allow"
       },
       {
-        "name": "API Hosts",
+        "name": "Authorization Host",
         "hosts": [
-          "forward-auth.localhost"
+          "{{.Host}}"
         ],
         "default": "deny",
         "checks": [
           {
-            "name": "admin-api",
-            "base": "/admin-api/v1",
+            "name": "forward-auth",
+            "base": "",
             "paths": [
               {
                 "path": "/health",
@@ -52,12 +53,12 @@
                 "rules": {
                   "GET": {
                     "description": "get Swagger API documentation",
-                    "expression": "true"
+                    "expression": "bearer('ROOT_KEY')"
                   }
                 }
               },
               {
-                "path": "/loglevel",
+                "path": "/admin/loglevel",
                 "rules": {
                   "GET": {
                     "description": "get API log level",
@@ -66,10 +67,140 @@
                 }
               },
               {
-                "path": "/loglevel/:level",
+                "path": "/admin/loglevel/:level",
                 "rules": {
                   "PUT": {
                     "description": "set API log level",
+                    "expression": "bearer('ROOT_KEY')"
+                  }
+                }
+              },
+              {
+                "path": "/login",
+                "rules": {
+                  "POST": {
+                    "description": "execute a tenant login through access-apis",
+                    "expression": "true"
+                  }
+                }
+              },
+              {
+                "path": "/logout",
+                "rules": {
+                  "PUT": {
+                    "description": "logout session",
+                    "expression": "true"
+                  }
+                }
+              },
+              {
+                "path": "/refresh",
+                "rules": {
+                  "PUT": {
+                    "description": "refresh the JWT for the session found in the session cookie",
+                    "expression": "bearer('ROOT_KEY')"
+                  }
+                }
+              },
+              {
+                "path": "/users",
+                "rules": {
+                  "GET": {
+                    "mustAuth": true,
+                    "description": "get users requires root",
+                    "expression": "bearer({{.ClientAppKeys}}) && root()"
+                  },
+                  "POST": {
+                    "mustAuth": true,
+                    "description": "create user requires root",
+                    "expression": "bearer({{.ClientAppKeys}}) && root()"
+                  }
+                }
+              },
+              {
+                "path": "/users/:id",
+                "rules": {
+                  "GET": {
+                    "mustAuth": true,
+                    "description": "get user requires root",
+                    "expression": "bearer({{.ClientAppKeys}}) && root()"
+                  },
+                  "PUT": {
+                    "mustAuth": true,
+                    "description": "update user requires root",
+                    "expression": "bearer({{.ClientAppKeys}}) && root()"
+                  },
+                  "DELETE": {
+                    "mustAuth": true,
+                    "description": "delete user requires root",
+                    "expression": "bearer({{.ClientAppKeys}}) && root()"
+                  }
+                }
+              },
+              {
+                "path": "/users/:id/password",
+                "rules": {
+                  "POST": {
+                    "mustAuth": true,
+                    "description": "change password requires root or authenticated matching user",
+                    "expression": "bearer({{.ClientAppKeys}}) && (root() || user(param(':id')))"
+                  },
+                  "PUT": {
+                    "description": "set password requires valid root user or authenticated matching user",
+                    "expression": "bearer({{.ClientAppKeys}}) && (root() || user(param(':uid')))"
+                  }
+                }
+              },
+              {
+                "path": "/password-reset",
+                "rules": {
+                  "POST": {
+                    "description": "initiate password reset requires client app",
+                    "expression": "bearer({{.ClientAppKeys}})"
+                  }
+                }
+              },
+              {
+                "path": "/sessions",
+                "rules": {
+                  "GET": {
+                    "description": "get active sessions",
+                    "expression": "bearer('ROOT_KEY')"
+                  }
+                }
+              },
+              {
+                "path": "/sessions/:sid",
+                "rules": {
+                  "GET": {
+                    "description": "get session for session ID",
+                    "expression": "bearer({{.ClientAppKeys}})"
+                  }
+                }
+              },
+              {
+                "path": "/blocks",
+                "rules": {
+                  "PUT": {
+                    "description": "get tenant blocked users through access-apis",
+                    "expression": "bearer('ROOT_KEY')"
+                  }
+                }
+              },
+              {
+                "path": "/blocks/:sid",
+                "rules": {
+                  "PUT": {
+                    "description": "execute a tenant block user through access-apis",
+                    "expression": "bearer('ROOT_KEY')"
+                  }
+                }
+              },
+              {
+                "path": "/blocks/:sid",
+                "rules": {
+                  "DELETE": {
+                    "description": "remove a tenant block user through access-apis",
                     "expression": "bearer('ROOT_KEY')"
                   }
                 }
