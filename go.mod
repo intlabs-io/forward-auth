@@ -9,6 +9,7 @@ require (
 	bitbucket.org/_metalogic_/build v1.0.2
 	bitbucket.org/_metalogic_/config v1.4.0
 	bitbucket.org/_metalogic_/eval v1.0.1
+	bitbucket.org/_metalogic_/genstr v0.0.0-20230315132016-c6aea6ceb255
 	bitbucket.org/_metalogic_/glib v1.4.0
 	bitbucket.org/_metalogic_/httpsig v0.0.0-20211209010019-f2554fb89eae
 	bitbucket.org/_metalogic_/httptreemux-swagger v1.1.0
@@ -23,6 +24,7 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/lib/pq v1.10.6
 	github.com/pborman/uuid v1.2.0
+	github.com/sendgrid/sendgrid-go v3.12.0+incompatible
 	github.com/swaggo/swag v1.8.0
 )
 
@@ -41,6 +43,7 @@ require (
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
+	github.com/sendgrid/rest v2.6.9+incompatible // indirect
 	github.com/swaggo/files v0.0.0-20210815190702-a29dd2bc99b2 // indirect
 	golang.org/x/crypto v0.9.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
