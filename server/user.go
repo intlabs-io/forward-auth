@@ -62,7 +62,7 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 			return
 		}
 
-		id, expiresAt := svc.CreateSession(a)
+		id, expiresAt := svc.CreateSession(a, false)
 
 		setSessionID(w, sessionMode, sessionName, id, expiresAt)
 
@@ -183,9 +183,9 @@ func Sessions(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, para
 }
 
 // @Tags User endpoints
-// @Summary adds uid to the user blocklist
-// @Description adds uid to the user blocklist
-// @ID block
+// @Summary get session for a give session ID
+// @Description get session for a give session ID
+// @ID session
 // @Produce json
 // @Success 200 {array} types.Session
 // @Failure 400 {object} ErrorResponse
@@ -194,8 +194,34 @@ func Sessions(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, para
 // TODO return session details (should we do this?)
 func Session(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		// sid := params["sid"]
-		w.Header().Set("Content-Type", "application/json")
+		sid := params["sid"]
+		session, err := svc.Session(sid)
+		if err != nil {
+			ErrJSON(w, err)
+			return
+		}
+
+		if session.IsExpired() {
+			ErrJSON(w, NewBadRequestError("session is expired"))
+			return
+		}
+
+		data, err := json.Marshal(session.Auth().Identity)
+		if err != nil {
+			ErrJSON(w, NewServerError("failed to parse session Identity: "+err.Error()))
+			return
+		}
+
+		exp := time.Unix(session.Auth().ExpiresAt, 0)
+
+		// set session cookie
+		setSessionID(w, sessionMode, sessionName, sid, exp)
+
+		log.Debugf("response headers: %+v", w.Header())
+
+		// return session Identity in response
+		OkJSON(w, string(data))
+
 	}
 }
 
@@ -345,6 +371,40 @@ func invalidateSessionID(w http.ResponseWriter, r *http.Request, sessionMode, se
 
 }
 
+func setResetToken(w http.ResponseWriter, sessionMode, sessionName, sessionID string, expiresAt time.Time) (err error) {
+
+	switch strings.ToLower(sessionMode) {
+	case "cookie", "header":
+		httpOnly := config.IfGetBool("SESSION_HTTP_ONLY_COOKIE", false)
+		secure := config.IfGetBool("SESSION_SECURE_COOKIE", true)
+		cookie := http.Cookie{
+			Name:  sessionName,
+			Value: sessionID,
+			// for debugging from localhost	Domain:   cookieDomain,
+			HttpOnly: httpOnly,
+			Secure:   secure,
+			Expires:  expiresAt,
+			SameSite: http.SameSiteNoneMode,
+		}
+
+		log.Debugf("setting session cookie: %+v", cookie)
+
+		// set session cookie in response and return user identity JSON
+		http.SetCookie(w, &cookie)
+		return nil
+	// case "header":
+	// 	cookie := http.Cookie{
+	// 		Value:   sessionID,
+	// 		Expires: expiresAt,
+	// 	}
+	// 	w.Header().Set(sessionName, cookie.String())
+	// 	return nil
+	default:
+		return fmt.Errorf("invalid session mode: %s", sessionMode)
+	}
+
+}
+
 // @Users User endpoints
 // @Summary get User User UUID
 // @Description get User UUID
@@ -431,7 +491,7 @@ func CreateUser(svc *fauth.Auth, client *client.Client) func(w http.ResponseWrit
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /users/{uuid} [put]
+// @Router /users/{uid} [put]
 func UpdateUser(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
@@ -513,7 +573,6 @@ func SetPassword(svc *fauth.Auth, client *client.Client) func(w http.ResponseWri
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 		uid := params["uid"]
-		// token := params["token"]
 
 		passwordJSON, err := client.SetPasswordRaw(uid, r.Body)
 		if err != nil {
@@ -526,27 +585,52 @@ func SetPassword(svc *fauth.Auth, client *client.Client) func(w http.ResponseWri
 }
 
 // @Users User endpoints
-// @Summary recover user account
-// @Description recover user account
+// @Summary initiate password reset
+// @Description initiate password reset
 // @Produce json
-// @Param uid path string true "UID of the user"
 // @Success 200 {object} fauth.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /recover-account [put]
+// @Router /password-reset [post]
+// { "email": "user account email"}
 func StartPasswordReset(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
-		var message []byte
-
-		message, err := client.StartResetPasswordRaw(r.Body)
+		ident, err := client.StartPasswordResetRaw(r.Body)
 		if err != nil {
 			ErrJSON(w, err)
 			return
 		}
 
-		MsgJSON(w, string(message))
+		id, expiresAt := svc.CreateSession(ident, true)
+
+		// id is a 6 digit string emailed to the user
+
+		if err = sendEmail(*ident.Identity.Email, "Password Reset Code", fmt.Sprintf("Reset Code: %s expiring at %s", id, expiresAt)); err != nil {
+			ErrJSON(w, err)
+			return
+		}
+
+		type resetResponse struct {
+			UID   string `json:"uid"`
+			Email string `json:"email"`
+			// Expiry time.Time `json:"expiry"`
+		}
+
+		reset := &resetResponse{
+			UID:   *ident.Identity.UID,
+			Email: *ident.Identity.Email,
+			// Expiry: *ident.ExpiresAt,
+		}
+
+		resetJSON, err := json.Marshal(reset)
+		if err != nil {
+			ErrJSON(w, err)
+			return
+		}
+
+		OkJSON(w, string(resetJSON))
 	}
 }
 
@@ -559,15 +643,15 @@ func StartPasswordReset(svc *fauth.Auth, client *client.Client) func(w http.Resp
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /recover-account [put]
-func PasswordReset(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+// @Router /users/{uid}/password-reset [put]
+func ResetPassword(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
-		// token := params["token"]
+		uid := params["uid"]
 
 		var message []byte
 
-		message, err := client.ResetPasswordRaw(r.Body)
+		message, err := client.ResetPasswordRaw(uid, r.Body)
 		if err != nil {
 			ErrJSON(w, err)
 			return
