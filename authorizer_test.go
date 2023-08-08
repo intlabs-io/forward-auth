@@ -1,7 +1,7 @@
 package fauth_test
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	fauth "bitbucket.org/_metalogic_/forward-auth"
@@ -59,7 +59,7 @@ var (
 
 func init() {
 	var err error
-	publicKey, err = ioutil.ReadFile(keyFile)
+	publicKey, err = os.ReadFile(keyFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	auth, err = fauth.NewAuth(acs, sessionMode, sessionName, jwtHeader, publicKey, secret)
+	auth, err = fauth.NewAuth(acs, false, sessionMode, sessionName, jwtHeader, publicKey, secret)
 	if err != nil {
 		log.Fatal(err)
 	}
