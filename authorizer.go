@@ -57,19 +57,20 @@ const (
 //
 // an instance of Auth is passed to handlers to drive authorization calculations
 type Auth struct {
-	runMode     string
-	sessionMode string
-	sessionName string
-	jwtHeader   string
-	keyFunc     func(token *jwt.Token) (interface{}, error)
-	owner       Owner
-	sessions    map[string]session
-	publicKeys  map[string]*rsa.PublicKey
-	tokens      map[string]string
-	blocks      map[string]bool
-	overrides   map[string]string
-	mutex       sync.RWMutex
-	hostMuxers  map[string]*pat.HostMux
+	runMode      string
+	rootOverride bool
+	sessionMode  string
+	sessionName  string
+	jwtHeader    string
+	keyFunc      func(token *jwt.Token) (interface{}, error)
+	owner        Owner
+	sessions     map[string]session
+	publicKeys   map[string]*rsa.PublicKey
+	tokens       map[string]string
+	blocks       map[string]bool
+	overrides    map[string]string
+	mutex        sync.RWMutex
+	hostMuxers   map[string]*pat.HostMux
 }
 
 type session struct {
@@ -101,17 +102,18 @@ func (s *session) IsExpired() bool {
 }
 
 // NewAuth returns a new RSA Auth
-func NewAuth(acs *AccessSystem, sessionMode, sessionName, jwtHeader string, publicKey, secret []byte) (auth *Auth, err error) {
+func NewAuth(acs *AccessSystem, rootOverride bool, sessionMode, sessionName, jwtHeader string, publicKey, secret []byte) (auth *Auth, err error) {
 	auth = &Auth{
-		sessionMode: sessionMode,
-		sessionName: sessionName,
-		jwtHeader:   jwtHeader,
-		sessions:    make(map[string]session),
-		hostMuxers:  make(map[string]*pat.HostMux),
-		owner:       acs.Owner,
-		publicKeys:  make(map[string]*rsa.PublicKey),
-		tokens:      acs.Tokens,
-		blocks:      acs.Blocks,
+		rootOverride: rootOverride,
+		sessionMode:  sessionMode,
+		sessionName:  sessionName,
+		jwtHeader:    jwtHeader,
+		sessions:     make(map[string]session),
+		hostMuxers:   make(map[string]*pat.HostMux),
+		owner:        acs.Owner,
+		publicKeys:   make(map[string]*rsa.PublicKey),
+		tokens:       acs.Tokens,
+		blocks:       acs.Blocks,
 	}
 
 	auth.setRSAPublicKeys(acs.PublicKeys)
@@ -842,6 +844,10 @@ func (auth *Auth) Unblock(user string) {
 
 func (auth *Auth) Override(host string) string {
 	return auth.overrides[host]
+}
+
+func (auth *Auth) RootOverride() bool {
+	return auth.rootOverride
 }
 
 func (auth *Auth) RunMode() string {

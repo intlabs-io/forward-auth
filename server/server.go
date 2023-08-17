@@ -77,7 +77,10 @@ func Start(addr, runMode, tenantParam, jwtHeader, userHeader, traceHeader string
 	secretKey := []byte(config.MustGetConfig("JWT_SECRET_KEY"))
 	// TODO jwtRefreshKey := []byte(config.MustGetConfig("JWT_REFRESH_SECRET_KEY"))
 
-	auth, err := fauth.NewAuth(acs, sessionMode, sessionName, jwtHeader, publicKey, secretKey)
+	// default is to enable root API key override on all checks
+	rootOverride := config.IfGetBool("ROOT_OVERRIDE", true)
+
+	auth, err := fauth.NewAuth(acs, rootOverride, sessionMode, sessionName, jwtHeader, publicKey, secretKey)
 	if err != nil {
 		log.Fatal(err)
 	}
