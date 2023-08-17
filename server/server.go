@@ -79,6 +79,9 @@ func Start(addr, runMode, tenantParam, jwtHeader, userHeader, traceHeader string
 
 	// default is to enable root API key override on all checks
 	rootOverride := config.IfGetBool("ROOT_OVERRIDE", true)
+	if rootOverride {
+		log.Debug("enabling root API key override")
+	}
 
 	auth, err := fauth.NewAuth(acs, rootOverride, sessionMode, sessionName, jwtHeader, publicKey, secretKey)
 	if err != nil {
