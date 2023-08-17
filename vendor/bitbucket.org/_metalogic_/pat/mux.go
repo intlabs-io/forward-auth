@@ -14,7 +14,8 @@ import (
 // it is called with HTTP method, path, params mapping parameters to values
 // parsed from wildcards and catch-alls in the path and query, and request headers
 // The handler may use any or none of these parameters to make its access decision.
-// If access should be permitted an http.StatusOK should be returned. Any other status returned will result in access denied.
+// If access should be permitted an http.StatusOK should be returned. Any other status
+// returned will result in access denied.
 type HandlerFunc func(method string, path string, params map[string][]string, header http.Header) (status int, message, username string)
 
 // AllowHandler returns HTTP status OK
@@ -29,7 +30,7 @@ func DenyHandler(method string, path string, params map[string][]string, header 
 
 // NotFoundHandler returns HTTP status not found
 func NotFoundHandler(method string, path string, params map[string][]string, header http.Header) (status int, message, username string) {
-	return http.StatusNotFound, fmt.Sprintf("no check found for path '%s'", path), username
+	return http.StatusNotFound, fmt.Sprintf("no check found for %s: '%s'", method, path), username
 }
 
 // HostMux ...
@@ -74,10 +75,12 @@ func (h *HostMux) Check(method, rawURI string, header http.Header) (status int, 
 
 // AddPrefix returns a new PatternMux associated with prefix in HostMux
 // For example
-//    hostMux := NewHostMux(http.StatusForbidden)
-//    p := hostMux.AddPrefix("/persons-api/v1", DenyHandler)
-//    p.Get("/persons/:guid", PersonHandler)
-//    hostMux.Check("GET", "/persons-api/v1/persons/CD05494B-D1EB-43B0-A10D-3679C8AFAD1B")
+//
+//	hostMux := NewHostMux(http.StatusForbidden)
+//	p := hostMux.AddPrefix("/persons-api/v1", DenyHandler)
+//	p.Get("/persons/:guid", PersonHandler)
+//	hostMux.Check("GET", "/persons-api/v1/persons/CD05494B-D1EB-43B0-A10D-3679C8AFAD1B")
+//
 // will result in PersonHandler being called for an authorization decision
 func (h *HostMux) AddPrefix(prefix string, notFound HandlerFunc) *PatternMux {
 	p := New(notFound)
@@ -101,26 +104,36 @@ func (h *HostMux) AddPrefix(prefix string, notFound HandlerFunc) *PatternMux {
 // string.
 //
 // Example pattern with one capture:
-//   /hello/:name
+//
+//	/hello/:name
+//
 // Will match:
-//   /hello/blake
-//   /hello/keith
+//
+//	/hello/blake
+//	/hello/keith
+//
 // Will not match:
-//   /hello/blake/
-//   /hello/blake/foo
-//   /foo
-//   /foo/bar
+//
+//	/hello/blake/
+//	/hello/blake/foo
+//	/foo
+//	/foo/bar
 //
 // Example 2:
-//    /hello/:name/
+//
+//	/hello/:name/
+//
 // Will match:
-//   /hello/blake/
-//   /hello/keith/foo
-//   /hello/blake
-//   /hello/keith
+//
+//	/hello/blake/
+//	/hello/keith/foo
+//	/hello/blake
+//	/hello/keith
+//
 // Will not match:
-//   /foo
-//   /foo/bar
+//
+//	/foo
+//	/foo/bar
 //
 // *****
 // We don't want this behavior in the matcher - rather handle rewrites before calling:
@@ -306,7 +319,6 @@ func (p *PatternMux) add(meth, pat string, h HandlerFunc) {
 //
 //	Tail("/hello/:title/", "/hello/mr/mizerany") == "mizerany"
 //	Tail("/:a/", "/x/y/z")                       == "y/z"
-//
 func Tail(pat, path string) string {
 	var i, j int
 	for i < len(path) {
