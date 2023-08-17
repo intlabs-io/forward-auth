@@ -196,7 +196,7 @@ func (auth *Auth) CheckBearerAuth(token string, tokens ...string) bool {
 			return true
 		}
 	}
-	log.Debugf("rejecting by bearer auth for accepted tokens: %v", tokens)
+	log.Debugf("rejecting token '%s' by bearer auth for accepted tokens: %v", redact(token), tokens)
 	return false
 }
 
