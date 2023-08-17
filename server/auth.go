@@ -77,7 +77,6 @@ func Auth(auth *fauth.Auth, userHeader, traceHeader string) func(w http.Response
 		}
 
 		// override checks on the request when a root bearer token is found
-		// suggest defining a root override parameter on auth.Auth (enable/disable)
 		// enabling root override avoids repeated use of "bearer('ROOT_KEY')" in check expressions
 		if auth.RootOverride() && rootAuth(r, auth) {
 			log.Debug("allowing request with root bearer token")
