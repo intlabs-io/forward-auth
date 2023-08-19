@@ -5,7 +5,7 @@ go 1.21
 replace bitbucket.org/_metalogic_/access-apis => ../access-apis
 
 require (
-	bitbucket.org/_metalogic_/access-apis v0.9.0
+	bitbucket.org/_metalogic_/access-apis v0.9.2-0.20230819104253-31aee6144364
 	bitbucket.org/_metalogic_/build v1.0.2
 	bitbucket.org/_metalogic_/config v1.4.0
 	bitbucket.org/_metalogic_/eval v1.0.1
