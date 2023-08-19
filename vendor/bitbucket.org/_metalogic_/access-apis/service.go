@@ -36,6 +36,14 @@ type Service interface {
 	// Tenant User Accounts
 	CreateUser(sessionID, tid, email, password string, superuser bool, status, comment, firstname, lastname, tel, role, context string) (userJSON string, err error)
 
+	// Tenant Context Requests
+	Contexts(tid string) (contextsJSON string, err error)
+	Context(tid, cid string) (contextJSON string, err error)
+	CreateContext(sessionID, tid string, createRequest *CreateContextRequest) (contextJSON string, err error)
+	EnsureContext(sessionID, tid string, ensureRequest *EnsureContextRequest) (contextJSON string, err error)
+	UpdateContext(sessionID, tid, cid string, updateRequest *UpdateContextRequest) (contextJSON string, err error)
+	DeleteContext(tid, cid string) (deleteJSON string, err error)
+
 	// Tenant User Registration Requests
 	RegistrationRequests(tid string) (requestsJSON string, err error)
 	RegistrationRequest(tid, rid string) (requestJSON string, err error)

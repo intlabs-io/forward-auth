@@ -226,6 +226,33 @@ type UserResponse struct {
 	Meta      Meta       `json:"meta"`
 }
 
+// CreateContextRequest Request
+type CreateContextRequest struct {
+	Prefix      string `json:"prefix"`
+	Description string `json:"description"`
+}
+
+// EnsureContextRequest Request
+type EnsureContextRequest struct {
+	CreateContextRequest
+	UID string `json:"uid"`
+}
+
+// UpdateContextRequest Request
+type UpdateContextRequest struct {
+	Prefix      string `json:"prefix"`
+	Description string `json:"description"`
+}
+
+type ContextResponse struct {
+	TenantUID   string `json:"tid"`
+	ContextUID  string `json:"cid"`
+	Prefix      string `json:"prefix"`
+	UID         string `json:"uid"`
+	Description string `json:"description"`
+	Meta        Meta   `json:"meta"`
+}
+
 type Meta struct {
 	Created    string `json:"created"`
 	CreateUser string `json:"createUser"`
