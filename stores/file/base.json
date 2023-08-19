@@ -103,6 +103,41 @@
                 }
               },
               {
+                "path": "/contexts",
+                "rules": {
+                  "GET": {
+                    "mustAuth": true,
+                    "description": "get contexts requires root",
+                    "expression": "bearer({{.ClientAppKeys}}) && root()"
+                  },
+                  "POST": {
+                    "mustAuth": true,
+                    "description": "create context requires root",
+                    "expression": "bearer({{.ClientAppKeys}}) && root()"
+                  }
+                }
+              },
+              {
+                "path": "/contexts/:id",
+                "rules": {
+                  "GET": {
+                    "mustAuth": true,
+                    "description": "get context requires root",
+                    "expression": "bearer({{.ClientAppKeys}}) && root()"
+                  },
+                  "PUT": {
+                    "mustAuth": true,
+                    "description": "update context requires root",
+                    "expression": "bearer({{.ClientAppKeys}}) && root()"
+                  },
+                  "DELETE": {
+                    "mustAuth": true,
+                    "description": "delete context requires root",
+                    "expression": "bearer({{.ClientAppKeys}}) && root()"
+                  }
+                }
+              },
+              {
                 "path": "/users",
                 "rules": {
                   "GET": {
