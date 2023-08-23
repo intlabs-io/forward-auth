@@ -98,7 +98,7 @@
                 "rules": {
                   "PUT": {
                     "description": "refresh the JWT for the session found in the session cookie",
-                    "expression": "bearer('ROOT_KEY')"
+                    "expression": "bearer({{.ClientAppKeys}})"
                   }
                 }
               },
