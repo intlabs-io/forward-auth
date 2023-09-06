@@ -1,7 +1,7 @@
-bitbucket.org/_metalogic_/access-apis v1.0.1-0.20230906142623-8bf604a665df h1:ML47dl7Yyk4Y9zQe6+hvDG6i1eVirv8Rjdbd+t2COWo=
-bitbucket.org/_metalogic_/access-apis v1.0.1-0.20230906142623-8bf604a665df/go.mod h1:pgt0fFel04fbj5hbgKg0mZsRtmhQzivPvrD/SxE/b68=
-bitbucket.org/_metalogic_/authenticate v0.0.0-20230906090315-6eddae6b822e h1:EU1IRdZtVjePQ7dBhmWBBW4nJ/8lbK/kCvH0xVD/iLg=
-bitbucket.org/_metalogic_/authenticate v0.0.0-20230906090315-6eddae6b822e/go.mod h1:fEsXKRrLc8CiMJc21BVXERsppfXOUtuTKM/gUBRKhYg=
+bitbucket.org/_metalogic_/access-apis v1.0.1-0.20230906180059-be45ca0c2ede h1:ZHZf4j8MX+RlGxTJGrkojUHPbQBaOgtVyVTLJ0dk39E=
+bitbucket.org/_metalogic_/access-apis v1.0.1-0.20230906180059-be45ca0c2ede/go.mod h1:5paB/i2avWZoRj8nuwwQnzNZV2z6H8RzE+5MppyH3UA=
+bitbucket.org/_metalogic_/authenticate v0.0.0-20230906175928-995ea4926f42 h1:0UlEj+3ktPgDzr7ezgLC/WKpXnCtKioSvU2Tw5mqixU=
+bitbucket.org/_metalogic_/authenticate v0.0.0-20230906175928-995ea4926f42/go.mod h1:fEsXKRrLc8CiMJc21BVXERsppfXOUtuTKM/gUBRKhYg=
 bitbucket.org/_metalogic_/build v1.0.2 h1:PWRm8PWhbnES+p3m6ejbMVD1UWTp2IfKOp5ijmeyirI=
 bitbucket.org/_metalogic_/build v1.0.2/go.mod h1:0+xDDYs1xwgMKr/Z6SYmQPU15+7sr/S8eQxsG/updig=
 bitbucket.org/_metalogic_/color v1.0.4 h1:CPsOhTyTKnJ00mONyxMxr2zyh+GK2rjkdnmzGDZFde4=

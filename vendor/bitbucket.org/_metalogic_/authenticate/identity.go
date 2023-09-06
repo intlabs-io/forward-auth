@@ -20,8 +20,8 @@ import (
 // are computed at the time the user is authenitcated. Changes to role permissions
 // will not take effect for the user until the next time the user authenticates.
 type Identity struct {
-	TenantID       string          `json:"tenantID"`
-	UserID         string          `json:"userID"`
+	TenantID       string          `json:"tid"`
+	UserID         string          `json:"uid"`
 	Name           string          `json:"name"`
 	Email          string          `json:"email"`
 	Superuser      bool            `json:"superuser"`
