@@ -1,3 +1,7 @@
+bitbucket.org/_metalogic_/access-apis v1.0.1-0.20230906142623-8bf604a665df h1:ML47dl7Yyk4Y9zQe6+hvDG6i1eVirv8Rjdbd+t2COWo=
+bitbucket.org/_metalogic_/access-apis v1.0.1-0.20230906142623-8bf604a665df/go.mod h1:pgt0fFel04fbj5hbgKg0mZsRtmhQzivPvrD/SxE/b68=
+bitbucket.org/_metalogic_/authenticate v0.0.0-20230906090315-6eddae6b822e h1:EU1IRdZtVjePQ7dBhmWBBW4nJ/8lbK/kCvH0xVD/iLg=
+bitbucket.org/_metalogic_/authenticate v0.0.0-20230906090315-6eddae6b822e/go.mod h1:fEsXKRrLc8CiMJc21BVXERsppfXOUtuTKM/gUBRKhYg=
 bitbucket.org/_metalogic_/build v1.0.2 h1:PWRm8PWhbnES+p3m6ejbMVD1UWTp2IfKOp5ijmeyirI=
 bitbucket.org/_metalogic_/build v1.0.2/go.mod h1:0+xDDYs1xwgMKr/Z6SYmQPU15+7sr/S8eQxsG/updig=
 bitbucket.org/_metalogic_/color v1.0.4 h1:CPsOhTyTKnJ00mONyxMxr2zyh+GK2rjkdnmzGDZFde4=
@@ -71,8 +75,8 @@ github.com/go-openapi/swag v0.19.15/go.mod h1:QYRuS/SOXUCsnplDa677K7+DxSOj6IPNl/
 github.com/go-openapi/swag v0.21.1 h1:wm0rhTb5z7qpJRHBdPOMuY4QjVUMbF6/kwoYeRAOrKU=
 github.com/go-openapi/swag v0.21.1/go.mod h1:QYRuS/SOXUCsnplDa677K7+DxSOj6IPNl/eQntq43wQ=
 github.com/golang-jwt/jwt/v4 v4.4.2/go.mod h1:m21LjoU+eqJr34lmDMbreY2eSTRJ1cv77w39/MY0Ch0=
-github.com/golang-jwt/jwt/v4 v4.4.3 h1:Hxl6lhQFj4AnOX6MLrsCb/+7tCj7DxP7VA+2rDIq5AU=
-github.com/golang-jwt/jwt/v4 v4.4.3/go.mod h1:m21LjoU+eqJr34lmDMbreY2eSTRJ1cv77w39/MY0Ch0=
+github.com/golang-jwt/jwt/v4 v4.5.0 h1:7cYmW1XlMY7h7ii7UhUyChSgS5wUJEnm9uZVTGqOWzg=
+github.com/golang-jwt/jwt/v4 v4.5.0/go.mod h1:m21LjoU+eqJr34lmDMbreY2eSTRJ1cv77w39/MY0Ch0=
 github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe h1:lXe2qZdvpiX5WZkZR4hgp4KJVfY3nMkvmwbVkpv1rVY=
 github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe/go.mod h1:8vg3r2VgvsThLBIFL93Qb5yWzgyZWhEmBwUJWevAkK0=
 github.com/golang-sql/sqlexp v0.1.0 h1:ZCD6MBpcuOVfGVqsEmY5/4FtYiKz6tSyUv9LPEDei6A=

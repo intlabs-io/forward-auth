@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	auth "bitbucket.org/_metalogic_/access-apis"
-	"bitbucket.org/_metalogic_/log"
 )
 
 /******************************************
@@ -140,7 +139,7 @@ func (c *Client) ChangePassword(uid, old, new string) (u *auth.User, err error) 
 
 func (c *Client) ChangePasswordRaw(uid string, body io.ReadCloser) (userJSON []byte, err error) {
 
-	log.Debugf("executing tenant change user password %s", uid)
+	c.logger.Debug("executing tenant change user password", "uid", uid)
 
 	data, err := io.ReadAll(body)
 	if err != nil {
@@ -198,7 +197,7 @@ func (c *Client) SetPassword(uid, new string) (u *auth.User, err error) {
 
 func (c *Client) SetPasswordRaw(uid string, body io.ReadCloser) (userJSON []byte, err error) {
 
-	log.Debugf("executing tenant set user password %s", uid)
+	c.logger.Debug("executing tenant set user password", "uid", uid)
 
 	data, err := io.ReadAll(body)
 	if err != nil {
@@ -245,7 +244,7 @@ func (c *Client) StartPasswordReset(email string) (u *auth.Auth, err error) {
 
 func (c *Client) StartPasswordResetRaw(body io.ReadCloser) (u *auth.Auth, err error) {
 
-	log.Debugf("initiating password reset workflow")
+	c.logger.Debug("initiating password reset workflow")
 
 	data, err := io.ReadAll(body)
 	if err != nil {
@@ -309,7 +308,7 @@ func (c *Client) ResetPassword(uid, token string) (u *auth.User, err error) {
 
 func (c *Client) ResetPasswordRaw(uid string, body io.ReadCloser) (userJSON []byte, err error) {
 
-	log.Debugf("executing tenant user %s reset password", uid)
+	c.logger.Debug("executing tenant user reset password", "uid", uid)
 
 	data, err := io.ReadAll(body)
 	if err != nil {
@@ -346,7 +345,7 @@ func (c *Client) ResetPasswordRaw(uid string, body io.ReadCloser) (userJSON []by
 
 func (c *Client) Login(email, password string) (a *auth.Auth, err error) {
 
-	log.Debugf("executing tenant user %s login %s", email, c.loginURI())
+	c.logger.Debug("executing tenant user login", "email", email, "url", c.loginURI())
 
 	var loginData = []byte(fmt.Sprintf(`{
 		"email": "%s",
@@ -381,6 +380,8 @@ func (c *Client) Login(email, password string) (a *auth.Auth, err error) {
 		return a, err
 	}
 
+	c.logger.Debug("login succeeded", "auth", a.JSON())
+
 	return a, nil
 
 }
@@ -391,7 +392,7 @@ func (c *Client) Logout(uid string) (err error) {
 }
 
 func (c *Client) Refresh(uid, refreshToken string) (a *auth.Auth, err error) {
-	log.Debugf("executing refresh request %s", c.refreshURI(uid))
+	c.logger.Debug("executing refresh request", "url", c.refreshURI(uid))
 
 	req, err := c.refreshRequest(refreshToken, uid)
 	if err != nil {

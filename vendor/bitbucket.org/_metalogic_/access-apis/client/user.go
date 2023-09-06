@@ -9,7 +9,6 @@ import (
 
 	auth "bitbucket.org/_metalogic_/access-apis"
 	. "bitbucket.org/_metalogic_/glib/http"
-	"bitbucket.org/_metalogic_/log"
 )
 
 /******************************************
@@ -114,7 +113,7 @@ func (c *Client) GetUsers() (u []auth.UserResponse, err error) {
 
 func (c *Client) GetUsersRaw() (usersJSON []byte, err error) {
 
-	log.Debugf("executing tenant get users")
+	c.logger.Debug("executing tenant get users")
 
 	req, err := c.usersRequest()
 	if err != nil {
@@ -155,7 +154,7 @@ func (c *Client) GetUser(uid string) (u *auth.User, err error) {
 
 func (c *Client) GetUserRaw(uid string) (userJSON []byte, err error) {
 
-	log.Debugf("executing tenant get user %s", uid)
+	c.logger.Debug("executing tenant get user", "uid", uid)
 
 	req, err := c.userRequest(uid)
 	if err != nil {
@@ -181,7 +180,7 @@ func (c *Client) GetUserRaw(uid string) (userJSON []byte, err error) {
 
 func (c *Client) CreateUser(email, password string, superuser bool) (u *auth.User, err error) {
 
-	log.Debugf("executing tenant create user %s", email)
+	c.logger.Debug("executing tenant create user", "email", email)
 
 	var userData = []byte(fmt.Sprintf(`{
 		"email": "%s",
@@ -230,7 +229,7 @@ func (c *Client) CreateUserRaw(body io.ReadCloser) (userData []byte, err error) 
 		e := &ErrorResponse{}
 		err = json.Unmarshal(errorData, &e)
 		if err != nil {
-			log.Errorf("failed to unmarshal error response %s", err)
+			c.logger.Error("failed to unmarshal error response", "error", err)
 			return userData, fmt.Errorf("create user request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
 
 		}
@@ -247,7 +246,7 @@ func (c *Client) CreateUserRaw(body io.ReadCloser) (userData []byte, err error) 
 
 func (c *Client) UpdateUser(uid, status, comment string, superuser bool) (u *auth.User, err error) {
 
-	log.Debugf("executing tenant update user %s", uid)
+	c.logger.Debug("executing tenant update user", "uid", uid)
 
 	var userData = []byte(fmt.Sprintf(`{
 		"status": "%s",
@@ -316,7 +315,7 @@ func (c *Client) DeleteUser(uid string) (ok bool, err error) {
 
 func (c *Client) DeleteUserRaw(uid string) (deleteJSON []byte, err error) {
 
-	log.Debugf("executing tenant delete user %s", uid)
+	c.logger.Debug("executing tenant delete user", "uid", uid)
 
 	req, err := c.deleteUserRequest(uid)
 	if err != nil {

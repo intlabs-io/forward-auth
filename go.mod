@@ -1,11 +1,9 @@
 module bitbucket.org/_metalogic_/forward-auth
 
-go 1.21
-
-replace bitbucket.org/_metalogic_/access-apis => ../access-apis
+go 1.21.0
 
 require (
-	bitbucket.org/_metalogic_/access-apis v0.9.2-0.20230819104253-31aee6144364
+	bitbucket.org/_metalogic_/access-apis v1.0.1-0.20230906142623-8bf604a665df
 	bitbucket.org/_metalogic_/build v1.0.2
 	bitbucket.org/_metalogic_/config v1.4.0
 	bitbucket.org/_metalogic_/eval v1.0.1
@@ -20,7 +18,7 @@ require (
 	github.com/denisenkom/go-mssqldb v0.12.2
 	github.com/dimfeld/httptreemux/v5 v5.2.2
 	github.com/fsnotify/fsnotify v1.4.9
-	github.com/golang-jwt/jwt/v4 v4.4.3
+	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.2.0
 	github.com/lib/pq v1.10.6
 	github.com/pborman/uuid v1.2.0
@@ -29,6 +27,7 @@ require (
 )
 
 require (
+	bitbucket.org/_metalogic_/authenticate v0.0.0-20230906090315-6eddae6b822e // indirect
 	bitbucket.org/_metalogic_/color v1.0.4 // indirect
 	bitbucket.org/_metalogic_/colorable v1.0.3 // indirect
 	bitbucket.org/_metalogic_/isatty v1.0.4 // indirect

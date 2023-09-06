@@ -122,11 +122,11 @@ func Test_checkJWT(t *testing.T) {
 				if identity.Superuser != tt.wants.root {
 					t.Errorf("%s: identity.Root = %t, want %t", tt.name, identity.Superuser, tt.wants.root)
 				}
-				if *identity.Email != tt.wants.email {
-					t.Errorf("%s: identity.Name = %s, want %s", tt.name, *identity.Email, tt.wants.email)
+				if identity.Email != tt.wants.email {
+					t.Errorf("%s: identity.Name = %s, want %s", tt.name, identity.Email, tt.wants.email)
 				}
-				if *identity.UID != tt.wants.uid {
-					t.Errorf("%s: identity.UID = %s, want %s", tt.name, *identity.UID, tt.wants.uid)
+				if identity.UserID != tt.wants.uid {
+					t.Errorf("%s: identity.UID = %s, want %s", tt.name, identity.UserID, tt.wants.uid)
 				}
 			} else {
 				t.Errorf("%s: %s", tt.name, err)

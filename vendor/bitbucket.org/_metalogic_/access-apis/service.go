@@ -39,7 +39,6 @@ type Service interface {
 	// Tenant Context Requests
 	Contexts(tid string) (contextsJSON string, err error)
 	Context(tid, cid string) (contextJSON string, err error)
-	CreateContext(sessionID, tid string, createRequest *CreateContextRequest) (contextJSON string, err error)
 	EnsureContext(sessionID, tid string, ensureRequest *EnsureContextRequest) (contextJSON string, err error)
 	UpdateContext(sessionID, tid, cid string, updateRequest *UpdateContextRequest) (contextJSON string, err error)
 	DeleteContext(tid, cid string) (deleteJSON string, err error)
@@ -66,7 +65,6 @@ type Service interface {
 	DeleteTenantUserRole(tid, uid, rid string) (rolesJSON string, err error)
 	DeleteRole(sessionID, tid, rid string) (err error)
 	DeleteUser(sessionID, tid, uid string) (deleteJSON string, err error)
-	Identity(tid, email, password string) (identityJSON string, err error)
 	Invitation(tid, email, token string) (userJSON string, err error)
 	Invitations(tid, email, status string) (invitationsJSON string, err error)
 	InviteUser(sessionID, tid, app, email string, rids []string) (invitationJSON string, err error)

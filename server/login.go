@@ -5,6 +5,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -44,7 +45,7 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 			return
 		}
 
-		c, err := client.New(accessRootURL, accessTenantID, accessAPIKey, true)
+		c, err := client.New(accessRootURL, accessTenantID, accessAPIKey, true, slog.Default())
 		if err != nil {
 			ErrJSON(w, NewServerError("new access-apis client failed: "+err.Error()))
 			return
@@ -132,7 +133,7 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 			return
 		}
 
-		c, err := client.New(accessRootURL, accessTenantID, accessAPIKey, true)
+		c, err := client.New(accessRootURL, accessTenantID, accessAPIKey, true, slog.Default())
 		if err != nil {
 			ErrJSON(w, NewServerError("new access-apis client failed: "+err.Error()))
 			return
@@ -478,7 +479,7 @@ func StartPasswordReset(svc *fauth.Auth, client *client.Client) func(w http.Resp
 
 		// id is a 6 digit string emailed to the user
 
-		if err = sendEmail(*ident.Identity.Email, "Password Reset Code", fmt.Sprintf("Reset Code: %s expiring at %s", id, expiresAt)); err != nil {
+		if err = sendEmail(ident.Identity.Email, "Password Reset Code", fmt.Sprintf("Reset Code: %s expiring at %s", id, expiresAt)); err != nil {
 			ErrJSON(w, err)
 			return
 		}
@@ -490,8 +491,8 @@ func StartPasswordReset(svc *fauth.Auth, client *client.Client) func(w http.Resp
 		}
 
 		reset := &resetResponse{
-			UID:   *ident.Identity.UID,
-			Email: *ident.Identity.Email,
+			UID:   ident.Identity.UserID,
+			Email: ident.Identity.Email,
 			// Expiry: *ident.ExpiresAt,
 		}
 

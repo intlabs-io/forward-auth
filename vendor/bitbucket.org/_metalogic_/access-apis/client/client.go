@@ -3,6 +3,7 @@ package client
 import (
 	"crypto/tls"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 
@@ -15,10 +16,11 @@ type Client struct {
 	apiKey   string
 	client   *http.Client
 	baseURL  *url.URL
+	logger   *slog.Logger
 }
 
 // TODO add options allowing specification of custom timeout, insecure etc
-func New(rootURL, tenantID, apiKey string, insecure bool) (client *Client, err error) {
+func New(rootURL, tenantID, apiKey string, insecure bool, logger *slog.Logger) (client *Client, err error) {
 
 	httpClient := &http.Client{
 		Timeout: http.DefaultClient.Timeout,
@@ -44,5 +46,11 @@ func New(rootURL, tenantID, apiKey string, insecure bool) (client *Client, err e
 		apiKey:   apiKey,
 		client:   httpClient,
 		baseURL:  baseURL,
+		logger:   logger,
 	}, nil
+}
+
+func (c *Client) SetLogger(logger *slog.Logger) *slog.Logger {
+	c.logger = logger
+	return c.logger
 }

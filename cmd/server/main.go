@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"sync"
@@ -67,7 +68,7 @@ func init() {
 	}
 
 	accessURL := config.IfGetenv("ACCESS_APIS_ROOT_URL", "https://apis.metalogicsoftware.ca")
-	accessClient, err = client.New(accessURL, config.MustGetenv("ACCESS_APIS_TENANT_ID"), config.MustGetenv("ACCESS_APIS_TENANT_KEY"), config.IfGetBool("INSECURE_SKIP_VERIFY", true))
+	accessClient, err = client.New(accessURL, config.MustGetenv("ACCESS_APIS_TENANT_ID"), config.MustGetenv("ACCESS_APIS_TENANT_KEY"), config.IfGetBool("INSECURE_SKIP_VERIFY", true), slog.Default())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -94,14 +95,19 @@ func main() {
 	userHeader := config.IfGetenv("USER_HEADER_NAME", "X-User-Header")
 	traceHeader := config.IfGetenv("TRACE_HEADER_NAME", "X-Trace-Header")
 
+	var logger *slog.Logger
 	if levelFlg == log.None {
 		loglevel := os.Getenv("LOG_LEVEL")
 		if loglevel == "DEBUG" {
-			log.SetLevel(log.DebugLevel)
+			logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 		}
 	} else {
-		log.SetLevel(levelFlg)
+		// TODO fix for different log levels - logger = slog.New(slog.NewJSONHandler(os.Stderr, nil))
+		logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	}
+
+	slog.SetDefault(logger)
+	accessClient.SetLogger(logger)
 
 	if disableFlg {
 		runMode = "noAuth"

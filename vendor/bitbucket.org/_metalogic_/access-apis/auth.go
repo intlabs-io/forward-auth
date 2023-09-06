@@ -2,17 +2,19 @@ package acc
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
+	authn "bitbucket.org/_metalogic_/authenticate"
 	"github.com/golang-jwt/jwt/v4"
 )
 
+// Credentials type
 type Credentials struct {
 	Password string `json:"password"`
 	Email    string `json:"email"`
 }
 
-// Credentials type
 type LoginRequest struct {
 	Password string `json:"password"`
 	Email    string `json:"email"`
@@ -20,10 +22,18 @@ type LoginRequest struct {
 
 // Auth type returned by a successful authentication
 type Auth struct {
-	Identity   *Identity `json:"identity"`
-	JWT        string    `json:"jwt"`
-	JwtRefresh string    `json:"jwtRefresh"`
-	ExpiresAt  int64     `json:"expiresAt"`
+	Identity   *authn.Identity `json:"identity"`
+	JWT        string          `json:"jwt"`
+	JwtRefresh string          `json:"jwtRefresh"`
+	ExpiresAt  int64           `json:"expiresAt"`
+}
+
+func (auth *Auth) JSON() string {
+	b, err := json.Marshal(auth)
+	if err != nil {
+		return fmt.Sprintf(`{"error": "%s"}`, err)
+	}
+	return string(b)
 }
 
 // RSA key creation expects lifetime expressed in seconds for the JWT and refresh tokens
@@ -38,20 +48,22 @@ type RefreshToken struct {
 }
 
 // Identity type
-type Identity struct {
-	TID             *string          `json:"tid"`
-	UID             *string          `json:"uid"`
-	Name            *string          `json:"name"`
-	Email           *string          `json:"email"`
-	Superuser       bool             `json:"superuser"`
-	Classification  *Classification  `json:"classification"`
-	UserPermissions []UserPermission `json:"userPerms"`
-}
+// TODO replace with authn.Identity
+// type Identity struct {
+// 	TID             *string          `json:"tid"`
+// 	UID             *string          `json:"uid"`
+// 	Name            *string          `json:"name"`
+// 	Email           *string          `json:"email"`
+// 	Superuser       bool             `json:"superuser"`
+// 	Classification  *Classification  `json:"classification"`
+// 	UserPermissions []UserPermission `json:"userPerms"`
+// }
 
-type Classification struct {
-	Authority string `json:"authority"`
-	Level     string `json:"level"`
-}
+// TODO replace with authn.Classification
+// type Classification struct {
+// 	Authority string `json:"authority"`
+// 	Level     string `json:"level"`
+// }
 
 /******************************
  * User registrations
@@ -127,29 +139,31 @@ type Contact struct {
 	Reference   json.RawMessage `json:"reference"`
 }
 
-type Role struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
+// type Role struct {
+// 	Name        string `json:"name"`
+// 	Description string `json:"description"`
+// }
 
-type UserRole struct {
-	Name    string `json:"name"`
-	Context string `json:"context"`
-}
+// type UserRole struct {
+// 	Name    string `json:"name"`
+// 	Context string `json:"context"`
+// }
 
 // UserPermission defines the permissions of a tenant user
-type UserPermission struct {
-	Context     string       `json:"context"`
-	Permissions []Permission `json:"permissions"`
-}
+// TODO replace with authn.UserPermission
+// type UserPermission struct {
+// 	Context     string       `json:"context"`
+// 	Permissions []Permission `json:"permissions"`
+// }
 
 // [{"permissions":{"context": "5273d8a1-6bbd-4ccd-9bda-8340acb8cfe9", "permissions": [{"actions": ["ALL"], "categoryCode": "CONTENT"}, {"actions": ["ALL"], "categoryCode": "MEDIA"}]}}]
 
 // Permission type
-type Permission struct {
-	Category string   `json:"categoryCode"`
-	Actions  []string `json:"actions"`
-}
+// TODO replace with authn.Permission
+// type Permission struct {
+// 	Category string   `json:"categoryCode"`
+// 	Actions  []string `json:"actions"`
+// }
 
 // User info to invite
 type InviteUserRequest struct {
@@ -173,7 +187,7 @@ type InvitationRequest struct {
 
 // Claims type
 type Claims struct {
-	Identity *Identity `json:"identity"`
+	Identity *authn.Identity `json:"identity"`
 	jwt.RegisteredClaims
 	AuthClaims
 }
@@ -197,7 +211,7 @@ type AuthClaims struct {
 
 // ClaimsResponse type
 type ClaimsResponse struct {
-	Identity *Identity `json:"identity"`
+	Identity *authn.Identity `json:"identity"`
 	jwt.RegisteredClaims
 	AuthClaims
 }

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	acc "bitbucket.org/_metalogic_/access-apis"
+	authn "bitbucket.org/_metalogic_/authenticate"
 
 	"bitbucket.org/_metalogic_/config"
 	"bitbucket.org/_metalogic_/eval"
@@ -145,9 +147,17 @@ func (auth *Auth) CreateSession(a *acc.Auth, reset bool) (id string, expiresAt t
 	} else {
 		id = uuid.New().String()
 	}
+
+	slog.Debug("creating session", "auth", a.JSON())
+
+	if a.Identity == nil {
+		slog.Error("auth returned empty identity")
+		return id, time.Time{}
+	}
+
 	auth.sessions[id] = session{
 		auth:         a,
-		uid:          *a.Identity.UID,
+		uid:          a.Identity.UserID,
 		jwtToken:     a.JWT,
 		refreshToken: a.JwtRefresh,
 		expiry:       a.ExpiresAt,
@@ -157,7 +167,7 @@ func (auth *Auth) CreateSession(a *acc.Auth, reset bool) (id string, expiresAt t
 
 func (auth *Auth) UpdateSession(id string, a *acc.Auth) (expiresAt time.Time) {
 	auth.sessions[id] = session{
-		uid:          *a.Identity.UID,
+		uid:          a.Identity.UserID,
 		jwtToken:     a.JWT,
 		refreshToken: a.JwtRefresh,
 		expiry:       a.ExpiresAt,
@@ -207,7 +217,7 @@ func (auth *Auth) CheckJWT(jwt, context, action, category string) (allow bool) {
 	}
 
 	var err error
-	var identity *Identity
+	var identity *authn.Identity
 	if identity, err = jwtIdentity(jwt, auth); err != nil {
 		log.Errorf("JWT found in request is invalid: %s", err)
 		return false
@@ -217,12 +227,12 @@ func (auth *Auth) CheckJWT(jwt, context, action, category string) (allow bool) {
 
 	// superuser only applies in the tenant of the user
 	if identity.Superuser {
-		if identity.TID != nil && *identity.TID == auth.owner.UID {
+		if identity.TenantID == auth.owner.UID {
 			return true
 		}
 	}
 
-	log.Debugf("evaluating user permissions: %+v", identity.UserPermissions)
+	log.Debugf("evaluating user permissions: %+v", identity.Permissions)
 
 	// example:
 	// [
@@ -230,26 +240,25 @@ func (auth *Auth) CheckJWT(jwt, context, action, category string) (allow bool) {
 	//  {Context:5273d8a1-6bbd-4ccd-9bda-8340acb8cfe9 Permissions:[{Category:CONTENT Actions:[ALL]} {Category:MEDIA Actions:[ALL]}]},
 	//  {Context:ccd660fc-5680-44b2-a570-17cf8229f694 Permissions:[{Category:ANY Actions:[ALL]}]}
 	// ]
-	for _, up := range identity.UserPermissions {
+	for _, up := range identity.Permissions {
 		log.Debugf("evaluating permission context %s against %s", up.Context, context)
 		if up.Context == ALL || up.Context == context {
-			for _, perm := range up.Permissions {
-				log.Debugf("evaluating permission category %s against category %s", perm.Category, category)
-				if perm.Category == ANY || perm.Category == category {
-					for _, a := range perm.Actions {
-						log.Debugf("evaluating permission action %s against action %s", a, action)
-						if a == ALL || a == action {
-							return true
-						}
-					}
+			// log.Debugf("evaluating permission category %s against category %s", perm.Category, category)
+			actions := up.CategoryActions[ANY]
+			actions = append(actions, up.CategoryActions[category]...)
+			for _, a := range actions {
+				log.Debugf("evaluating permission action %s against action %s", a, action)
+				if a == ALL || a == action {
+					return true
 				}
 			}
 		}
 	}
+
 	return false
 }
 
-func (auth *Auth) JWTIdentity(tknStr string) (identity *Identity, err error) {
+func (auth *Auth) JWTIdentity(tknStr string) (identity *authn.Identity, err error) {
 	return jwtIdentity(tknStr, auth)
 }
 
@@ -261,7 +270,7 @@ func (auth *Auth) Superuser(jwt string) bool {
 	}
 
 	var err error
-	var identity *Identity
+	var identity *authn.Identity
 	if identity, err = jwtIdentity(jwt, auth); err != nil {
 		log.Errorf("JWT found in request is invalid: %s", err)
 		return false
@@ -271,7 +280,7 @@ func (auth *Auth) Superuser(jwt string) bool {
 
 	// superuser only applies in the tenant of the user
 	if identity.Superuser {
-		if identity.TID != nil && *identity.TID == auth.owner.UID {
+		if identity.TenantID == auth.owner.UID {
 			return true
 		}
 	}
@@ -280,13 +289,13 @@ func (auth *Auth) Superuser(jwt string) bool {
 }
 
 // Classification returns the user classication object
-func (auth *Auth) Classification(jwt string) *Classification {
+func (auth *Auth) Classification(jwt string) *authn.Classification {
 	if jwt == "" {
 		return nil
 	}
 
 	var err error
-	var identity *Identity
+	var identity *authn.Identity
 	if identity, err = jwtIdentity(jwt, auth); err != nil {
 		log.Errorf("JWT found in request is invalid: %s", err)
 		return nil
@@ -312,12 +321,12 @@ func (auth *Auth) Identity(jwt string) error {
 		return fmt.Errorf("no identity found in JWT: %s", jwt)
 	}
 
-	if identity.TID == nil {
+	if identity.TenantID == "" {
 		return fmt.Errorf("tenant ID in JWT cannot be nil")
 	}
 
-	if *identity.TID != auth.owner.UID {
-		return fmt.Errorf("tenant ID (%s) in JWT does not match owner (%s)", *identity.TID, auth.owner.UID)
+	if identity.TenantID != auth.owner.UID {
+		return fmt.Errorf("tenant ID (%s) in JWT does not match owner (%s)", identity.TenantID, auth.owner.UID)
 	}
 
 	log.Debugf("identity found in JWT: %+v", *identity)
@@ -332,7 +341,7 @@ func (auth *Auth) User(jwt string) (uid string) {
 	}
 
 	var err error
-	var identity *Identity
+	var identity *authn.Identity
 	if identity, err = jwtIdentity(jwt, auth); err != nil {
 		log.Errorf("JWT found in request is invalid: %s", err)
 		return uid
@@ -345,7 +354,7 @@ func (auth *Auth) User(jwt string) (uid string) {
 
 	log.Debugf("identity found in JWT: %+v", *identity)
 
-	return *identity.UID
+	return identity.UserID
 }
 
 type EmailRequest struct {
@@ -416,11 +425,11 @@ type Permission struct {
 	Actions  []string `json:"actions"`
 }
 
-func jwtIdentity(tknStr string, auth *Auth) (identity *Identity, err error) {
+func jwtIdentity(tknStr string, auth *Auth) (identity *authn.Identity, err error) {
 
 	// Claims type
 	type Claims struct {
-		Identity *Identity `json:"identity"`
+		Identity *authn.Identity `json:"identity"`
 		jwt.RegisteredClaims
 	}
 	// Initialize a new instance of `Claims`

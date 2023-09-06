@@ -9,7 +9,6 @@ import (
 
 	auth "bitbucket.org/_metalogic_/access-apis"
 	. "bitbucket.org/_metalogic_/glib/http"
-	"bitbucket.org/_metalogic_/log"
 )
 
 /******************************************
@@ -108,7 +107,7 @@ func (c *Client) GetContexts() (u []auth.ContextResponse, err error) {
 
 func (c *Client) GetContextsRaw() (contextsJSON []byte, err error) {
 
-	log.Debugf("executing tenant get contexts")
+	c.logger.Debug("executing tenant get contexts")
 
 	req, err := c.contextsRequest()
 	if err != nil {
@@ -149,7 +148,7 @@ func (c *Client) GetContext(uid string) (u *auth.ContextResponse, err error) {
 
 func (c *Client) GetContextRaw(uid string) (contextJSON []byte, err error) {
 
-	log.Debugf("executing tenant get context %s", uid)
+	c.logger.Debug("executing tenant get context", "uid", uid)
 
 	req, err := c.contextRequest(uid)
 	if err != nil {
@@ -175,7 +174,7 @@ func (c *Client) GetContextRaw(uid string) (contextJSON []byte, err error) {
 
 func (c *Client) CreateContext(email, password string, supercontext bool) (u *auth.ContextResponse, err error) {
 
-	log.Debugf("executing tenant create context %s", email)
+	c.logger.Debug("executing tenant create context", "email", email)
 
 	var contextData = []byte(fmt.Sprintf(`{
 		"email": "%s",
@@ -224,7 +223,7 @@ func (c *Client) CreateContextRaw(body io.ReadCloser) (contextData []byte, err e
 		e := &ErrorResponse{}
 		err = json.Unmarshal(errorData, &e)
 		if err != nil {
-			log.Errorf("failed to unmarshal error response %s", err)
+			c.logger.Error("failed to unmarshal error response", "error", err)
 			return contextData, fmt.Errorf("create context request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
 
 		}
@@ -241,7 +240,7 @@ func (c *Client) CreateContextRaw(body io.ReadCloser) (contextData []byte, err e
 
 func (c *Client) UpdateContext(uid, status, comment string, supercontext bool) (u *auth.ContextResponse, err error) {
 
-	log.Debugf("executing tenant update context %s", uid)
+	c.logger.Debug("executing tenant update context", "uid", uid)
 
 	var contextData = []byte(fmt.Sprintf(`{
 		"status": "%s",
@@ -310,7 +309,7 @@ func (c *Client) DeleteContext(uid string) (ok bool, err error) {
 
 func (c *Client) DeleteContextRaw(uid string) (deleteJSON []byte, err error) {
 
-	log.Debugf("executing tenant delete context %s", uid)
+	c.logger.Debug("executing tenant delete context", "uid", uid)
 
 	req, err := c.deleteContextRequest(uid)
 	if err != nil {
