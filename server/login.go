@@ -29,6 +29,12 @@ import (
 func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
+		token := fauth.Bearer(r)
+		if token == "" {
+			ErrJSON(w, NewBadRequestError("login requires a valid client bearer token"))
+			return
+		}
+
 		decoder := json.NewDecoder(r.Body)
 
 		type Login struct {
@@ -63,7 +69,7 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 			return
 		}
 
-		id, expiresAt := svc.CreateSession(a, false)
+		id, expiresAt := svc.CreateSession(a, token, false)
 
 		setSessionID(w, sessionMode, sessionName, id, expiresAt)
 
@@ -85,11 +91,17 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 func Logout(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
+		token := fauth.Bearer(r)
+		if token == "" {
+			ErrJSON(w, NewBadRequestError("logout requires a valid client bearer token"))
+			return
+		}
+
 		if id, err := invalidateSessionID(w, r, sessionMode, sessionName); err != nil {
 			ErrJSON(w, fmt.Errorf("error logging out session id %s: %s", id, err))
 			return
 		} else {
-			svc.DeleteSession(id)
+			svc.DeleteSession(token, id)
 			MsgJSON(w, fmt.Sprintf("logged out session with id %s", id))
 		}
 	}
@@ -107,14 +119,11 @@ func Logout(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params
 // @Failure 500 {object} ErrorResponse
 func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		// cookie, err := r.Cookie(sessionName)
-
-		// if err != nil {
-		// 	ErrJSON(w, NewBadRequestError(fmt.Sprintf("session cookie '%s' not found in request", sessionName)))
-		// 	return
-		// }
-
-		// id := cookie.Value
+		token := fauth.Bearer(r)
+		if token == "" {
+			ErrJSON(w, NewBadRequestError("refresh requires a valid client bearer token"))
+			return
+		}
 
 		id, err := sessionID(r, sessionMode, sessionName)
 		if err != nil {
@@ -122,7 +131,7 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 			return
 		}
 
-		sess, err := svc.Session(id)
+		sess, err := svc.Session(token, id)
 		if err != nil {
 			ErrJSON(w, NewBadRequestError(fmt.Sprintf("session id '%s' not found", id)))
 			return
@@ -150,19 +159,9 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 			return
 		}
 
-		expiresAt := svc.UpdateSession(id, a)
+		expiresAt := svc.UpdateSession(id, a, token)
 
 		setSessionID(w, sessionMode, sessionName, id, expiresAt)
-
-		// // set updated cookie in response and return user identity JSON
-		// cookie = &http.Cookie{
-		// 	Name:     sessionName,
-		// 	Value:    id,
-		// 	Domain:   cookieDomain,
-		// 	Expires:  time.Unix(a.ExpiresAt, 0),
-		// 	HttpOnly: true,
-		// }
-		// http.SetCookie(w, cookie)
 
 		OkJSON(w, string(data))
 	}
@@ -179,7 +178,13 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 // @Failure 500 {object} ErrorResponse
 func Sessions(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		OkJSON(w, svc.Sessions())
+		token := fauth.Bearer(r)
+		if token == "" {
+			ErrJSON(w, NewBadRequestError("sessions requires a valid client bearer token"))
+			return
+		}
+
+		OkJSON(w, svc.Sessions(token))
 	}
 }
 
@@ -195,8 +200,9 @@ func Sessions(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, para
 // TODO return session details (should we do this?)
 func Session(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		token := fauth.Bearer(r)
 		sid := params["sid"]
-		session, err := svc.Session(sid)
+		session, err := svc.Session(token, sid)
 		if err != nil {
 			ErrJSON(w, err)
 			return
@@ -475,7 +481,9 @@ func StartPasswordReset(svc *fauth.Auth, client *client.Client) func(w http.Resp
 			return
 		}
 
-		id, expiresAt := svc.CreateSession(ident, true)
+		token := fauth.Bearer(r)
+
+		id, expiresAt := svc.CreateSession(ident, token, true)
 
 		// id is a 6 digit string emailed to the user
 

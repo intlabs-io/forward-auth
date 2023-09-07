@@ -66,7 +66,7 @@ type Auth struct {
 	jwtHeader    string
 	keyFunc      func(token *jwt.Token) (interface{}, error)
 	owner        Owner
-	sessions     map[string]session
+	sessions     map[string]map[string]session // app => app sessions
 	publicKeys   map[string]*rsa.PublicKey
 	tokens       map[string]string
 	blocks       map[string]bool
@@ -110,7 +110,7 @@ func NewAuth(acs *AccessSystem, rootOverride bool, sessionMode, sessionName, jwt
 		sessionMode:  sessionMode,
 		sessionName:  sessionName,
 		jwtHeader:    jwtHeader,
-		sessions:     make(map[string]session),
+		sessions:     make(map[string]map[string]session),
 		hostMuxers:   make(map[string]*pat.HostMux),
 		owner:        acs.Owner,
 		publicKeys:   make(map[string]*rsa.PublicKey),
@@ -141,32 +141,53 @@ func NewAuth(acs *AccessSystem, rootOverride bool, sessionMode, sessionName, jwt
 	return auth, nil
 }
 
-func (auth *Auth) CreateSession(a *acc.Auth, reset bool) (id string, expiresAt time.Time) {
+func (auth *Auth) CreateSession(a *acc.Auth, token string, reset bool) (id string, expiresAt time.Time) {
+	app, ok := auth.tokens[token]
+	if !ok {
+		return id, time.Time{}
+	}
+
 	if reset {
 		id = genstr.Number(6)
 	} else {
 		id = uuid.New().String()
 	}
 
-	slog.Debug("creating session", "auth", a.JSON())
-
 	if a.Identity == nil {
 		slog.Error("auth returned empty identity")
 		return id, time.Time{}
 	}
 
-	auth.sessions[id] = session{
+	slog.Debug(fmt.Sprintf("creating %s session", app), "auth", a.JSON())
+
+	if _, ok := auth.sessions[app]; !ok {
+		auth.sessions[app] = make(map[string]session)
+	}
+
+	auth.sessions[app][id] = session{
 		auth:         a,
 		uid:          a.Identity.UserID,
 		jwtToken:     a.JWT,
 		refreshToken: a.JwtRefresh,
 		expiry:       a.ExpiresAt,
 	}
+
 	return id, time.Unix(a.ExpiresAt, 0)
 }
 
-func (auth *Auth) UpdateSession(id string, a *acc.Auth) (expiresAt time.Time) {
-	auth.sessions[id] = session{
+// TODO return error if app session and id not found
+func (auth *Auth) UpdateSession(id string, a *acc.Auth, token string) (expiresAt time.Time) {
+	app, ok := auth.tokens[token]
+	if !ok {
+		return time.Time{}
+	}
+
+	sessions, ok := auth.sessions[app]
+	if !ok {
+		return time.Time{}
+	}
+
+	sessions[id] = session{
 		uid:          a.Identity.UserID,
 		jwtToken:     a.JWT,
 		refreshToken: a.JwtRefresh,
@@ -175,27 +196,58 @@ func (auth *Auth) UpdateSession(id string, a *acc.Auth) (expiresAt time.Time) {
 	return time.Unix(a.ExpiresAt, 0)
 }
 
-func (auth *Auth) Sessions() (sessionsJSON string) {
-	sessions := make([]string, 0)
-	for id, sess := range auth.sessions {
+func (auth *Auth) Sessions(token string) (sessionsJSON string) {
+
+	app, ok := auth.tokens[token]
+	if !ok {
+		return sessionsJSON
+	}
+
+	sessions, ok := auth.sessions[app]
+	if !ok {
+		return sessionsJSON
+	}
+
+	list := make([]string, 0)
+	for id, sess := range sessions {
 		if !sess.IsExpired() {
-			sessions = append(sessions, id)
+			list = append(list, id)
 		}
 	}
-	data, _ := json.Marshal(sessions)
+	data, _ := json.Marshal(list)
 	return string(data)
 }
 
-func (auth *Auth) Session(id string) (s session, err error) {
-	s, ok := auth.sessions[id]
+func (auth *Auth) Session(token, id string) (s session, err error) {
+	app, ok := auth.tokens[token]
+	if !ok {
+		return s, fmt.Errorf("session requires a valid client bearer token")
+	}
+
+	sessions, ok := auth.sessions[app]
+	if !ok {
+		return s, fmt.Errorf("app sessions not found for %s", app)
+	}
+
+	s, ok = sessions[id]
 	if !ok {
 		return s, fmt.Errorf("session not found for session id %s", id)
 	}
 	return s, nil
 }
 
-func (auth *Auth) DeleteSession(id string) {
-	delete(auth.sessions, id)
+func (auth *Auth) DeleteSession(token, id string) {
+	app, ok := auth.tokens[token]
+	if !ok {
+		return
+	}
+
+	sessions, ok := auth.sessions[app]
+	if !ok {
+		return
+	}
+
+	delete(sessions, id)
 }
 
 // CheckBearerAuth checks for token in list of tokens returning true if found
@@ -511,7 +563,11 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 
 		var jwt string
 		if mustAuth {
-			log.Debugf("MustAuth rule requires valid user session")
+			app, ok := auth.tokens[token]
+			if !ok {
+				return http.StatusUnauthorized, "MustAuth requires a client session but none present", username
+			}
+
 			id, err := getSessionID(header, auth.sessionMode, auth.sessionName)
 			if err != nil {
 				jwt = header.Get(auth.jwtHeader)
@@ -522,7 +578,7 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 
 			log.Debugf("using session id %s", id)
 
-			sess, ok := auth.sessions[id]
+			sess, ok := auth.sessions[app][id]
 			if !ok {
 				log.Debugf("rule requires authentication but there is no session with id %s, %s", id, username)
 				return http.StatusUnauthorized, "rule requires authentication but there is no session with id " + id, username
@@ -905,4 +961,19 @@ func loadPublicKey(keyData []byte) (*rsa.PublicKey, error) {
 	}
 
 	return key.(*rsa.PublicKey), nil
+}
+
+func Bearer(req *http.Request) (token string) {
+	// Request Headers
+	authHeader := req.Header.Get("Authorization")
+
+	if authHeader != "" {
+		// Get the Bearer auth token
+		splitToken := strings.Split(authHeader, "Bearer ")
+		if len(splitToken) == 2 {
+			token = splitToken[1]
+			strings.TrimSpace(token)
+		}
+	}
+	return token
 }

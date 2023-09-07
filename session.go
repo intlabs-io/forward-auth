@@ -4,9 +4,14 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	"log/slog"
 )
 
 func getSessionID(header http.Header, sessionMode, sessionName string) (id string, err error) {
+
+	slog.Debug(fmt.Sprintf("getting session ID by %s mode, name %s", sessionMode, sessionName))
+
 	switch strings.ToLower(sessionMode) {
 	case "cookie":
 		// Get the value of the "Cookie" header from the http.Header object
