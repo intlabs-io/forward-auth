@@ -17,10 +17,6 @@ type Session struct {
 	Expiry     int64  `json:"expiry"` // the expiry time in Unix seconds of the JWT
 }
 
-func (s Session) UID() string {
-	return s.UserID
-}
-
 func (s *Session) IsExpired() bool {
 	return time.Unix(s.Expiry, 0).Before(time.Now())
 }
