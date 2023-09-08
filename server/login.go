@@ -57,13 +57,13 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 			return
 		}
 
-		a, err := c.Login(login.Email, login.Password)
+		auth, err := c.Login(login.Email, login.Password)
 		if err != nil {
 			ErrJSON(w, NewUnauthorizedError(fmt.Sprintf("user login failed for %s: ", login.Email)))
 			return
 		}
 
-		identity, err := svc.JWTIdentity(a.JWT)
+		identity, err := svc.JWTIdentity(auth.JWT)
 		if err != nil {
 			ErrJSON(w, NewServerError("failed to parse identity from login response: "+err.Error()))
 			return
@@ -75,7 +75,7 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 			return
 		}
 
-		sessionID, expiresAt := svc.CreateSession(token, a.JWT, a.JWT, a.ExpiresAt, false)
+		sessionID, expiresAt := svc.CreateSession(token, auth.JWT, auth.JWTRefresh, auth.ExpiresAt, false)
 
 		setSessionID(w, sessionMode, sessionName, sessionID, expiresAt)
 
@@ -153,13 +153,13 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 			ErrJSON(w, NewServerError("failed to create access-apis client: "+err.Error()))
 			return
 		}
-		a, err := c.Refresh(sess.UserID, sess.JWTRefresh)
+		auth, err := c.Refresh(sess.UserID, sess.JWTRefresh)
 		if err != nil {
 			ErrJSON(w, NewUnauthorizedError(fmt.Sprintf("refresh failed for UID %s", sess.UserID)))
 			return
 		}
 
-		identity, err := svc.JWTIdentity(a.JWT)
+		identity, err := svc.JWTIdentity(auth.JWT)
 		if err != nil {
 			ErrJSON(w, NewServerError("failed to parse identity from login response: "+err.Error()))
 			return
@@ -176,7 +176,7 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 			return
 		}
 
-		expiresAt := svc.UpdateSession(id, token, a.JWT, a.JWTRefresh, a.ExpiresAt)
+		expiresAt := svc.UpdateSession(id, token, auth.JWT, auth.JWTRefresh, auth.ExpiresAt)
 
 		setSessionID(w, sessionMode, sessionName, id, expiresAt)
 
@@ -491,13 +491,13 @@ func SetPassword(svc *fauth.Auth, client *client.Client) func(w http.ResponseWri
 func StartPasswordReset(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
-		ident, err := client.StartPasswordResetRaw(r.Body)
+		auth, err := client.StartPasswordResetRaw(r.Body)
 		if err != nil {
 			ErrJSON(w, err)
 			return
 		}
 
-		identity, err := svc.JWTIdentity(ident.JWT)
+		identity, err := svc.JWTIdentity(auth.JWT)
 		if err != nil {
 			ErrJSON(w, NewServerError("failed to parse identity from JWT"))
 			return
@@ -505,7 +505,7 @@ func StartPasswordReset(svc *fauth.Auth, client *client.Client) func(w http.Resp
 
 		token := fauth.Bearer(r)
 
-		id, expiresAt := svc.CreateSession(token, ident.JWT, ident.JWTRefresh, ident.ExpiresAt, true)
+		id, expiresAt := svc.CreateSession(token, auth.JWT, auth.JWTRefresh, auth.ExpiresAt, true)
 
 		// id is a 6 digit string emailed to the user
 
