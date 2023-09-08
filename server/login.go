@@ -176,7 +176,7 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 			return
 		}
 
-		expiresAt := svc.UpdateSession(id, token, a.JWT, a.JwtRefresh, a.ExpiresAt)
+		expiresAt := svc.UpdateSession(id, token, a.JWT, a.JWTRefresh, a.ExpiresAt)
 
 		setSessionID(w, sessionMode, sessionName, id, expiresAt)
 
@@ -505,7 +505,7 @@ func StartPasswordReset(svc *fauth.Auth, client *client.Client) func(w http.Resp
 
 		token := fauth.Bearer(r)
 
-		id, expiresAt := svc.CreateSession(token, ident.JWT, ident.JwtRefresh, ident.ExpiresAt, true)
+		id, expiresAt := svc.CreateSession(token, ident.JWT, ident.JWTRefresh, ident.ExpiresAt, true)
 
 		// id is a 6 digit string emailed to the user
 
