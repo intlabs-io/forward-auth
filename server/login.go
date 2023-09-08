@@ -17,7 +17,7 @@ import (
 	"bitbucket.org/_metalogic_/log"
 )
 
-// @Tags User endpoints
+// @Tags Session endpoints
 // @Summary executes a user login against the access-api
 // @Description executes a user login against the access-api
 // @ID login
@@ -31,7 +31,7 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 
 		token := fauth.Bearer(r)
 		if token == "" {
-			ErrJSON(w, NewBadRequestError("login requires a valid client bearer token"))
+			ErrJSON(w, NewBadRequestError("login requires a valid application bearer token"))
 			return
 		}
 
@@ -85,7 +85,7 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 	}
 }
 
-// @Tags User endpoints
+// @Tags Session endpoints
 // @Summary executes a logout for the attached session token
 // @Description executes a logout for the attached session token
 // @ID logout
@@ -99,7 +99,7 @@ func Logout(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params
 
 		token := fauth.Bearer(r)
 		if token == "" {
-			ErrJSON(w, NewBadRequestError("logout requires a valid client bearer token"))
+			ErrJSON(w, NewBadRequestError("logout requires a valid application bearer token"))
 			return
 		}
 
@@ -113,7 +113,7 @@ func Logout(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params
 	}
 }
 
-// @Tags User endpoints
+// @Tags Session endpoints
 // @Summary executes a refresh for the attached session token
 // @Description executes a refresh for the attached session token by doing
 // @Description a refresh request against the access-apis with the session refreshToken
@@ -127,7 +127,7 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		token := fauth.Bearer(r)
 		if token == "" {
-			ErrJSON(w, NewBadRequestError("refresh requires a valid client bearer token"))
+			ErrJSON(w, NewBadRequestError("refresh requires a valid application bearer token"))
 			return
 		}
 
@@ -184,9 +184,9 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 	}
 }
 
-// @Tags User endpoints
-// @Summary returns a JSON array of active session IDs
-// @Description returns a JSON array of active session IDs
+// @Tags Session endpoints
+// @Summary returns a JSON array of active applications sessions
+// @Description returns a JSON array of active applications sessions
 // @ID sessions
 // @Produce json
 // @Success 200 {array} string
@@ -197,7 +197,7 @@ func Sessions(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, para
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		token := fauth.Bearer(r)
 		if token == "" {
-			ErrJSON(w, NewBadRequestError("sessions requires a valid client bearer token"))
+			ErrJSON(w, NewBadRequestError("sessions requires a valid application bearer token"))
 			return
 		}
 
@@ -205,8 +205,8 @@ func Sessions(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, para
 	}
 }
 
-// @Tags User endpoints
-// @Summary get session for a give session ID
+// @Tags Session endpoints
+// @Summary get session for a given session ID
 // @Description get session for a give session ID
 // @ID session
 // @Produce json
@@ -218,6 +218,11 @@ func Sessions(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, para
 func Session(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		token := fauth.Bearer(r)
+		if token == "" {
+			ErrJSON(w, NewBadRequestError("refresh session a valid application bearer token"))
+			return
+		}
+
 		sid := params["sid"]
 		session, err := svc.Session(token, sid)
 		if err != nil {
@@ -225,15 +230,10 @@ func Session(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 			return
 		}
 
+		// TODO allow query param for getting expired sessions
+
 		if session.IsExpired() {
 			ErrJSON(w, NewBadRequestError("session is expired"))
-			return
-		}
-
-		identity := session.Identity()
-		data, err := json.Marshal(identity)
-		if err != nil {
-			ErrJSON(w, NewServerError("failed to parse session Identity: "+err.Error()))
 			return
 		}
 
@@ -242,8 +242,8 @@ func Session(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 
 		log.Debugf("response headers: %+v", w.Header())
 
-		// return session Identity in response
-		OkJSON(w, string(data))
+		// return session JSON in respons
+		OkJSON(w, session.JSON())
 
 	}
 }

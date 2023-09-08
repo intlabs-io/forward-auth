@@ -75,7 +75,7 @@ type Auth struct {
 	sessionName  string
 	jwtHeader    string
 	keyFunc      func(token *jwt.Token) (interface{}, error)
-	sessions     map[string]map[string]session // app => app sessions
+	sessions     map[string]map[string]Session // app => app sessions
 	publicKeys   map[string]*rsa.PublicKey
 	tokens       map[string]string
 	blocks       map[string]bool
@@ -91,7 +91,7 @@ func NewAuth(acs *AccessSystem, rootOverride bool, sessionMode, sessionName, jwt
 		sessionMode:  sessionMode,
 		sessionName:  sessionName,
 		jwtHeader:    jwtHeader,
-		sessions:     make(map[string]map[string]session),
+		sessions:     make(map[string]map[string]Session),
 		hostMuxers:   make(map[string]*pat.HostMux),
 		owner:        acs.Owner,
 		publicKeys:   make(map[string]*rsa.PublicKey),
@@ -143,14 +143,14 @@ func (auth *Auth) CreateSession(token, jwtToken, refreshToken string, expiry int
 	slog.Debug("creating session", "app", app, "id", id, "user", identity.UserID)
 
 	if _, ok := auth.sessions[app]; !ok {
-		auth.sessions[app] = make(map[string]session)
+		auth.sessions[app] = make(map[string]Session)
 	}
 
-	auth.sessions[app][id] = session{
-		identity:     identity,
-		jwtToken:     jwtToken,
-		refreshToken: refreshToken,
-		expiry:       expiry,
+	auth.sessions[app][id] = Session{
+		UserID:          identity.UserID,
+		JWTToken:        jwtToken,
+		JWTRefreshToken: refreshToken,
+		Expiry:          expiry,
 	}
 
 	return id, time.Unix(expiry, 0)
@@ -174,11 +174,11 @@ func (auth *Auth) UpdateSession(id string, token, jwtToken, refreshToken string,
 		return time.Time{}
 	}
 
-	sessions[id] = session{
-		identity:     identity,
-		jwtToken:     jwtToken,
-		refreshToken: refreshToken,
-		expiry:       expiry,
+	sessions[id] = Session{
+		UserID:          identity.UserID,
+		JWTToken:        jwtToken,
+		JWTRefreshToken: refreshToken,
+		Expiry:          expiry,
 	}
 	return time.Unix(expiry, 0)
 }
@@ -205,7 +205,7 @@ func (auth *Auth) Sessions(token string) (sessionsJSON string) {
 	return string(data)
 }
 
-func (auth *Auth) Session(token, id string) (s session, err error) {
+func (auth *Auth) Session(token, id string) (s Session, err error) {
 	app, ok := auth.tokens[token]
 	if !ok {
 		return s, fmt.Errorf("session requires a valid client bearer token")
@@ -478,7 +478,7 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 			}
 
 			if sess.IsExpired() {
-				slog.Debug(fmt.Sprintf("rule requires authentication but session %s is expired %s", id, time.Unix(sess.expiry, 0).Format("2006-01-02 15:04:05")))
+				slog.Debug(fmt.Sprintf("rule requires authentication but session %s is expired %s", id, time.Unix(sess.Expiry, 0).Format("2006-01-02 15:04:05")))
 				return http.StatusUnauthorized, "rule requires authentication but session is expired", username
 			}
 
