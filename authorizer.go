@@ -43,33 +43,45 @@ const (
 )
 
 // Auth type holds data for authorization
+//   - owner is the owner of the current forward-auth deployment; if forward-auth is configured
+//     to use auth9.net for user authentication, the value of owner must agree with the tenant configured
+//     in auth9.net
+//   - runMode if set to "TEST" causes forward-auth to return its access decision in the body
+//     of a 4xx response; this prevents Traefik from forwarding requests that are otherwise authorized
+//     to the backend for processing
+//   - rootOverride is set to true causes forward-auth to authorize any request with accompanying root
+//     bearer token
+//   - sessionMode controls how session is sent with a requests (one of COOKIE or HEADER)
+//   - sessionName the name of the session in the request (either cookie name or header name, respectively)
 //   - jwtHeader is the name of the header containing the user's JWT
 //   - keyFunc is a function passed to JWT parse function to return the key for decrypting the JWT token
-//   - owner is the owner of the current forward-auth deployment
-//   - sessions is a map of session IDs to session objects containing user JWT tokens
+//   - sessions is a map of app IDs to app session mappings (mapping a session ID to a session object);
+//     session objects encapsulate user identity, JWT tokens and expiry time
 //   - publicKeys maps key names to their rsa.PublicKey value
 //   - tokens maps token values passed in a request to token names referenced in
-//     access control functions; eg: bearer(ROOT_KEY) returns true if the bearer
-//     auth token in the request maps to the token name ROOT_KEY
+//     access control functions; eg: bearer(ROOT_KEY) returns true if the bearer token
+//     in the request maps to the token name ROOT_KEY
 //   - blocks is a map of subjects (usernames, hostnames, IP addresses) to be denied
-//     access; subject names must be unique for all subjects
+//     access without further evaluation; subject names must be unique for all subjects within an app
+//   - hostMuxers TODO TODO
+//   - mutext is used to handle concurrent access to auth
 //
 // an instance of Auth is passed to handlers to drive authorization calculations
 type Auth struct {
+	owner        Owner
 	runMode      string
 	rootOverride bool
 	sessionMode  string
 	sessionName  string
 	jwtHeader    string
 	keyFunc      func(token *jwt.Token) (interface{}, error)
-	owner        Owner
 	sessions     map[string]map[string]session // app => app sessions
 	publicKeys   map[string]*rsa.PublicKey
 	tokens       map[string]string
 	blocks       map[string]bool
 	overrides    map[string]string
-	mutex        sync.RWMutex
 	hostMuxers   map[string]*pat.HostMux
+	mutex        sync.RWMutex
 }
 
 // NewAuth returns a new RSA Auth
