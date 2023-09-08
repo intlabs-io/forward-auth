@@ -166,7 +166,7 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 		}
 
 		if identity.UserID != sess.UID() {
-			ErrJSON(w, NewServerError("shouldn't: user in JWT disagrees with user session "+err.Error()))
+			ErrJSON(w, NewServerError("shouldn't: user in JWT disagrees with user in session "+err.Error()))
 			return
 		}
 
