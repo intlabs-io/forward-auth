@@ -1,23 +1,34 @@
 package authn
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+
+	"github.com/golang-jwt/jwt/v4"
 )
 
-// Identity encapsulates attributes used in user authorization
-//   - ID - the ID of this user (unique within tenant)
-//   - TID - the tenant ID of which this user is a member
+// Identity encapsulates attributes used in user authorization.
+//   - TenantID - the tenant ID of which this user is a member
+//   - UserID - the ID of this user (unique in tenant)
 //   - Name - a human readable name for user
-//   - Email - the main email address of the user (unique within tenant);
-//   - Superuser - whether the user is a superuser within tenant
-//   - Classification - seecurity classification of user
-//   - Permissions - permissions granted to user within tenant
+//   - Email - the main email address of the user (unique in tenant);
+//   - Superuser - whether the user is a superuser in tenant
+//   - Classification - seecurity classification of user in tenant
+//   - Permissions - permissions granted to user in tenant
 //
 // A user is granted one or more roles in a tenant. Roles
-// define categories to which action permissions are assigned. Identity permissions
-// represent the union of all permissions assigned by the user's roles and
-// are computed at the time the user is authenitcated. Changes to role permissions
+// define actions permission on categories. For example, an EDITOR
+// role might define the following actions on categories CONTENT and MEDIA
+//
+//	CONTENT: ["CREATE", "READ", "UPDATE", "DELETE"]
+//	MEDIA: ["READ"]
+//	etc
+//
+// Roles are assigned to a user in one ore more contexts (or domains).
+// User permissions are the union of all permissions assigned by the user's roles
+// and are computed at the time the user is authenticated. Changes to role permissions
 // will not take effect for the user until the next time the user authenticates.
 type Identity struct {
 	TenantID       string          `json:"tid"`
@@ -43,8 +54,45 @@ func (user *Identity) Username() (username string) {
 	return username
 }
 
-// CheckPermission returns true if user has action permission on category in the tenant
-func (user *Identity) CheckPermission(tenantID, context, action, category string) (allow bool) {
+func FromJWT(tknStr string, keyFunc jwt.Keyfunc) (identity *Identity, err error) {
+
+	// Claims type
+	type Claims struct {
+		Identity *Identity `json:"identity"`
+		jwt.RegisteredClaims
+	}
+	// Initialize a new instance of `Claims`
+	claims := &Claims{}
+
+	// Parse the JWT token and store the result in `claims`.
+	// Note that we are passing the key in this method as well. This method will return an error
+	// if the token is invalid (that is expired according to the expiry time set at sign in),
+	// or if the signature does not match
+	tkn, err := jwt.ParseWithClaims(tknStr, claims, keyFunc)
+
+	if err != nil {
+		slog.Error(err.Error())
+		return identity, err
+	}
+
+	if !tkn.Valid {
+		return identity, fmt.Errorf("JWT token in request is expired")
+	}
+
+	if slog.Default().Enabled(context.TODO(), slog.LevelDebug) {
+		m, err := json.Marshal(claims)
+		if err != nil {
+			slog.Error(fmt.Sprintf("failed to marshal claims: %+v", claims))
+		} else {
+			slog.Debug("marshaled JWT", "claims", m)
+		}
+	}
+
+	return claims.Identity, nil
+}
+
+// HasPermission returns true if user has action permission on category in tenant and context
+func (user *Identity) HasPermission(tenantID, context, action, category string) (allow bool) {
 
 	// if user is a superuser in the tenant then user has permission
 	if user.Superuser && user.TenantID == tenantID {
@@ -53,41 +101,24 @@ func (user *Identity) CheckPermission(tenantID, context, action, category string
 
 	slog.Debug(fmt.Sprintf("evaluating user permissions: %+v", user.Permissions))
 
-	// example user permissions list:
-	// [
-	//	 {
-	//     "context": "1b7c3bed-8472-4a54-9058-4154d345abf8",
-	//     "actions": {
-	//         "CONTENT": ["READ"],
-	//         "MEDIA": ["ANNOTATE", "READ"]
-	//      }
-	//   },
-	//   {
-	//      "context": "5273d8a1-6bbd-4ccd-9bda-8340acb8cfe9",
-	//      "actions": {
-	//          "CONTENT": ["ALL"],
-	//          "MEDIA": ["ALL"]
-	//      }
-	//   },
-	//   {
-	//      "context: "ccd660fc-5680-44b2-a570-17cf8229f694",
-	//      "actions": {
-	//          "ANY": ["ALL"]
-	//      }
-	//    }
-	// ]
+	actions := []string{}
 	for _, perm := range user.Permissions {
 		slog.Debug(fmt.Sprintf("evaluating permission context %s against %s", perm.Context, context))
-		if context == ContextsAll || context == perm.Context {
-			actions := append(perm.CategoryActions[CategoryAny], perm.CategoryActions[category]...)
-			slog.Debug(fmt.Sprintf("evaluating action %s against permitted actions %+v for category %s",
-				action, actions, category))
-			for _, a := range actions {
-				if a == ActionAll || a == action {
-					return true
-				}
-			}
-			return false
+		if perm.Context == ContextsAll || perm.Context == context {
+			actions = append(actions, perm.CategoryActions[CategoryAny]...)
+			actions = append(actions, perm.CategoryActions[category]...)
+		}
+	}
+
+	if len(actions) == 0 {
+		return false
+	}
+
+	slog.Debug(fmt.Sprintf("testing against allowed actions %+v", actions))
+
+	for _, a := range actions {
+		if a == ActionAll || a == action {
+			return true
 		}
 	}
 	return false
@@ -96,10 +127,10 @@ func (user *Identity) CheckPermission(tenantID, context, action, category string
 func (user *Identity) Contexts() []string {
 	contexts := make([]string, 0)
 	for _, perm := range user.Permissions {
-		if perm.Context == ContextsAll {
-			contexts = []string{ContextsAll}
-			break
-		}
+		// if perm.Context == ContextsAll {
+		// 	contexts = []string{ContextsAll}
+		// 	break
+		// }
 		contexts = append(contexts, perm.Context)
 	}
 	return contexts

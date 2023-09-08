@@ -63,15 +63,21 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 			return
 		}
 
-		data, err := json.Marshal(a.Identity)
+		identity, err := svc.JWTIdentity(a.JWT)
 		if err != nil {
-			ErrJSON(w, NewServerError("failed to parse login response as Auth.Identity: "+err.Error()))
+			ErrJSON(w, NewServerError("failed to parse identity from login response: "+err.Error()))
 			return
 		}
 
-		id, expiresAt := svc.CreateSession(a, token, false)
+		data, err := json.Marshal(identity)
+		if err != nil {
+			ErrJSON(w, NewServerError("shouldn't: failed to marshal identity: "+err.Error()))
+			return
+		}
 
-		setSessionID(w, sessionMode, sessionName, id, expiresAt)
+		sessionID, expiresAt := svc.CreateSession(token, a.JWT, a.JWT, a.ExpiresAt, false)
+
+		setSessionID(w, sessionMode, sessionName, sessionID, expiresAt)
 
 		log.Debugf("response headers: %+v", w.Header())
 
@@ -153,13 +159,24 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 			return
 		}
 
-		data, err := json.Marshal(a.Identity)
+		identity, err := svc.JWTIdentity(a.JWT)
 		if err != nil {
-			ErrJSON(w, NewServerError("failed to parse refresh response from access-apis as Auth.Identity: "+err.Error()))
+			ErrJSON(w, NewServerError("failed to parse identity from login response: "+err.Error()))
 			return
 		}
 
-		expiresAt := svc.UpdateSession(id, a, token)
+		if identity.UserID != sess.UID() {
+			ErrJSON(w, NewServerError("shouldn't: user in JWT disagrees with user session "+err.Error()))
+			return
+		}
+
+		data, err := json.Marshal(identity)
+		if err != nil {
+			ErrJSON(w, NewServerError("shouldn't: failed to marshal identity: "+err.Error()))
+			return
+		}
+
+		expiresAt := svc.UpdateSession(id, token, a.JWT, a.JwtRefresh, a.ExpiresAt)
 
 		setSessionID(w, sessionMode, sessionName, id, expiresAt)
 
@@ -213,16 +230,15 @@ func Session(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 			return
 		}
 
-		data, err := json.Marshal(session.Auth().Identity)
+		identity := session.Identity()
+		data, err := json.Marshal(identity)
 		if err != nil {
 			ErrJSON(w, NewServerError("failed to parse session Identity: "+err.Error()))
 			return
 		}
 
-		exp := time.Unix(session.Auth().ExpiresAt, 0)
-
 		// set session cookie
-		setSessionID(w, sessionMode, sessionName, sid, exp)
+		setSessionID(w, sessionMode, sessionName, sid, session.ExpiresAt())
 
 		log.Debugf("response headers: %+v", w.Header())
 
@@ -481,13 +497,19 @@ func StartPasswordReset(svc *fauth.Auth, client *client.Client) func(w http.Resp
 			return
 		}
 
+		identity, err := svc.JWTIdentity(ident.JWT)
+		if err != nil {
+			ErrJSON(w, NewServerError("failed to parse identity from JWT"))
+			return
+		}
+
 		token := fauth.Bearer(r)
 
-		id, expiresAt := svc.CreateSession(ident, token, true)
+		id, expiresAt := svc.CreateSession(token, ident.JWT, ident.JwtRefresh, ident.ExpiresAt, true)
 
 		// id is a 6 digit string emailed to the user
 
-		if err = sendEmail(ident.Identity.Email, "Password Reset Code", fmt.Sprintf("Reset Code: %s expiring at %s", id, expiresAt)); err != nil {
+		if err = sendEmail(identity.Email, "Password Reset Code", fmt.Sprintf("Reset Code: %s expiring at %s", id, expiresAt)); err != nil {
 			ErrJSON(w, err)
 			return
 		}
@@ -499,8 +521,8 @@ func StartPasswordReset(svc *fauth.Auth, client *client.Client) func(w http.Resp
 		}
 
 		reset := &resetResponse{
-			UID:   ident.Identity.UserID,
-			Email: ident.Identity.Email,
+			UID:   identity.UserID,
+			Email: identity.Email,
 			// Expiry: *ident.ExpiresAt,
 		}
 

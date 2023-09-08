@@ -10,6 +10,10 @@ import (
 	"bitbucket.org/_metalogic_/log"
 )
 
+// Client is a tenant client for access-apis.
+//   - rootURL  - the base URL for the tenants API. For example, /tenants-api/v1.
+//   - tenantID  - the ID of the tenant is used to construct all tenant API requests
+//     For example /tenants-api/v1/tenants/ACME.
 type Client struct {
 	rootURL  string
 	tenantID string

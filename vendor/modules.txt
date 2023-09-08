@@ -1,8 +1,8 @@
-# bitbucket.org/_metalogic_/access-apis v1.0.1-0.20230906180059-be45ca0c2ede
+# bitbucket.org/_metalogic_/access-apis v1.0.1-0.20230906180059-be45ca0c2ede => ../access-apis
 ## explicit; go 1.21.0
 bitbucket.org/_metalogic_/access-apis
 bitbucket.org/_metalogic_/access-apis/client
-# bitbucket.org/_metalogic_/authenticate v0.0.0-20230906175928-995ea4926f42
+# bitbucket.org/_metalogic_/authenticate v0.0.0-20230908112921-38de565418b6 => ../authenticate
 ## explicit; go 1.21.0
 bitbucket.org/_metalogic_/authenticate
 # bitbucket.org/_metalogic_/build v1.0.2
@@ -34,9 +34,6 @@ bitbucket.org/_metalogic_/httpsig
 # bitbucket.org/_metalogic_/httptreemux-swagger v1.1.0
 ## explicit; go 1.16
 bitbucket.org/_metalogic_/httptreemux-swagger
-# bitbucket.org/_metalogic_/ident v1.2.0
-## explicit; go 1.15
-bitbucket.org/_metalogic_/ident
 # bitbucket.org/_metalogic_/isatty v1.0.4
 ## explicit; go 1.15
 bitbucket.org/_metalogic_/isatty
@@ -167,3 +164,5 @@ golang.org/x/tools/internal/typeparams
 # gopkg.in/yaml.v2 v2.4.0
 ## explicit; go 1.15
 gopkg.in/yaml.v2
+# bitbucket.org/_metalogic_/authenticate => ../authenticate
+# bitbucket.org/_metalogic_/access-apis => ../access-apis

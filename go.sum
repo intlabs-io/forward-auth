@@ -1,7 +1,3 @@
-bitbucket.org/_metalogic_/access-apis v1.0.1-0.20230906180059-be45ca0c2ede h1:ZHZf4j8MX+RlGxTJGrkojUHPbQBaOgtVyVTLJ0dk39E=
-bitbucket.org/_metalogic_/access-apis v1.0.1-0.20230906180059-be45ca0c2ede/go.mod h1:5paB/i2avWZoRj8nuwwQnzNZV2z6H8RzE+5MppyH3UA=
-bitbucket.org/_metalogic_/authenticate v0.0.0-20230906175928-995ea4926f42 h1:0UlEj+3ktPgDzr7ezgLC/WKpXnCtKioSvU2Tw5mqixU=
-bitbucket.org/_metalogic_/authenticate v0.0.0-20230906175928-995ea4926f42/go.mod h1:fEsXKRrLc8CiMJc21BVXERsppfXOUtuTKM/gUBRKhYg=
 bitbucket.org/_metalogic_/build v1.0.2 h1:PWRm8PWhbnES+p3m6ejbMVD1UWTp2IfKOp5ijmeyirI=
 bitbucket.org/_metalogic_/build v1.0.2/go.mod h1:0+xDDYs1xwgMKr/Z6SYmQPU15+7sr/S8eQxsG/updig=
 bitbucket.org/_metalogic_/color v1.0.4 h1:CPsOhTyTKnJ00mONyxMxr2zyh+GK2rjkdnmzGDZFde4=
@@ -20,8 +16,6 @@ bitbucket.org/_metalogic_/httpsig v0.0.0-20211209010019-f2554fb89eae h1:uKfbgb5I
 bitbucket.org/_metalogic_/httpsig v0.0.0-20211209010019-f2554fb89eae/go.mod h1:iqk33QmUu06EfuYK8PSwPcAjGrTrqlxTyWRlMDyNcnQ=
 bitbucket.org/_metalogic_/httptreemux-swagger v1.1.0 h1:eiaUzDQ4MlKOwZ8f4UFmYNmFjMkHc+tQ2Z7rYVTb/YY=
 bitbucket.org/_metalogic_/httptreemux-swagger v1.1.0/go.mod h1:Lc1sWAvk8YAK4KGEhj2PnXn9lJ2++jpX1AzTFAUew3I=
-bitbucket.org/_metalogic_/ident v1.2.0 h1:+93FB9MmcGXPaxueAZdoibYbYCjrRfUuZNwbDvyks2g=
-bitbucket.org/_metalogic_/ident v1.2.0/go.mod h1:HqMCKM5Fw6LT0OG0FP3hPnK4m7l8qx/ghAQIiCwV5O0=
 bitbucket.org/_metalogic_/isatty v1.0.4 h1:L4PMTm1MR/jEgItkJheGHfjw7/6PDlgnc5hMG2c1j28=
 bitbucket.org/_metalogic_/isatty v1.0.4/go.mod h1:RuNRfBFSbwFXA86JDSaQh3jQZ4Qd7u4qFmK44xvKdm4=
 bitbucket.org/_metalogic_/log v1.4.1/go.mod h1:NfZyXZFE5zxW8/5BRNoTVT0pvFfHjVoaT221EL62niE=
@@ -74,7 +68,6 @@ github.com/go-openapi/swag v0.19.14/go.mod h1:QYRuS/SOXUCsnplDa677K7+DxSOj6IPNl/
 github.com/go-openapi/swag v0.19.15/go.mod h1:QYRuS/SOXUCsnplDa677K7+DxSOj6IPNl/eQntq43wQ=
 github.com/go-openapi/swag v0.21.1 h1:wm0rhTb5z7qpJRHBdPOMuY4QjVUMbF6/kwoYeRAOrKU=
 github.com/go-openapi/swag v0.21.1/go.mod h1:QYRuS/SOXUCsnplDa677K7+DxSOj6IPNl/eQntq43wQ=
-github.com/golang-jwt/jwt/v4 v4.4.2/go.mod h1:m21LjoU+eqJr34lmDMbreY2eSTRJ1cv77w39/MY0Ch0=
 github.com/golang-jwt/jwt/v4 v4.5.0 h1:7cYmW1XlMY7h7ii7UhUyChSgS5wUJEnm9uZVTGqOWzg=
 github.com/golang-jwt/jwt/v4 v4.5.0/go.mod h1:m21LjoU+eqJr34lmDMbreY2eSTRJ1cv77w39/MY0Ch0=
 github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe h1:lXe2qZdvpiX5WZkZR4hgp4KJVfY3nMkvmwbVkpv1rVY=

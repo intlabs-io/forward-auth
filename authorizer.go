@@ -14,15 +14,12 @@ import (
 	"sync"
 	"time"
 
-	acc "bitbucket.org/_metalogic_/access-apis"
 	authn "bitbucket.org/_metalogic_/authenticate"
 
 	"bitbucket.org/_metalogic_/config"
 	"bitbucket.org/_metalogic_/eval"
 	"bitbucket.org/_metalogic_/genstr"
 	"bitbucket.org/_metalogic_/httpsig"
-	"bitbucket.org/_metalogic_/ident"
-	"bitbucket.org/_metalogic_/log"
 	"bitbucket.org/_metalogic_/pat"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
@@ -76,19 +73,23 @@ type Auth struct {
 }
 
 type session struct {
-	auth         *acc.Auth
+	identity     *authn.Identity
 	uid          string // the uid of the session user
 	jwtToken     string
 	refreshToken string
 	expiry       int64 // the expiry time in Unix seconds of the JWT
 }
 
-func (s session) Auth() *acc.Auth {
-	return s.auth
-}
+// func (s session) Auth() *acc.Auth {
+// 	return s.auth
+// }
 
 func (s session) UID() string {
 	return s.uid
+}
+
+func (s session) Identity() *authn.Identity {
+	return s.identity
 }
 
 func (s *session) JWT() string {
@@ -101,6 +102,10 @@ func (s *session) RefreshJWT() string {
 
 func (s *session) IsExpired() bool {
 	return time.Unix(s.expiry, 0).Before(time.Now())
+}
+
+func (s *session) ExpiresAt() time.Time {
+	return time.Unix(s.expiry, 0)
 }
 
 // NewAuth returns a new RSA Auth
@@ -141,7 +146,7 @@ func NewAuth(acs *AccessSystem, rootOverride bool, sessionMode, sessionName, jwt
 	return auth, nil
 }
 
-func (auth *Auth) CreateSession(a *acc.Auth, token string, reset bool) (id string, expiresAt time.Time) {
+func (auth *Auth) CreateSession(token, jwtToken, refreshToken string, expiry int64, reset bool) (id string, expiresAt time.Time) {
 	app, ok := auth.tokens[token]
 	if !ok {
 		return id, time.Time{}
@@ -153,30 +158,31 @@ func (auth *Auth) CreateSession(a *acc.Auth, token string, reset bool) (id strin
 		id = uuid.New().String()
 	}
 
-	if a.Identity == nil {
-		slog.Error("auth returned empty identity")
+	identity, err := authn.FromJWT(jwtToken, auth.keyFunc)
+	if err != nil {
+		slog.Error("failed get identity from auth", "error", err)
 		return id, time.Time{}
 	}
 
-	slog.Debug(fmt.Sprintf("creating %s session", app), "auth", a.JSON())
+	slog.Debug("creating session", "app", app, "id", id, "user", identity.UserID)
 
 	if _, ok := auth.sessions[app]; !ok {
 		auth.sessions[app] = make(map[string]session)
 	}
 
 	auth.sessions[app][id] = session{
-		auth:         a,
-		uid:          a.Identity.UserID,
-		jwtToken:     a.JWT,
-		refreshToken: a.JwtRefresh,
-		expiry:       a.ExpiresAt,
+		identity:     identity,
+		uid:          identity.UserID,
+		jwtToken:     jwtToken,
+		refreshToken: refreshToken,
+		expiry:       expiry,
 	}
 
-	return id, time.Unix(a.ExpiresAt, 0)
+	return id, time.Unix(expiry, 0)
 }
 
 // TODO return error if app session and id not found
-func (auth *Auth) UpdateSession(id string, a *acc.Auth, token string) (expiresAt time.Time) {
+func (auth *Auth) UpdateSession(id string, token, jwtToken, refreshToken string, expiry int64) (expiresAt time.Time) {
 	app, ok := auth.tokens[token]
 	if !ok {
 		return time.Time{}
@@ -187,13 +193,19 @@ func (auth *Auth) UpdateSession(id string, a *acc.Auth, token string) (expiresAt
 		return time.Time{}
 	}
 
-	sessions[id] = session{
-		uid:          a.Identity.UserID,
-		jwtToken:     a.JWT,
-		refreshToken: a.JwtRefresh,
-		expiry:       a.ExpiresAt,
+	identity, err := authn.FromJWT(jwtToken, auth.keyFunc)
+	if err != nil {
+		slog.Error("failed get identity from auth", "error", err)
+		return time.Time{}
 	}
-	return time.Unix(a.ExpiresAt, 0)
+
+	sessions[id] = session{
+		uid:          identity.UserID,
+		jwtToken:     jwtToken,
+		refreshToken: refreshToken,
+		expiry:       expiry,
+	}
+	return time.Unix(expiry, 0)
 }
 
 func (auth *Auth) Sessions(token string) (sessionsJSON string) {
@@ -254,11 +266,11 @@ func (auth *Auth) DeleteSession(token, id string) {
 func (auth *Auth) CheckBearerAuth(token string, tokens ...string) bool {
 	for _, t := range tokens {
 		if t == auth.tokens[token] {
-			log.Debugf("allowing by bearer token '%s'", redact(token))
+			slog.Debug("allowing by bearer token", "token", redact(token))
 			return true
 		}
 	}
-	log.Debugf("rejecting token '%s' by bearer auth for accepted tokens: %v", redact(token), tokens)
+	slog.Debug(fmt.Sprintf("rejecting token '%s' by bearer auth for accepted tokens: %v", redact(token), tokens))
 	return false
 }
 
@@ -270,12 +282,12 @@ func (auth *Auth) CheckJWT(jwt, context, action, category string) (allow bool) {
 
 	var err error
 	var identity *authn.Identity
-	if identity, err = jwtIdentity(jwt, auth); err != nil {
-		log.Errorf("JWT found in request is invalid: %s", err)
+	if identity, err = authn.FromJWT(jwt, auth.keyFunc); err != nil {
+		slog.Error("failed to parse identity from JWT in request", "error", err)
 		return false
 	}
 
-	log.Debugf("identity found in JWT: %+v", *identity)
+	slog.Debug(fmt.Sprintf("identity found in JWT: %+v", *identity))
 
 	// superuser only applies in the tenant of the user
 	if identity.Superuser {
@@ -284,7 +296,7 @@ func (auth *Auth) CheckJWT(jwt, context, action, category string) (allow bool) {
 		}
 	}
 
-	log.Debugf("evaluating user permissions: %+v", identity.Permissions)
+	slog.Debug(fmt.Sprintf("evaluating user permissions: %+v", identity.Permissions))
 
 	// example:
 	// [
@@ -293,13 +305,13 @@ func (auth *Auth) CheckJWT(jwt, context, action, category string) (allow bool) {
 	//  {Context:ccd660fc-5680-44b2-a570-17cf8229f694 Permissions:[{Category:ANY Actions:[ALL]}]}
 	// ]
 	for _, up := range identity.Permissions {
-		log.Debugf("evaluating permission context %s against %s", up.Context, context)
+		slog.Debug(fmt.Sprintf("evaluating permission context %s against %s", up.Context, context))
 		if up.Context == ALL || up.Context == context {
-			// log.Debugf("evaluating permission category %s against category %s", perm.Category, category)
+			// slog.Debugf("evaluating permission category %s against category %s", perm.Category, category)
 			actions := up.CategoryActions[ANY]
 			actions = append(actions, up.CategoryActions[category]...)
 			for _, a := range actions {
-				log.Debugf("evaluating permission action %s against action %s", a, action)
+				slog.Debug(fmt.Sprintf("evaluating permission action %s against action %s", a, action))
 				if a == ALL || a == action {
 					return true
 				}
@@ -311,24 +323,24 @@ func (auth *Auth) CheckJWT(jwt, context, action, category string) (allow bool) {
 }
 
 func (auth *Auth) JWTIdentity(tknStr string) (identity *authn.Identity, err error) {
-	return jwtIdentity(tknStr, auth)
+	return authn.FromJWT(tknStr, auth.keyFunc)
 }
 
 // Superuser returns true if jwt has superuser privilege
 func (auth *Auth) Superuser(jwt string) bool {
 	if jwt == "" {
-		log.Debugf("empty JWT in request")
+		slog.Debug("empty JWT in request")
 		return false
 	}
 
 	var err error
 	var identity *authn.Identity
-	if identity, err = jwtIdentity(jwt, auth); err != nil {
-		log.Errorf("JWT found in request is invalid: %s", err)
+	if identity, err = authn.FromJWT(jwt, auth.keyFunc); err != nil {
+		slog.Error("JWT found in request is invalid", "error", err)
 		return false
 	}
 
-	log.Debugf("identity found in JWT: %+v", *identity)
+	slog.Debug(fmt.Sprintf("identity found in JWT: %+v", *identity))
 
 	// superuser only applies in the tenant of the user
 	if identity.Superuser {
@@ -348,23 +360,23 @@ func (auth *Auth) Classification(jwt string) *authn.Classification {
 
 	var err error
 	var identity *authn.Identity
-	if identity, err = jwtIdentity(jwt, auth); err != nil {
-		log.Errorf("JWT found in request is invalid: %s", err)
+	if identity, err = authn.FromJWT(jwt, auth.keyFunc); err != nil {
+		slog.Error("JWT found in request is invalid", "error", err)
 		return nil
 	}
 
-	log.Debugf("identity found in JWT: %+v", *identity)
+	slog.Debug(fmt.Sprintf("identity found in JWT: %+v", *identity))
 
 	return identity.Classification
 }
 
-// Identify returns the Identity found in jwt
-func (auth *Auth) Identity(jwt string) error {
+// Identify returns the CheckIdentity found in jwt
+func (auth *Auth) CheckIdentity(jwt string) error {
 	if jwt == "" {
 		return fmt.Errorf("empty JWT")
 	}
 
-	identity, err := jwtIdentity(jwt, auth)
+	identity, err := authn.FromJWT(jwt, auth.keyFunc)
 	if err != nil {
 		return fmt.Errorf("JWT is invalid: %s", err)
 	}
@@ -374,37 +386,37 @@ func (auth *Auth) Identity(jwt string) error {
 	}
 
 	if identity.TenantID == "" {
-		return fmt.Errorf("tenant ID in JWT cannot be nil")
+		return fmt.Errorf("tenant ID in identity cannot be nil")
 	}
 
 	if identity.TenantID != auth.owner.UID {
-		return fmt.Errorf("tenant ID (%s) in JWT does not match owner (%s)", identity.TenantID, auth.owner.UID)
+		return fmt.Errorf("tenant ID (%s) in identity does not match owner (%s)", identity.TenantID, auth.owner.UID)
 	}
 
-	log.Debugf("identity found in JWT: %+v", *identity)
+	slog.Debug(fmt.Sprintf("identity found in JWT: %+v", *identity))
 
 	return nil
 }
 
-// User returns the user UID in jwt
-func (auth *Auth) User(jwt string) (uid string) {
+// UserID returns the user UID of identity found jwt
+func (auth *Auth) UserID(jwt string) (uid string) {
 	if jwt == "" {
 		return uid
 	}
 
 	var err error
 	var identity *authn.Identity
-	if identity, err = jwtIdentity(jwt, auth); err != nil {
-		log.Errorf("JWT found in request is invalid: %s", err)
+	if identity, err = authn.FromJWT(jwt, auth.keyFunc); err != nil {
+		slog.Error("JWT found in request is invalid", "error", err)
 		return uid
 	}
 
 	if identity == nil {
-		log.Errorf("no identity found in JWT: %s", jwt)
+		slog.Error("no identity found in JWT", "jwt", jwt)
 		return uid
 	}
 
-	log.Debugf("identity found in JWT: %+v", *identity)
+	slog.Debug(fmt.Sprintf("identity found in JWT: %+v", *identity))
 
 	return identity.UserID
 }
@@ -419,100 +431,6 @@ type UserRequest struct {
 	Email   string `json:"email"`
 	Status  string `json:"status"`
 	Comment string `json:"comment,omitempty"`
-}
-
-// Identity type
-type Identity struct {
-	TID             *string          `json:"tid"`
-	UID             *string          `json:"uid"`
-	Name            *string          `json:"name"`
-	Email           *string          `json:"email"`
-	Superuser       bool             `json:"superuser"`
-	Classification  *Classification  `json:"classification"`
-	UserPermissions []UserPermission `json:"userPerms"`
-}
-
-func (i *Identity) UserID() string {
-	if i.UID == nil {
-		return ""
-	}
-	return *i.UID
-}
-
-func (i *Identity) TenantID() string {
-	if i.TID == nil {
-		return ""
-	}
-	return *i.TID
-}
-
-func (i *Identity) Contexts() []string {
-	contexts := make([]string, 1)
-	for _, perm := range i.UserPermissions {
-		if perm.Context == "ALL" {
-			contexts = []string{"ALL"}
-			break
-		}
-		contexts = append(contexts, perm.Context)
-	}
-	return contexts
-}
-
-type Classification struct {
-	Authority string `json:"authority"`
-	Level     string `json:"level"`
-}
-
-// UserPermission defines the permissions of a tenant user
-type UserPermission struct {
-	Context     string       `json:"context"`
-	Permissions []Permission `json:"permissions"`
-}
-
-// [{"permissions":{"context": "5273d8a1-6bbd-4ccd-9bda-8340acb8cfe9", "permissions": [{"actions": ["ALL"], "categoryCode": "CONTENT"}, {"actions": ["ALL"], "categoryCode": "MEDIA"}]}}]
-
-// Permission type
-type Permission struct {
-	Category string   `json:"categoryCode"`
-	Actions  []string `json:"actions"`
-}
-
-func jwtIdentity(tknStr string, auth *Auth) (identity *authn.Identity, err error) {
-
-	// Claims type
-	type Claims struct {
-		Identity *authn.Identity `json:"identity"`
-		jwt.RegisteredClaims
-	}
-	// Initialize a new instance of `Claims`
-	claims := &Claims{}
-
-	// Parse the JWT token and store the result in `claims`.
-	// Note that we are passing the key in this method as well. This method will return an error
-	// if the token is invalid (that is expired according to the expiry time set at sign in),
-	// or if the signature does not match
-	tkn, err := jwt.ParseWithClaims(tknStr, claims, auth.keyFunc)
-
-	if err != nil {
-		log.Error(err)
-		return identity, err
-	}
-
-	if !tkn.Valid {
-		return identity, fmt.Errorf("JWT token in request is expired")
-	}
-
-	if log.Loggable(log.DebugLevel) {
-
-		m, err := json.Marshal(claims)
-		if err != nil {
-			log.Errorf("failed to marshal claims: %+v", claims)
-		} else {
-			log.Debugf("parsed JWT Claims: %s", m)
-		}
-	}
-
-	return claims.Identity, nil
 }
 
 // Action returns an action from an HTTP method
@@ -547,7 +465,7 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 	}
 
 	return func(method, path string, params map[string][]string, header http.Header) (status int, message, username string) {
-		log.Debugf("running handler on %s: %s", method, path)
+		slog.Debug(fmt.Sprintf("running handler on %s: %s", method, path))
 
 		// Request Headers
 		authHeader := header.Get("Authorization")
@@ -565,7 +483,7 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 		if mustAuth {
 			app, ok := auth.tokens[token]
 			if !ok {
-				return http.StatusUnauthorized, "MustAuth requires a client session but none present", username
+				return http.StatusUnauthorized, "MustAuth requires an app client session but none present", username
 			}
 
 			id, err := getSessionID(header, auth.sessionMode, auth.sessionName)
@@ -576,46 +494,46 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 				}
 			}
 
-			log.Debugf("using session id %s", id)
+			slog.Debug(fmt.Sprintf("using session id %s", id))
 
 			sess, ok := auth.sessions[app][id]
 			if !ok {
-				log.Debugf("rule requires authentication but there is no session with id %s, %s", id, username)
+				slog.Debug(fmt.Sprintf("rule requires authentication but there is no session with id %s, %s", id, username))
 				return http.StatusUnauthorized, "rule requires authentication but there is no session with id " + id, username
 			}
 
 			if sess.IsExpired() {
-				log.Debugf("rule requires authentication but session %s is expired %s", id, time.Unix(sess.expiry, 0).Format("2006-01-02 15:04:05"))
+				slog.Debug(fmt.Sprintf("rule requires authentication but session %s is expired %s", id, time.Unix(sess.expiry, 0).Format("2006-01-02 15:04:05")))
 				return http.StatusUnauthorized, "rule requires authentication but session is expired", username
 			}
 
-			log.Debugf("using active session %+v", sess)
+			slog.Debug(fmt.Sprintf("using active session %+v", sess))
 
 			jwt = sess.JWT()
-			log.Debugf("setting JWT from session: %s", jwt)
+			slog.Debug(fmt.Sprintf("setting JWT from session: %s", jwt))
 
-			if err := auth.Identity(jwt); err != nil {
+			if err := auth.CheckIdentity(jwt); err != nil {
 				return http.StatusUnauthorized, fmt.Sprintf("rule requires authentication but JWT contains invalid identity: %s", err), username
 			}
 		} else {
 			jwt = header.Get(auth.jwtHeader)
-			log.Debugf("setting JWT from request header: %s", jwt)
+			slog.Debug(fmt.Sprintf("setting JWT from request header: %s", jwt))
 		}
 
 		// credentials carry the bearer token and JWT if present
-		credentials := &ident.Credentials{
+		credentials := &authn.Credentials{
 			Token: token,
 			JWT:   jwt,
 		}
 
 		if jwt != "" {
-			username = auth.User(jwt)
-			log.Debugf("setting user from JWT: %s", username)
+			username = auth.UserID(jwt)
+			slog.Debug(fmt.Sprintf("setting user from JWT: %s", username))
 		}
 
 		u, err := url.Parse(path)
 		if err != nil { // shouldn't happen
-			log.Error(err)
+			slog.Error(err.Error())
 			return http.StatusForbidden, message, username
 		}
 
@@ -624,21 +542,21 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 		if header.Get(string(httpsig.Signature)) != "" {
 			verifier, err = httpsig.NewForwardAuthVerifier(header, method, path, u.RawQuery)
 			if err != nil {
-				log.Warning(fmt.Sprintf("found signature header but failed to get verifier: %s", err))
+				slog.Warn(fmt.Sprintf("found signature header but failed to get verifier: %s", err))
 			}
 		}
 
 		if t, err := evaluate(rule.Expression, params, auth, credentials, verifier); err != nil {
 			message := fmt.Sprintf("%s %s failed evaluation for rule %s: %s", method, path, rule.Expression, err)
-			log.Error(message)
+			slog.Error(message)
 			return http.StatusForbidden, message, username
 		} else if t {
 			message := fmt.Sprintf("%s %s allowed by rule %s", method, path, rule.Expression)
-			log.Debug(message)
+			slog.Debug(message)
 			return http.StatusOK, message, username
 		} else {
 			message := fmt.Sprintf("%s %s denied by rule %s", method, path, rule.Expression)
-			log.Debug(message)
+			slog.Debug(message)
 			return http.StatusForbidden, message, username
 		}
 	}
@@ -646,7 +564,7 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 
 func (auth *Auth) setAccess(checks *HostChecks, refresh bool) error {
 	if checks == nil {
-		log.Warning("empty host checks for auth")
+		slog.Warn("empty host checks for auth")
 		return nil
 	}
 	auth.overrides = checks.Overrides
@@ -661,10 +579,10 @@ func (auth *Auth) setAccess(checks *HostChecks, refresh bool) error {
 		// each host in a group shares the hostMux
 		for _, host := range group.Hosts {
 			if v, ok := auth.overrides[host]; ok {
-				log.Warningf("%s override on host %s disables defined host checks", v, host)
+				slog.Warn(fmt.Sprintf("%s override on host %s disables defined host checks", v, host))
 			}
 			if _, ok := auth.getMux(host); !refresh && ok {
-				log.Errorf("ignoring duplicate host checks for %s", host)
+				slog.Warn(fmt.Sprintf("ignoring duplicate host checks for %s", host))
 				continue
 			}
 			auth.setMux(host, hostMux)
@@ -708,7 +626,7 @@ func (auth *Auth) setRSAPublicKeys(publicKeys map[string]string) {
 	for id, value := range publicKeys {
 		rsa, err := loadPublicKey([]byte(value))
 		if err != nil {
-			log.Warningf("failed to load RSA public key for %s: %s", id, err)
+			slog.Warn(fmt.Sprintf("failed to load RSA public key for %s: %s", id, err))
 			continue
 		}
 		auth.publicKeys[id] = rsa
@@ -725,8 +643,8 @@ func (auth *Auth) setTokens(tokens map[string]string) {
 	auth.tokens = tokens
 }
 
-func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials *ident.Credentials, verifier httpsig.Verifier) (result bool, err error) {
-	log.Debugf("evaluating expr '%s' with params %v, auth %v, credentials %v", expr, paramMap, auth, credentials)
+func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials *authn.Credentials, verifier httpsig.Verifier) (result bool, err error) {
+	slog.Debug(fmt.Sprintf("evaluating expr '%s' with params %v, auth %v, credentials %v", expr, paramMap, auth, credentials))
 	// define builtins
 	functions := map[string]eval.ExpressionFunction{
 		// return true if call to URL returns HTTP status 200 ok
@@ -737,7 +655,7 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 			uid, _ := args[1].(string)
 			rid, _ := args[2].(string)
 			route, _ := args[3].(string)
-			log.Debugf("checking user %s for access to resource '%s' at URL %s", uid, rid, route)
+			slog.Debug(fmt.Sprintf("checking user %s for access to resource '%s' at URL %s", uid, rid, route))
 
 			body := []byte(fmt.Sprintf(`{ "action": "%s", "user": "%s", "resource": "%s"}`, action, uid, rid))
 			key := config.MustGetConfig("ROOT_KEY")
@@ -769,11 +687,11 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 			for _, arg := range args {
 				tokens = append(tokens, arg.(string))
 			}
-			log.Debugf("calling bearer(%v)", tokens)
+			slog.Debug(fmt.Sprintf("calling bearer(%v)", tokens))
 			return auth.CheckBearerAuth(credentials.Token, tokens...), nil
 		},
 		"classification": func(args ...interface{}) (interface{}, error) {
-			log.Debug("calling classification()")
+			slog.Debug("calling classification()")
 			return auth.Classification(credentials.JWT), nil
 		},
 		// return the result of concatenating each argument;
@@ -792,7 +710,7 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 		// eg: param(':tenantID'), param('summary')
 		"param": func(args ...interface{}) (interface{}, error) {
 			param := args[0].(string)
-			log.Debugf("calling param(%s)", param)
+			slog.Debug(fmt.Sprintf("calling param(%s)", param))
 			if v, ok := paramMap[param]; ok {
 				return v[0], nil
 			}
@@ -819,38 +737,38 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 				return false, fmt.Errorf("function role takes 2 or 3 arguments")
 			}
 
-			log.Debugf("calling role(%s,%s,%s)", context, action, category)
+			slog.Debug(fmt.Sprintf("calling role(%s,%s,%s)", context, action, category))
 			return auth.CheckJWT(credentials.JWT, context, action, category), nil
 		},
 		// return true if identity has root permission
 		"root": func(args ...interface{}) (interface{}, error) {
-			log.Debug("calling Superuser()")
+			slog.Debug("calling Superuser()")
 			return auth.Superuser(credentials.JWT), nil
 		},
 		// return true if a request signed with tenant's private key is valid
 		// with respect to tenant's public key
 		"signature": func(args ...interface{}) (interface{}, error) {
 			tenantID, _ := args[0].(string)
-			log.Debugf("calling signature(%s)", tenantID)
+			slog.Debug(fmt.Sprintf("calling signature(%s)", tenantID))
 			return verify(verifier, tenantID, auth.getRSAPublicKeys()), nil
 		},
 		// return the subdomain of the request
 		"subdomain": func(args ...interface{}) (interface{}, error) {
-			log.Debugf("calling subdomain()")
+			slog.Debug(fmt.Sprintf("calling subdomain()"))
 			return "TODO", nil
 		},
 		// return true if identity matches the user UUID in path
 		// eg: user(param(':uuid'))
 		"user": func(args ...interface{}) (interface{}, error) {
 			uuid, _ := args[0].(string)
-			log.Debugf("calling user(%s)", uuid)
-			return strings.EqualFold(auth.User(credentials.JWT), uuid), nil
+			slog.Debug(fmt.Sprintf("calling user(%s)", uuid))
+			return strings.EqualFold(auth.UserID(credentials.JWT), uuid), nil
 		},
 	}
 
 	expression, err := eval.NewEvaluableExpressionWithFunctions(expr, functions)
 	if err != nil {
-		log.Error(err)
+		slog.Error(err.Error())
 		return result, err
 	}
 
@@ -859,10 +777,10 @@ func evaluate(expr string, paramMap map[string][]string, auth *Auth, credentials
 		parameters[k] = v
 	}
 
-	log.Debugf("evaluating expression %s", expr)
+	slog.Debug(fmt.Sprintf("evaluating expression %s", expr))
 	val, err := expression.Evaluate(parameters)
 	if err != nil {
-		log.Error(err)
+		slog.Error(err.Error())
 		return result, err
 	}
 
@@ -927,15 +845,6 @@ func (auth *Auth) Muxer(host string) (mux *pat.HostMux, err error) {
 	}
 	return mux, fmt.Errorf("host checks not defined for %s", host)
 }
-
-// HostChecks returns JSON formatted host checks
-// func (auth *Auth) HostChecks() (hostChecksJSON string, err error) {
-// 	data, err := json.Marshal(auth.HostChecks)
-// 	if err != nil {
-// 		return hostChecksJSON, err
-// 	}
-// 	return string(data), nil
-// }
 
 // UpdateFunc returns a function to update access system
 func (auth *Auth) UpdateFunc() (f func(*AccessSystem) error) {

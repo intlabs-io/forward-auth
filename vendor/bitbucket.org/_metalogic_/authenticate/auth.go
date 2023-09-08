@@ -48,7 +48,7 @@ func (c *Credentials) User(jwtKey []byte) (username string) {
 
 	var err error
 	var id *Identity
-	if id, err = checkJWT(c.JWT, jwtKey); err != nil {
+	if id, err = jwtIdentity(c.JWT, jwtKey); err != nil {
 		return username
 	}
 
@@ -65,13 +65,27 @@ func (c *Credentials) User(jwtKey []byte) (username string) {
 	return username
 }
 
+func (c *Credentials) Check(jwtKey []byte, context, action, category string) (result bool, err error) {
+	if c.JWT == "" {
+		return result, fmt.Errorf("cannot check empty JWT credentials")
+	}
+
+	identity, err := jwtIdentity(c.JWT, jwtKey)
+	if err != nil {
+		return result, fmt.Errorf("get identity failed: %s", err)
+	}
+
+	return identity.HasPermission(identity.TenantID, context, action, category), nil
+
+}
+
 // Claims type
 type Claims struct {
 	Identity *Identity `json:"user"`
 	jwt.StandardClaims
 }
 
-func checkJWT(tknStr string, jwtKey []byte) (identity *Identity, err error) {
+func jwtIdentity(tknStr string, jwtKey []byte) (identity *Identity, err error) {
 
 	// Initialize a new instance of `Claims`
 	claims := &Claims{}

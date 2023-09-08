@@ -108,7 +108,7 @@ type loginResponse struct {
 // ** Changes to these stored procedures should be reflected in an update to this type         **
 type roleResponse struct {
 	RoleGUID    string              `json:"guid"`
-	TenantID    string              `json:"tenantID"`
+	TenantID    string              `json:"tid"`
 	Name        string              `json:"name"`
 	Description string              `json:"description"`
 	Permission  []*authn.Permission `json:"perms"`
