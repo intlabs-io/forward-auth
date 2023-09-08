@@ -1,45 +1,48 @@
 package fauth
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"log/slog"
-
-	authn "bitbucket.org/_metalogic_/authenticate"
 )
 
-type session struct {
-	identity     *authn.Identity
-	jwtToken     string
-	refreshToken string
-	expiry       int64 // the expiry time in Unix seconds of the JWT
+type Session struct {
+	UserID          string `json:"uid"`
+	JWTToken        string `json:"jwtToken"`
+	JWTRefreshToken string `json:"refreshToken"`
+	Expiry          int64  `json:"expiry"` // the expiry time in Unix seconds of the JWT
 }
 
-func (s session) UID() string {
-	return s.identity.UserID
+func (s Session) UID() string {
+	return s.UserID
 }
 
-func (s session) Identity() *authn.Identity {
-	return s.identity
+func (s *Session) JWT() string {
+	return s.JWTToken
 }
 
-func (s *session) JWT() string {
-	return s.jwtToken
+func (s *Session) RefreshJWT() string {
+	return s.JWTRefreshToken
 }
 
-func (s *session) RefreshJWT() string {
-	return s.refreshToken
+func (s *Session) IsExpired() bool {
+	return time.Unix(s.Expiry, 0).Before(time.Now())
 }
 
-func (s *session) IsExpired() bool {
-	return time.Unix(s.expiry, 0).Before(time.Now())
+func (s *Session) ExpiresAt() time.Time {
+	return time.Unix(s.Expiry, 0)
 }
 
-func (s *session) ExpiresAt() time.Time {
-	return time.Unix(s.expiry, 0)
+func (s *Session) JSON() string {
+	data, err := json.Marshal(s)
+	if err != nil {
+		data = []byte(fmt.Sprintf(`{"error": "shouldn't: failed to marshal session to JSON: %s"}`, err))
+	}
+	return string(data)
 }
 
 func getSessionID(header http.Header, sessionMode, sessionName string) (id string, err error) {
