@@ -11,10 +11,10 @@ import (
 )
 
 type Session struct {
-	UserID          string `json:"uid"`
-	JWTToken        string `json:"jwtToken"`
-	JWTRefreshToken string `json:"refreshToken"`
-	Expiry          int64  `json:"expiry"` // the expiry time in Unix seconds of the JWT
+	UserID     string `json:"uid"`
+	JWTToken   string `json:"jwtToken"`
+	JWTRefresh string `json:"refreshToken"`
+	Expiry     int64  `json:"expiry"` // the expiry time in Unix seconds of the JWT
 }
 
 func (s Session) UID() string {
@@ -26,7 +26,7 @@ func (s *Session) JWT() string {
 }
 
 func (s *Session) RefreshJWT() string {
-	return s.JWTRefreshToken
+	return s.JWTRefresh
 }
 
 func (s *Session) IsExpired() bool {

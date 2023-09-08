@@ -147,10 +147,10 @@ func (auth *Auth) CreateSession(token, jwtToken, refreshToken string, expiry int
 	}
 
 	auth.sessions[app][id] = Session{
-		UserID:          identity.UserID,
-		JWTToken:        jwtToken,
-		JWTRefreshToken: refreshToken,
-		Expiry:          expiry,
+		UserID:     identity.UserID,
+		JWTToken:   jwtToken,
+		JWTRefresh: refreshToken,
+		Expiry:     expiry,
 	}
 
 	return id, time.Unix(expiry, 0)
@@ -175,10 +175,10 @@ func (auth *Auth) UpdateSession(id string, token, jwtToken, refreshToken string,
 	}
 
 	sessions[id] = Session{
-		UserID:          identity.UserID,
-		JWTToken:        jwtToken,
-		JWTRefreshToken: refreshToken,
-		Expiry:          expiry,
+		UserID:     identity.UserID,
+		JWTToken:   jwtToken,
+		JWTRefresh: refreshToken,
+		Expiry:     expiry,
 	}
 	return time.Unix(expiry, 0)
 }
