@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -28,10 +29,25 @@ const (
 )
 
 // Auth type returned by a successful authentication
+// type Auth struct {
+// 	User      Identity `json:"identity"`
+// 	JWT       string   `json:"jwt"`
+// 	ExpiresAt int64    `json:"expiresAt"`
+// }
+
+// Auth type returned by a successful authentication
 type Auth struct {
-	User      Identity `json:"identity"`
-	JWT       string   `json:"jwt"`
-	ExpiresAt int64    `json:"expiresAt"`
+	JWT        string `json:"jwt"`
+	JWTRefresh string `json:"jwtRefresh"`
+	ExpiresAt  int64  `json:"expiresAt"`
+}
+
+func (auth *Auth) JSON() string {
+	b, err := json.Marshal(auth)
+	if err != nil {
+		return fmt.Sprintf(`{"error": "%s"}`, err)
+	}
+	return string(b)
 }
 
 // Credentials ...

@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	auth "bitbucket.org/_metalogic_/access-apis"
+	authn "bitbucket.org/_metalogic_/authenticate"
 )
 
 /******************************************
@@ -230,7 +231,7 @@ func (c *Client) SetPasswordRaw(uid string, body io.ReadCloser) (userJSON []byte
 	return userJSON, nil
 }
 
-func (c *Client) StartPasswordReset(email string) (u *auth.Auth, err error) {
+func (c *Client) StartPasswordReset(email string) (u *authn.Auth, err error) {
 
 	var userData = []byte(fmt.Sprintf(`{
 		"email": "%s"
@@ -242,7 +243,7 @@ func (c *Client) StartPasswordReset(email string) (u *auth.Auth, err error) {
 	return c.StartPasswordResetRaw(reader)
 }
 
-func (c *Client) StartPasswordResetRaw(body io.ReadCloser) (u *auth.Auth, err error) {
+func (c *Client) StartPasswordResetRaw(body io.ReadCloser) (u *authn.Auth, err error) {
 
 	c.logger.Debug("initiating password reset workflow")
 
@@ -274,7 +275,7 @@ func (c *Client) StartPasswordResetRaw(body io.ReadCloser) (u *auth.Auth, err er
 		return u, err
 	}
 
-	u = &auth.Auth{}
+	u = &authn.Auth{}
 	err = json.Unmarshal(data, u)
 	if err != nil {
 		return u, err
@@ -343,7 +344,7 @@ func (c *Client) ResetPasswordRaw(uid string, body io.ReadCloser) (userJSON []by
 
 // ========================================================================
 
-func (c *Client) Login(email, password string) (a *auth.Auth, err error) {
+func (c *Client) Login(email, password string) (a *authn.Auth, err error) {
 
 	c.logger.Debug("executing tenant user login", "email", email, "url", c.loginURI())
 
@@ -374,7 +375,7 @@ func (c *Client) Login(email, password string) (a *auth.Auth, err error) {
 		return a, err
 	}
 
-	a = &auth.Auth{}
+	a = &authn.Auth{}
 	err = json.Unmarshal(data, a)
 	if err != nil {
 		return a, err
@@ -391,7 +392,7 @@ func (c *Client) Logout(uid string) (err error) {
 	return nil
 }
 
-func (c *Client) Refresh(uid, refreshToken string) (a *auth.Auth, err error) {
+func (c *Client) Refresh(uid, refreshToken string) (a *authn.Auth, err error) {
 	c.logger.Debug("executing refresh request", "url", c.refreshURI(uid))
 
 	req, err := c.refreshRequest(refreshToken, uid)
@@ -416,7 +417,7 @@ func (c *Client) Refresh(uid, refreshToken string) (a *auth.Auth, err error) {
 		return a, err
 	}
 
-	a = &auth.Auth{}
+	a = &authn.Auth{}
 	err = json.Unmarshal(data, a)
 	if err != nil {
 		return a, err

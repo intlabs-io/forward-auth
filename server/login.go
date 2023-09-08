@@ -155,7 +155,7 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 		}
 		a, err := c.Refresh(sess.UserID, sess.JWTRefresh)
 		if err != nil {
-			ErrJSON(w, NewUnauthorizedError(fmt.Sprintf("refresh failed for UID %s: ", sess.UserID)))
+			ErrJSON(w, NewUnauthorizedError(fmt.Sprintf("refresh failed for UID %s", sess.UserID)))
 			return
 		}
 

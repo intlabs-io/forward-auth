@@ -1,9 +1,6 @@
 package acc
 
 import (
-	"encoding/json"
-	"fmt"
-
 	authn "bitbucket.org/_metalogic_/authenticate"
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -17,21 +14,6 @@ type Credentials struct {
 type LoginRequest struct {
 	Password string `json:"password"`
 	Email    string `json:"email"`
-}
-
-// Auth type returned by a successful authentication
-type Auth struct {
-	JWT        string `json:"jwt"`
-	JWTRefresh string `json:"jwtRefresh"`
-	ExpiresAt  int64  `json:"expiresAt"`
-}
-
-func (auth *Auth) JSON() string {
-	b, err := json.Marshal(auth)
-	if err != nil {
-		return fmt.Sprintf(`{"error": "%s"}`, err)
-	}
-	return string(b)
 }
 
 // RSA key creation expects lifetime expressed in seconds for the JWT and refresh tokens
