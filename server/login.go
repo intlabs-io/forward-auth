@@ -150,7 +150,7 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 
 		c, err := client.New(accessRootURL, accessTenantID, accessAPIKey, true, slog.Default())
 		if err != nil {
-			ErrJSON(w, NewServerError("new access-apis client failed: "+err.Error()))
+			ErrJSON(w, NewServerError("failed to create access-apis client: "+err.Error()))
 			return
 		}
 		a, err := c.Refresh(sess.UserID, sess.JWTRefresh)
