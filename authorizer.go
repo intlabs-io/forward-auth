@@ -484,7 +484,7 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 
 			slog.Debug(fmt.Sprintf("using active session %+v", sess))
 
-			jwt = sess.JWT()
+			jwt = sess.JWTToken
 			slog.Debug(fmt.Sprintf("setting JWT from session: %s", jwt))
 
 			if err := auth.CheckIdentity(jwt); err != nil {

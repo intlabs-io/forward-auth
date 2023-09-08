@@ -153,7 +153,7 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 			ErrJSON(w, NewServerError("new access-apis client failed: "+err.Error()))
 			return
 		}
-		a, err := c.Refresh(sess.UID(), sess.RefreshJWT())
+		a, err := c.Refresh(sess.UID(), sess.JWTRefresh)
 		if err != nil {
 			ErrJSON(w, NewUnauthorizedError(fmt.Sprintf("refresh failed for UID %s: ", sess.UID())))
 			return

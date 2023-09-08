@@ -21,14 +21,6 @@ func (s Session) UID() string {
 	return s.UserID
 }
 
-func (s *Session) JWT() string {
-	return s.JWTToken
-}
-
-func (s *Session) RefreshJWT() string {
-	return s.JWTRefresh
-}
-
 func (s *Session) IsExpired() bool {
 	return time.Unix(s.Expiry, 0).Before(time.Now())
 }
