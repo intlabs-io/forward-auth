@@ -13,14 +13,13 @@ import (
 
 type session struct {
 	identity     *authn.Identity
-	uid          string // the uid of the session user
 	jwtToken     string
 	refreshToken string
 	expiry       int64 // the expiry time in Unix seconds of the JWT
 }
 
 func (s session) UID() string {
-	return s.uid
+	return s.identity.UserID
 }
 
 func (s session) Identity() *authn.Identity {
