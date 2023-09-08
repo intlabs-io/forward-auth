@@ -72,42 +72,6 @@ type Auth struct {
 	hostMuxers   map[string]*pat.HostMux
 }
 
-type session struct {
-	identity     *authn.Identity
-	uid          string // the uid of the session user
-	jwtToken     string
-	refreshToken string
-	expiry       int64 // the expiry time in Unix seconds of the JWT
-}
-
-// func (s session) Auth() *acc.Auth {
-// 	return s.auth
-// }
-
-func (s session) UID() string {
-	return s.uid
-}
-
-func (s session) Identity() *authn.Identity {
-	return s.identity
-}
-
-func (s *session) JWT() string {
-	return s.jwtToken
-}
-
-func (s *session) RefreshJWT() string {
-	return s.refreshToken
-}
-
-func (s *session) IsExpired() bool {
-	return time.Unix(s.expiry, 0).Before(time.Now())
-}
-
-func (s *session) ExpiresAt() time.Time {
-	return time.Unix(s.expiry, 0)
-}
-
 // NewAuth returns a new RSA Auth
 func NewAuth(acs *AccessSystem, rootOverride bool, sessionMode, sessionName, jwtHeader string, publicKey, secret []byte) (auth *Auth, err error) {
 	auth = &Auth{
