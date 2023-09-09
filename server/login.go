@@ -153,9 +153,9 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 			ErrJSON(w, NewServerError("failed to create access-apis client: "+err.Error()))
 			return
 		}
-		auth, err := c.Refresh(sess.UserID, sess.JWTRefresh)
+		auth, err := c.Refresh(sess.UserID(), sess.JWTRefresh)
 		if err != nil {
-			ErrJSON(w, NewUnauthorizedError(fmt.Sprintf("refresh failed for UID %s", sess.UserID)))
+			ErrJSON(w, NewUnauthorizedError(fmt.Sprintf("refresh failed for UID %s", sess.UserID())))
 			return
 		}
 
@@ -165,7 +165,7 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 			return
 		}
 
-		if identity.UserID != sess.UserID {
+		if identity.UserID != sess.UserID() {
 			ErrJSON(w, NewServerError("shouldn't: user in JWT disagrees with user in session "+err.Error()))
 			return
 		}
@@ -242,7 +242,7 @@ func Session(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 
 		log.Debugf("response headers: %+v", w.Header())
 
-		// return session JSON in respons
+		// return session identity JSON in respons
 		OkJSON(w, session.JSON())
 
 	}

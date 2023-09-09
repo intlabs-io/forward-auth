@@ -8,13 +8,19 @@ import (
 	"time"
 
 	"log/slog"
+
+	authn "bitbucket.org/_metalogic_/authenticate"
 )
 
 type Session struct {
-	UserID     string `json:"uid"`
-	JWTToken   string `json:"jwtToken"`
-	JWTRefresh string `json:"refreshToken"`
-	Expiry     int64  `json:"expiry"` // the expiry time in Unix seconds of the JWT
+	Identity   *authn.Identity `json:"identity"`
+	JWTToken   string          `json:"jwtToken"`
+	JWTRefresh string          `json:"refreshToken"`
+	Expiry     int64           `json:"expiry"` // the expiry time in Unix seconds of the JWT
+}
+
+func (s *Session) UserID() string {
+	return s.Identity.UserID
 }
 
 func (s *Session) IsExpired() bool {
@@ -25,10 +31,11 @@ func (s *Session) ExpiresAt() time.Time {
 	return time.Unix(s.Expiry, 0)
 }
 
+// return just Identity in session JSON
 func (s *Session) JSON() string {
-	data, err := json.Marshal(s)
+	data, err := json.Marshal(s.Identity)
 	if err != nil {
-		data = []byte(fmt.Sprintf(`{"error": "shouldn't: failed to marshal session to JSON: %s"}`, err))
+		data = []byte(fmt.Sprintf(`{"error": "shouldn't: failed to marshal session identity to JSON: %s"}`, err))
 	}
 	return string(data)
 }
