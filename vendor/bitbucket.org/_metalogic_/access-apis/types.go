@@ -1,5 +1,9 @@
 package acc
 
+import (
+	authn "bitbucket.org/_metalogic_/authenticate"
+)
+
 /*********************************************************************************************************
  * Response types are generated directly by database stored procedures/functions called by API endpoints.
  * Changes to stored procedures/functions should be reflected in updates to these types.
@@ -103,11 +107,11 @@ type loginResponse struct {
 // ** [auth].[CreateRoleForInstitution], [auth].[GetInstitutionRole], and [auth].UpdateRole  **
 // ** Changes to these stored procedures should be reflected in an update to this type         **
 type roleResponse struct {
-	RoleGUID    string       `json:"guid"`
-	TenantID    string       `json:"tenantID"`
-	Name        string       `json:"name"`
-	Description string       `json:"description"`
-	Permission  []Permission `json:"perms"`
+	RoleGUID    string              `json:"guid"`
+	TenantID    string              `json:"tid"`
+	Name        string              `json:"name"`
+	Description string              `json:"description"`
+	Permission  []*authn.Permission `json:"perms"`
 	createUpdate
 }
 
@@ -122,7 +126,7 @@ type personResponse struct {
 	Status     string
 	Comment    string
 	Root       bool
-	Permission []Permission
+	Permission []*authn.Permission
 	createUpdate
 }
 
@@ -166,7 +170,7 @@ type addPermissionResponse struct {
 		Name     string
 	}
 
-	Perms []Permission
+	Perms []*authn.Permission
 }
 
 type usersResponse struct {
@@ -214,16 +218,16 @@ type UsersResponse struct {
 }
 
 type UserResponse struct {
-	TenantID  string     `json:"tid"`
-	UserID    string     `json:"uid"`
-	Email     string     `json:"email"`
-	Superuser bool       `json:"superuser"`
-	Status    string     `json:"status"`
-	Comment   string     `json:"comment"`
-	Profile   Profile    `json:"profile"`
-	Contacts  []Contact  `json:"contacts"`
-	Roles     []UserRole `json:"roles"`
-	Meta      Meta       `json:"meta"`
+	TenantID  string        `json:"tid"`
+	UserID    string        `json:"uid"`
+	Email     string        `json:"email"`
+	Superuser bool          `json:"superuser"`
+	Status    string        `json:"status"`
+	Comment   string        `json:"comment"`
+	Profile   Profile       `json:"profile"`
+	Contacts  []Contact     `json:"contacts"`
+	Roles     []*authn.Role `json:"roles"`
+	Meta      Meta          `json:"meta"`
 }
 
 // CreateContextRequest Request

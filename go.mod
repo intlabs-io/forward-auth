@@ -1,11 +1,14 @@
 module bitbucket.org/_metalogic_/forward-auth
 
-go 1.21
+go 1.21.0
+
+replace bitbucket.org/_metalogic_/authenticate => ../authenticate
 
 replace bitbucket.org/_metalogic_/access-apis => ../access-apis
 
 require (
-	bitbucket.org/_metalogic_/access-apis v0.9.2-0.20230819104253-31aee6144364
+	bitbucket.org/_metalogic_/access-apis v1.0.1-0.20230906180059-be45ca0c2ede
+	bitbucket.org/_metalogic_/authenticate v0.0.0-20230908112921-38de565418b6
 	bitbucket.org/_metalogic_/build v1.0.2
 	bitbucket.org/_metalogic_/config v1.4.0
 	bitbucket.org/_metalogic_/eval v1.0.1
@@ -13,14 +16,13 @@ require (
 	bitbucket.org/_metalogic_/glib v1.4.0
 	bitbucket.org/_metalogic_/httpsig v0.0.0-20211209010019-f2554fb89eae
 	bitbucket.org/_metalogic_/httptreemux-swagger v1.1.0
-	bitbucket.org/_metalogic_/ident v1.2.0
 	bitbucket.org/_metalogic_/log v1.5.0
 	bitbucket.org/_metalogic_/pat v1.0.0
 	bitbucket.org/_metalogic_/validation v0.0.0-20210601150612-ed58a6ac8ba6
 	github.com/denisenkom/go-mssqldb v0.12.2
 	github.com/dimfeld/httptreemux/v5 v5.2.2
 	github.com/fsnotify/fsnotify v1.4.9
-	github.com/golang-jwt/jwt/v4 v4.4.3
+	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.2.0
 	github.com/lib/pq v1.10.6
 	github.com/pborman/uuid v1.2.0

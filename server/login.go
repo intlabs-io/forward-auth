@@ -5,6 +5,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -16,7 +17,7 @@ import (
 	"bitbucket.org/_metalogic_/log"
 )
 
-// @Tags User endpoints
+// @Tags Session endpoints
 // @Summary executes a user login against the access-api
 // @Description executes a user login against the access-api
 // @ID login
@@ -27,6 +28,12 @@ import (
 // @Failure 500 {object} ErrorResponse
 func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+
+		token := fauth.Bearer(r)
+		if token == "" {
+			ErrJSON(w, NewBadRequestError("login requires a valid application bearer token"))
+			return
+		}
 
 		decoder := json.NewDecoder(r.Body)
 
@@ -44,27 +51,33 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 			return
 		}
 
-		c, err := client.New(accessRootURL, accessTenantID, accessAPIKey, true)
+		c, err := client.New(accessRootURL, accessTenantID, accessAPIKey, true, slog.Default())
 		if err != nil {
 			ErrJSON(w, NewServerError("new access-apis client failed: "+err.Error()))
 			return
 		}
 
-		a, err := c.Login(login.Email, login.Password)
+		auth, err := c.Login(login.Email, login.Password)
 		if err != nil {
 			ErrJSON(w, NewUnauthorizedError(fmt.Sprintf("user login failed for %s: ", login.Email)))
 			return
 		}
 
-		data, err := json.Marshal(a.Identity)
+		identity, err := svc.JWTIdentity(auth.JWT)
 		if err != nil {
-			ErrJSON(w, NewServerError("failed to parse login response as Auth.Identity: "+err.Error()))
+			ErrJSON(w, NewServerError("failed to parse identity from login response: "+err.Error()))
 			return
 		}
 
-		id, expiresAt := svc.CreateSession(a, false)
+		data, err := json.Marshal(identity)
+		if err != nil {
+			ErrJSON(w, NewServerError("shouldn't: failed to marshal identity: "+err.Error()))
+			return
+		}
 
-		setSessionID(w, sessionMode, sessionName, id, expiresAt)
+		sessionID, expiresAt := svc.CreateSession(token, auth.JWT, auth.JWTRefresh, auth.ExpiresAt, false)
+
+		setSessionID(w, sessionMode, sessionName, sessionID, expiresAt)
 
 		log.Debugf("response headers: %+v", w.Header())
 
@@ -72,7 +85,7 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 	}
 }
 
-// @Tags User endpoints
+// @Tags Session endpoints
 // @Summary executes a logout for the attached session token
 // @Description executes a logout for the attached session token
 // @ID logout
@@ -84,17 +97,23 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 func Logout(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
+		token := fauth.Bearer(r)
+		if token == "" {
+			ErrJSON(w, NewBadRequestError("logout requires a valid application bearer token"))
+			return
+		}
+
 		if id, err := invalidateSessionID(w, r, sessionMode, sessionName); err != nil {
 			ErrJSON(w, fmt.Errorf("error logging out session id %s: %s", id, err))
 			return
 		} else {
-			svc.DeleteSession(id)
+			svc.DeleteSession(token, id)
 			MsgJSON(w, fmt.Sprintf("logged out session with id %s", id))
 		}
 	}
 }
 
-// @Tags User endpoints
+// @Tags Session endpoints
 // @Summary executes a refresh for the attached session token
 // @Description executes a refresh for the attached session token by doing
 // @Description a refresh request against the access-apis with the session refreshToken
@@ -106,14 +125,11 @@ func Logout(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params
 // @Failure 500 {object} ErrorResponse
 func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		// cookie, err := r.Cookie(sessionName)
-
-		// if err != nil {
-		// 	ErrJSON(w, NewBadRequestError(fmt.Sprintf("session cookie '%s' not found in request", sessionName)))
-		// 	return
-		// }
-
-		// id := cookie.Value
+		token := fauth.Bearer(r)
+		if token == "" {
+			ErrJSON(w, NewBadRequestError("refresh requires a valid application bearer token"))
+			return
+		}
 
 		id, err := sessionID(r, sessionMode, sessionName)
 		if err != nil {
@@ -121,7 +137,7 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 			return
 		}
 
-		sess, err := svc.Session(id)
+		sess, err := svc.Session(token, id)
 		if err != nil {
 			ErrJSON(w, NewBadRequestError(fmt.Sprintf("session id '%s' not found", id)))
 			return
@@ -132,44 +148,45 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 			return
 		}
 
-		c, err := client.New(accessRootURL, accessTenantID, accessAPIKey, true)
+		c, err := client.New(accessRootURL, accessTenantID, accessAPIKey, true, slog.Default())
 		if err != nil {
-			ErrJSON(w, NewServerError("new access-apis client failed: "+err.Error()))
+			ErrJSON(w, NewServerError("failed to create access-apis client: "+err.Error()))
 			return
 		}
-		a, err := c.Refresh(sess.UID(), sess.RefreshJWT())
+		auth, err := c.Refresh(sess.UserID(), sess.JWTRefresh)
 		if err != nil {
-			ErrJSON(w, NewUnauthorizedError(fmt.Sprintf("refresh failed for UID %s: ", sess.UID())))
-			return
-		}
-
-		data, err := json.Marshal(a.Identity)
-		if err != nil {
-			ErrJSON(w, NewServerError("failed to parse refresh response from access-apis as Auth.Identity: "+err.Error()))
+			ErrJSON(w, NewUnauthorizedError(fmt.Sprintf("refresh failed for UID %s", sess.UserID())))
 			return
 		}
 
-		expiresAt := svc.UpdateSession(id, a)
+		identity, err := svc.JWTIdentity(auth.JWT)
+		if err != nil {
+			ErrJSON(w, NewServerError("failed to parse identity from login response: "+err.Error()))
+			return
+		}
+
+		if identity.UserID != sess.UserID() {
+			ErrJSON(w, NewServerError("shouldn't: user in JWT disagrees with user in session "+err.Error()))
+			return
+		}
+
+		data, err := json.Marshal(identity)
+		if err != nil {
+			ErrJSON(w, NewServerError("shouldn't: failed to marshal identity: "+err.Error()))
+			return
+		}
+
+		expiresAt := svc.UpdateSession(id, token, auth.JWT, auth.JWTRefresh, auth.ExpiresAt)
 
 		setSessionID(w, sessionMode, sessionName, id, expiresAt)
-
-		// // set updated cookie in response and return user identity JSON
-		// cookie = &http.Cookie{
-		// 	Name:     sessionName,
-		// 	Value:    id,
-		// 	Domain:   cookieDomain,
-		// 	Expires:  time.Unix(a.ExpiresAt, 0),
-		// 	HttpOnly: true,
-		// }
-		// http.SetCookie(w, cookie)
 
 		OkJSON(w, string(data))
 	}
 }
 
-// @Tags User endpoints
-// @Summary returns a JSON array of active session IDs
-// @Description returns a JSON array of active session IDs
+// @Tags Session endpoints
+// @Summary returns a JSON array of active applications sessions
+// @Description returns a JSON array of active applications sessions
 // @ID sessions
 // @Produce json
 // @Success 200 {array} string
@@ -178,12 +195,18 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 // @Failure 500 {object} ErrorResponse
 func Sessions(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		OkJSON(w, svc.Sessions())
+		token := fauth.Bearer(r)
+		if token == "" {
+			ErrJSON(w, NewBadRequestError("sessions requires a valid application bearer token"))
+			return
+		}
+
+		OkJSON(w, svc.Sessions(token))
 	}
 }
 
-// @Tags User endpoints
-// @Summary get session for a give session ID
+// @Tags Session endpoints
+// @Summary get session for a given session ID
 // @Description get session for a give session ID
 // @ID session
 // @Produce json
@@ -194,33 +217,33 @@ func Sessions(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, para
 // TODO return session details (should we do this?)
 func Session(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		token := fauth.Bearer(r)
+		if token == "" {
+			ErrJSON(w, NewBadRequestError("refresh session a valid application bearer token"))
+			return
+		}
+
 		sid := params["sid"]
-		session, err := svc.Session(sid)
+		session, err := svc.Session(token, sid)
 		if err != nil {
 			ErrJSON(w, err)
 			return
 		}
+
+		// TODO allow query param for getting expired sessions
 
 		if session.IsExpired() {
 			ErrJSON(w, NewBadRequestError("session is expired"))
 			return
 		}
 
-		data, err := json.Marshal(session.Auth().Identity)
-		if err != nil {
-			ErrJSON(w, NewServerError("failed to parse session Identity: "+err.Error()))
-			return
-		}
-
-		exp := time.Unix(session.Auth().ExpiresAt, 0)
-
 		// set session cookie
-		setSessionID(w, sessionMode, sessionName, sid, exp)
+		setSessionID(w, sessionMode, sessionName, sid, session.ExpiresAt())
 
 		log.Debugf("response headers: %+v", w.Header())
 
-		// return session Identity in response
-		OkJSON(w, string(data))
+		// return session identity JSON in respons
+		OkJSON(w, session.JSON())
 
 	}
 }
@@ -468,17 +491,25 @@ func SetPassword(svc *fauth.Auth, client *client.Client) func(w http.ResponseWri
 func StartPasswordReset(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
-		ident, err := client.StartPasswordResetRaw(r.Body)
+		auth, err := client.StartPasswordResetRaw(r.Body)
 		if err != nil {
 			ErrJSON(w, err)
 			return
 		}
 
-		id, expiresAt := svc.CreateSession(ident, true)
+		identity, err := svc.JWTIdentity(auth.JWT)
+		if err != nil {
+			ErrJSON(w, NewServerError("failed to parse identity from JWT"))
+			return
+		}
+
+		token := fauth.Bearer(r)
+
+		id, expiresAt := svc.CreateSession(token, auth.JWT, auth.JWTRefresh, auth.ExpiresAt, true)
 
 		// id is a 6 digit string emailed to the user
 
-		if err = sendEmail(*ident.Identity.Email, "Password Reset Code", fmt.Sprintf("Reset Code: %s expiring at %s", id, expiresAt)); err != nil {
+		if err = sendEmail(identity.Email, "Password Reset Code", fmt.Sprintf("Reset Code: %s expiring at %s", id, expiresAt)); err != nil {
 			ErrJSON(w, err)
 			return
 		}
@@ -490,8 +521,8 @@ func StartPasswordReset(svc *fauth.Auth, client *client.Client) func(w http.Resp
 		}
 
 		reset := &resetResponse{
-			UID:   *ident.Identity.UID,
-			Email: *ident.Identity.Email,
+			UID:   identity.UserID,
+			Email: identity.Email,
 			// Expiry: *ident.ExpiresAt,
 		}
 

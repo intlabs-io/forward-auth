@@ -1,12 +1,49 @@
 package fauth
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
+
+	"log/slog"
+
+	authn "bitbucket.org/_metalogic_/authenticate"
 )
 
+type Session struct {
+	Identity   *authn.Identity `json:"identity"`
+	JWTToken   string          `json:"jwtToken"`
+	JWTRefresh string          `json:"refreshToken"`
+	Expiry     int64           `json:"expiry"` // the expiry time in Unix seconds of the JWT
+}
+
+func (s *Session) UserID() string {
+	return s.Identity.UserID
+}
+
+func (s *Session) IsExpired() bool {
+	return time.Unix(s.Expiry, 0).Before(time.Now())
+}
+
+func (s *Session) ExpiresAt() time.Time {
+	return time.Unix(s.Expiry, 0)
+}
+
+// return just Identity in session JSON
+func (s *Session) JSON() string {
+	data, err := json.Marshal(s.Identity)
+	if err != nil {
+		data = []byte(fmt.Sprintf(`{"error": "shouldn't: failed to marshal session identity to JSON: %s"}`, err))
+	}
+	return string(data)
+}
+
 func getSessionID(header http.Header, sessionMode, sessionName string) (id string, err error) {
+
+	slog.Debug(fmt.Sprintf("getting session ID by %s mode, name %s", sessionMode, sessionName))
+
 	switch strings.ToLower(sessionMode) {
 	case "cookie":
 		// Get the value of the "Cookie" header from the http.Header object
