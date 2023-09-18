@@ -1,3 +1,7 @@
+bitbucket.org/_metalogic_/access-apis v1.2.0 h1:0JsnvZZi0m+cSS3tYBh81AVilSPKJdKP+mDxaUZjoDQ=
+bitbucket.org/_metalogic_/access-apis v1.2.0/go.mod h1:hTtq17r3GSol9XfHj6/gtQA9FANREOQ5oPI9BvRm1+g=
+bitbucket.org/_metalogic_/authenticate v0.8.0 h1:NIEEqqyK5L2xf3RyIzY9kiOwPtF23HM1ndifdHqj/J0=
+bitbucket.org/_metalogic_/authenticate v0.8.0/go.mod h1:fEsXKRrLc8CiMJc21BVXERsppfXOUtuTKM/gUBRKhYg=
 bitbucket.org/_metalogic_/build v1.0.2 h1:PWRm8PWhbnES+p3m6ejbMVD1UWTp2IfKOp5ijmeyirI=
 bitbucket.org/_metalogic_/build v1.0.2/go.mod h1:0+xDDYs1xwgMKr/Z6SYmQPU15+7sr/S8eQxsG/updig=
 bitbucket.org/_metalogic_/color v1.0.4 h1:CPsOhTyTKnJ00mONyxMxr2zyh+GK2rjkdnmzGDZFde4=
@@ -10,8 +14,8 @@ bitbucket.org/_metalogic_/eval v1.0.1 h1:Ffb1mf2AWEMwTzw7ln+7BYDWd54JWtzfv4rZyVB
 bitbucket.org/_metalogic_/eval v1.0.1/go.mod h1:E0x17mvUTlrWLD09ZY3ZPo/OZsFD7c39YzrjaJ3TQ9I=
 bitbucket.org/_metalogic_/genstr v0.0.0-20230315132016-c6aea6ceb255 h1:oBmaTsd845ZhjbZMnwNbM9pu5WTddxKUeN5bTxR3KqY=
 bitbucket.org/_metalogic_/genstr v0.0.0-20230315132016-c6aea6ceb255/go.mod h1:f0TZZly7wxWVX7YDAzCutVHnMEXUBLmScAqBzIaMWXI=
-bitbucket.org/_metalogic_/glib v1.4.0 h1:uZdgKP5nQ+yL8waYzqeoF71Qfn+0veAYrB3Dm+6ye4A=
-bitbucket.org/_metalogic_/glib v1.4.0/go.mod h1:T0ZxofUEXdP0LC+eCXCZFaoxGzBFY5N5lVYlWe/cixE=
+bitbucket.org/_metalogic_/glib v1.5.0 h1:bWA9MYKL2gZ1zkxc5XeS4KcbwdutN+GdBh5NOgepPyI=
+bitbucket.org/_metalogic_/glib v1.5.0/go.mod h1:PuoqJiujOu1boQNXIjKEpSh8HAkaVf2HxQFr/+hvm2I=
 bitbucket.org/_metalogic_/httpsig v0.0.0-20211209010019-f2554fb89eae h1:uKfbgb5IJSPi2pgdBejk2bPU6cVTi0EJ2SRXgaZKecM=
 bitbucket.org/_metalogic_/httpsig v0.0.0-20211209010019-f2554fb89eae/go.mod h1:iqk33QmUu06EfuYK8PSwPcAjGrTrqlxTyWRlMDyNcnQ=
 bitbucket.org/_metalogic_/httptreemux-swagger v1.1.0 h1:eiaUzDQ4MlKOwZ8f4UFmYNmFjMkHc+tQ2Z7rYVTb/YY=
