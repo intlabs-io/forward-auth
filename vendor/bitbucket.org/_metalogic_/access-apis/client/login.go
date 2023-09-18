@@ -9,6 +9,7 @@ import (
 
 	auth "bitbucket.org/_metalogic_/access-apis"
 	authn "bitbucket.org/_metalogic_/authenticate"
+	. "bitbucket.org/_metalogic_/glib/http"
 )
 
 /******************************************
@@ -114,7 +115,7 @@ func (c *Client) refreshRequest(jwtRefresh, uid string) (req *http.Request, err 
 	return req, err
 }
 
-func (c *Client) ChangePassword(uid, old, new string) (u *auth.User, err error) {
+func (c *Client) ChangePassword(uid, old, new string) (err error) {
 
 	var userData = []byte(fmt.Sprintf(`{
 		"password": "%s",
@@ -124,56 +125,43 @@ func (c *Client) ChangePassword(uid, old, new string) (u *auth.User, err error) 
 	// Convert the byte array to an io.ReadCloser
 	reader := io.NopCloser(bytes.NewReader(userData))
 
-	data, err := c.ChangePasswordRaw(uid, reader)
-	if err != nil {
-		return u, err
-	}
-
-	u = &auth.User{}
-	err = json.Unmarshal(data, u)
-	if err != nil {
-		return u, err
-	}
-
-	return u, nil
+	return c.ChangePasswordRaw(uid, reader)
 }
 
-func (c *Client) ChangePasswordRaw(uid string, body io.ReadCloser) (userJSON []byte, err error) {
+func (c *Client) ChangePasswordRaw(uid string, body io.ReadCloser) (err error) {
 
-	c.logger.Debug("executing tenant change user password", "uid", uid)
+	c.logger.Debug("executing change user password", "uid", uid)
 
 	data, err := io.ReadAll(body)
 	if err != nil {
-		return userJSON, err
+		return err
 	}
 
 	req, err := c.changePasswordRequest(uid, data)
 	if err != nil {
-		return userJSON, err
+		return err
 	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return userJSON, err
+		return err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		errorData, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return userJSON, fmt.Errorf("change request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
-		}
-		return userJSON, fmt.Errorf("%s", string(errorData))
+	// successful change password
+	if resp.StatusCode == http.StatusNoContent {
+		return nil
 	}
 
-	userJSON, err = io.ReadAll(resp.Body)
+	// other status codes mean failed password change - get the error response
+	errJSON, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return userJSON, err
+		return fmt.Errorf("shouldn't: set password failed to read response body: %s", err)
 	}
 
-	return userJSON, nil
+	return Copy(resp.StatusCode, errJSON)
 }
 
-func (c *Client) SetPassword(uid, new string) (u *auth.User, err error) {
+func (c *Client) SetPassword(uid, new string) (err error) {
 
 	var userData = []byte(fmt.Sprintf(`{
 		"password": "%s",
@@ -182,53 +170,40 @@ func (c *Client) SetPassword(uid, new string) (u *auth.User, err error) {
 	// Convert the byte array to an io.ReadCloser
 	reader := io.NopCloser(bytes.NewReader(userData))
 
-	data, err := c.SetPasswordRaw(uid, reader)
-	if err != nil {
-		return u, err
-	}
-
-	u = &auth.User{}
-	err = json.Unmarshal(data, u)
-	if err != nil {
-		return u, err
-	}
-
-	return u, nil
+	return c.SetPasswordRaw(uid, reader)
 }
 
-func (c *Client) SetPasswordRaw(uid string, body io.ReadCloser) (userJSON []byte, err error) {
+func (c *Client) SetPasswordRaw(uid string, body io.ReadCloser) (err error) {
 
 	c.logger.Debug("executing tenant set user password", "uid", uid)
 
 	data, err := io.ReadAll(body)
 	if err != nil {
-		return userJSON, err
+		return err
 	}
 
 	req, err := c.setPasswordRequest(uid, data)
 	if err != nil {
-		return userJSON, err
+		return err
 	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return userJSON, err
+		return err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		errorData, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return userJSON, fmt.Errorf("set password request to %v failed with HTTP status %d", req.URL, resp.StatusCode)
-		}
-		return userJSON, fmt.Errorf("%s", string(errorData))
+	// set password succeeded
+	if resp.StatusCode == http.StatusNoContent {
+		return nil
 	}
 
-	userJSON, err = io.ReadAll(resp.Body)
+	// other status codes mean failed password change - get the response
+	errJSON, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return userJSON, err
+		return fmt.Errorf("shouldn't: set password failed to read response body: %s", err)
 	}
 
-	return userJSON, nil
+	return Copy(resp.StatusCode, errJSON)
 }
 
 func (c *Client) StartPasswordReset(email string) (u *authn.Auth, err error) {

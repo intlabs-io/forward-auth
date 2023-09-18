@@ -22,18 +22,11 @@ const (
 const (
 	// ANY wildcard category matches any individual category (eg FINANCE, CONTENT, IMAGE, etc)
 	CategoryAny = "ANY"
-	// ALL context matches any category
+	// ALL context matches any individual context
 	ContextsAll = "ALL"
-	// ALL wildcard action matches any of CREATE, READ, UPDATE, DELETE, EXISTS; also used for all contexts
+	// ALL wildcard action matches any individual action (eg CREATE, READ, UPDATE, DELETE, EXISTS, etc)
 	ActionAll = "ALL"
 )
-
-// Auth type returned by a successful authentication
-// type Auth struct {
-// 	User      Identity `json:"identity"`
-// 	JWT       string   `json:"jwt"`
-// 	ExpiresAt int64    `json:"expiresAt"`
-// }
 
 // Auth type returned by a successful authentication
 type Auth struct {
@@ -81,24 +74,35 @@ func (c *Credentials) User(jwtKey []byte) (username string) {
 	return username
 }
 
-func (c *Credentials) Check(jwtKey []byte, context, action, category string) (result bool, err error) {
-	if c.JWT == "" {
-		return result, fmt.Errorf("cannot check empty JWT credentials")
-	}
-
-	identity, err := jwtIdentity(c.JWT, jwtKey)
-	if err != nil {
-		return result, fmt.Errorf("get identity failed: %s", err)
-	}
-
-	return identity.HasPermission(identity.TenantID, context, action, category), nil
-
-}
-
 // Claims type
 type Claims struct {
-	Identity *Identity `json:"user"`
-	jwt.StandardClaims
+	Identity *Identity `json:"identity"`
+	jwt.RegisteredClaims
+	AuthClaims
+}
+
+// AuthClaims type
+type AuthClaims struct {
+	IDP      string   `json:"idp,omitempty"`
+	ClientID string   `json:"client_id,omitempty"`
+	AuthTime int64    `json:"auth_time,omitempty"`
+	SID      string   `json:"sid,omitempty"`
+	Scope    []string `json:"scope,omitempty"`
+	AMR      []string `json:"amr,omitempty"`
+}
+
+// // RefreshClaims type
+type RefreshClaims struct {
+	TID string `json:"tid"`
+	UID string `json:"uid"`
+	jwt.RegisteredClaims
+}
+
+// ResetClaims type
+type ResetClaims struct {
+	TID string `json:"tid"`
+	UID string `json:"uid"`
+	jwt.RegisteredClaims
 }
 
 func jwtIdentity(tknStr string, jwtKey []byte) (identity *Identity, err error) {

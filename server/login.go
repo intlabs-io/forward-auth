@@ -443,13 +443,13 @@ func ChangePassword(svc *fauth.Auth, client *client.Client) func(w http.Response
 
 		uid := params["uid"]
 
-		passwordJSON, err := client.ChangePasswordRaw(uid, r.Body)
+		err := client.ChangePasswordRaw(uid, r.Body)
 		if err != nil {
 			ErrJSON(w, err)
 			return
 		}
 
-		OkJSON(w, string(passwordJSON))
+		NoContent(w)
 	}
 }
 
@@ -468,13 +468,13 @@ func SetPassword(svc *fauth.Auth, client *client.Client) func(w http.ResponseWri
 
 		uid := params["uid"]
 
-		passwordJSON, err := client.SetPasswordRaw(uid, r.Body)
+		err := client.SetPasswordRaw(uid, r.Body)
 		if err != nil {
 			ErrJSON(w, err)
 			return
 		}
 
-		OkJSON(w, string(passwordJSON))
+		NoContent(w)
 	}
 }
 

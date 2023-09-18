@@ -202,6 +202,13 @@ func OkJSON(w http.ResponseWriter, json string) {
 	fmt.Fprint(w, json)
 }
 
+// StatusJSON writes a given HTTP status response with body JSON
+func StatusJSON(w http.ResponseWriter, code int, json string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	fmt.Fprint(w, json)
+}
+
 // MsgJSON writes an HTTP status 200 OK response with constructed message JSON
 func MsgJSON(w http.ResponseWriter, message string) {
 	w.Header().Set("Content-Type", "application/json")
@@ -210,6 +217,7 @@ func MsgJSON(w http.ResponseWriter, message string) {
 }
 
 // ErrJSON writes an HTTP status response with constructed error message JSON and logs the error
+// Note we do not call http.Error() because it sets the content type to text/plain.
 func ErrJSON(w http.ResponseWriter, err error) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -217,7 +225,8 @@ func ErrJSON(w http.ResponseWriter, err error) {
 	if !ok {
 		e = NewBadRequestError(err.Error())
 	}
-	http.Error(w, e.JSON(), e.Status)
+	w.WriteHeader(e.Status)
+	fmt.Fprint(w, e.JSON())
 	if e.Status == 404 {
 		log.Warning(e.Error())
 	} else {
@@ -251,4 +260,9 @@ func ErrText(w http.ResponseWriter, err error) {
 func OkXML(w http.ResponseWriter, xml string) {
 	w.Header().Set("Content-Type", "application/xml")
 	fmt.Fprint(w, xml)
+}
+
+// NoContent writes a httpStatusNoContent and exits
+func NoContent(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusNoContent)
 }
