@@ -2,18 +2,16 @@ module bitbucket.org/_metalogic_/forward-auth
 
 go 1.21.0
 
-replace bitbucket.org/_metalogic_/authenticate => ../authenticate
-
 replace bitbucket.org/_metalogic_/access-apis => ../access-apis
 
 require (
 	bitbucket.org/_metalogic_/access-apis v1.0.1-0.20230906180059-be45ca0c2ede
-	bitbucket.org/_metalogic_/authenticate v0.0.0-20230908112921-38de565418b6
+	bitbucket.org/_metalogic_/authenticate v0.8.0
 	bitbucket.org/_metalogic_/build v1.0.2
 	bitbucket.org/_metalogic_/config v1.4.0
 	bitbucket.org/_metalogic_/eval v1.0.1
 	bitbucket.org/_metalogic_/genstr v0.0.0-20230315132016-c6aea6ceb255
-	bitbucket.org/_metalogic_/glib v1.4.0
+	bitbucket.org/_metalogic_/glib v1.5.0
 	bitbucket.org/_metalogic_/httpsig v0.0.0-20211209010019-f2554fb89eae
 	bitbucket.org/_metalogic_/httptreemux-swagger v1.1.0
 	bitbucket.org/_metalogic_/log v1.5.0

@@ -5,12 +5,6 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-// Credentials type
-type Credentials struct {
-	Password string `json:"password"`
-	Email    string `json:"email"`
-}
-
 type LoginRequest struct {
 	Password string `json:"password"`
 	Email    string `json:"email"`
@@ -22,51 +16,11 @@ type KeyRequest struct {
 	RefreshLife int `json:"refreshLife"`
 }
 
-// RefreshToken type
-type RefreshToken struct {
-	JWTRefresh string `json:"jwtRefresh"`
-}
-
-/***************
- * Claims Types
- ***************/
-
-// Claims type
-type Claims struct {
-	Identity *authn.Identity `json:"identity"`
-	jwt.RegisteredClaims
-	AuthClaims
-}
-
-// RefreshClaims type
-type RefreshClaims struct {
-	TID string `json:"tid"`
-	UID string `json:"uid"`
-	jwt.RegisteredClaims
-}
-
-// AuthClaims type
-type AuthClaims struct {
-	IDP      string   `json:"idp,omitempty"`
-	ClientID string   `json:"client_id,omitempty"`
-	AuthTime int64    `json:"auth_time,omitempty"`
-	SID      string   `json:"sid,omitempty"`
-	Scope    []string `json:"scope,omitempty"`
-	AMR      []string `json:"amr,omitempty"`
-}
-
 // ClaimsResponse type
 type ClaimsResponse struct {
 	Identity *authn.Identity `json:"identity"`
 	jwt.RegisteredClaims
-	AuthClaims
-}
-
-// ResetClaims type
-type ResetClaims struct {
-	TID string `json:"tid"`
-	UID string `json:"uid"`
-	jwt.RegisteredClaims
+	authn.AuthClaims
 }
 
 // initiates user account recovery
