@@ -16,7 +16,7 @@ type Session struct {
 	Identity   *authn.Identity `json:"identity"`
 	JWTToken   string          `json:"jwtToken"`
 	JWTRefresh string          `json:"refreshToken"`
-	Expiry     int64           `json:"expiry"` // the expiry time in Unix seconds of the JWT
+	Expiry     int64           `json:"expiry"` // the expiry time of the JWT in Unix seconds
 }
 
 func (s *Session) UserID() string {

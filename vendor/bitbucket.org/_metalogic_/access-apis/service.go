@@ -78,7 +78,7 @@ type Service interface {
 	Role(tid string, rid string) (roleJSON string, err error)
 	Roles(tid string) (rolesJSON string, err error)
 	RoleUsers(tid, rid string) (institutionUserRolesJSON string, err error)
-	SetPassword(sessionID, tid, uid, hash string) (userJSON string, err error)
+	SetPassword(sessionID, tid, uid, hash string) (err error)
 
 	UpdateCategoryContext(sessionID, tid, code, updateCode, categoryCode, description string, active *bool) (categoryContextJSON string, err error)
 	UpdateInvitation(sessionID, tid, token, email, status string) (updateInvitationJSON string, err error)

@@ -24,7 +24,7 @@ func (e *ErrorResponse) Error() string {
 	return fmt.Sprintf("[%d]: %s", e.Status, e.Message)
 }
 
-func (r *ErrorResponse) JSON() (j string) {
+func (r *ErrorResponse) JSON() string {
 	b, _ := json.Marshal(r)
 	return string(b)
 }
@@ -101,4 +101,17 @@ func NewDBError(message string) *ErrorResponse {
 		message,
 		time.Now().UnixNano(),
 	}
+}
+
+// Create an ErrorRsponse error from status code and response body
+func Copy(status int, body []byte) (err error) {
+
+	e := &ErrorResponse{}
+
+	err = json.Unmarshal(body, e)
+	if err != nil {
+		return fmt.Errorf("shouldn't: %s", err)
+	}
+	e.Status = status
+	return e
 }
