@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"time"
 
+	authz "bitbucket.org/_metalogic_/authorize"
 	"bitbucket.org/_metalogic_/config"
-	fauth "bitbucket.org/_metalogic_/forward-auth"
 	. "bitbucket.org/_metalogic_/glib/sql" // dot import fo avoid package prefix in reference (shutup lint)
 	"bitbucket.org/_metalogic_/log"
 	_ "github.com/denisenkom/go-mssqldb"
@@ -65,7 +65,7 @@ func NewLoader() (loader *Loader, err error) {
 // Import imports an access control file to the database
 func (loader *Loader) Import(file string) (n int, err error) {
 
-	var acs fauth.AccessSystem
+	var acs authz.AccessSystem
 
 	// load access.json from file
 	data, err := ioutil.ReadFile(file)
@@ -88,21 +88,21 @@ func (loader *Loader) Import(file string) (n int, err error) {
 		return n, err
 	}
 
-	for i, group := range acs.Checks.HostGroups {
+	for i, group := range acs.Authorization.GroupChecks {
 		groupGUID, groupJSON, err := createHostGroup(txn, sessionGUID, group)
 		if err != nil {
 			return n, err
 		}
-		log.Debugf("importing host group %s: %s", groupGUID, groupJSON)
+		log.Debugf("importing group %s: %s", groupGUID, groupJSON)
 		n = i + 1
-		log.Debugf("processing check hosts: %v", group.Hosts)
-		for _, host := range group.Hosts {
-			hostGUID, hostJSON, err := createHost(txn, sessionGUID, groupGUID, host)
+		log.Debugf("processing check groups: %v", group.Groups)
+		for _, group := range group.Groups {
+			groupGUID, groupJSON, err := createGroup(txn, sessionGUID, groupGUID, group)
 			if err != nil {
 				txn.Rollback()
 				return n, err
 			}
-			log.Debugf("created host %s: %s", hostGUID, hostJSON)
+			log.Debugf("created group %s: %s", groupGUID, groupJSON)
 		}
 		for _, check := range group.Checks {
 			checkGUID, checkJSON, err := createCheck(txn, sessionGUID, groupGUID, check)
@@ -156,7 +156,7 @@ func createSystem(txn *sql.Tx, sessionGUID, name, description string) (systemGUI
 	return systemGUID, systemJSON, err
 }
 
-func createHostGroup(txn *sql.Tx, sessionGUID string, group fauth.HostGroup) (groupGUID, groupJSON string, err error) {
+func createHostGroup(txn *sql.Tx, sessionGUID string, group authz.GroupChecks) (groupGUID, groupJSON string, err error) {
 	var (
 		rows *sql.Rows
 	)
@@ -188,40 +188,40 @@ func createHostGroup(txn *sql.Tx, sessionGUID string, group fauth.HostGroup) (gr
 	return groupGUID, groupJSON, err
 }
 
-// createHost creates a new check host
-func createHost(txn *sql.Tx, sessionGUID, groupGUID, hostname string) (hostGUID, hostJSON string, err error) {
+// createGroup creates a new check group
+func createGroup(txn *sql.Tx, sessionGUID, groupGUID, groupname string) (guid, groupJSON string, err error) {
 	var (
 		rows *sql.Rows
 	)
-	log.Debugf("[Session GUID: %s]: hostname %s", sessionGUID, hostname)
+	log.Debugf("[Session GUID: %s]: groupname %s", sessionGUID, groupname)
 
 	ctx := context.TODO()
 	rows, err = txn.QueryContext(ctx, "[authz].[CreateHost]",
 		sql.Named("SessionGUID", sessionGUID),
 		sql.Named("GroupGUID", groupGUID),
-		sql.Named("Hostname", hostname),
-		sql.Named("GUID", sql.Out{Dest: &hostGUID}))
+		sql.Named("Hostname", groupname),
+		sql.Named("GUID", sql.Out{Dest: &groupGUID}))
 
 	if err != nil {
-		return hostGUID, hostJSON, err
+		return guid, groupJSON, err
 	}
 
 	defer rows.Close()
 
 	for rows.Next() {
-		err = rows.Scan(&hostJSON)
+		err = rows.Scan(&groupJSON)
 	}
 
 	if err != nil {
 		log.Errorf("%s", err)
-		return hostGUID, hostJSON, err
+		return guid, groupJSON, err
 	}
 
-	return hostGUID, hostJSON, err
+	return guid, groupJSON, err
 }
 
 // createCheck ...
-func createCheck(txn *sql.Tx, sessionGUID, groupGUID string, check fauth.Check) (checkGUID, checkJSON string, err error) {
+func createCheck(txn *sql.Tx, sessionGUID, groupGUID string, check authz.Check) (checkGUID, checkJSON string, err error) {
 	var (
 		rows *sql.Rows
 	)
@@ -255,7 +255,7 @@ func createCheck(txn *sql.Tx, sessionGUID, groupGUID string, check fauth.Check) 
 	return checkGUID, checkJSON, err
 }
 
-func createPath(txn *sql.Tx, sessionGUID, checkGUID string, path fauth.Path) (pathGUID, pathJSON string, err error) {
+func createPath(txn *sql.Tx, sessionGUID, checkGUID string, path authz.Path) (pathGUID, pathJSON string, err error) {
 	var (
 		rows *sql.Rows
 	)

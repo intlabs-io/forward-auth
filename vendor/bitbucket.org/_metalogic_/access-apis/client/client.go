@@ -39,7 +39,13 @@ func New(rootURL, tenantID, apiKey string, insecure bool, logger *slog.Logger) (
 	}
 
 	// construct and validate tenant base URI
-	baseURL, err := url.Parse(fmt.Sprintf("%s/tenant-api/v1/tenants/%s", rootURL, tenantID))
+	var baseURL *url.URL
+	if tenantID == "ROOT" {
+		baseURL, err = url.Parse(fmt.Sprintf("%s/tenant-api/v1", rootURL))
+	} else {
+		baseURL, err = url.Parse(fmt.Sprintf("%s/tenant-api/v1/tenants/%s", rootURL, tenantID))
+	}
+
 	if err != nil {
 		return client, err
 	}

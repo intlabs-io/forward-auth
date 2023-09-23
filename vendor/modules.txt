@@ -1,10 +1,13 @@
-# bitbucket.org/_metalogic_/access-apis v1.2.0
+# bitbucket.org/_metalogic_/access-apis v1.2.0 => ../access-apis
 ## explicit; go 1.21.0
 bitbucket.org/_metalogic_/access-apis
 bitbucket.org/_metalogic_/access-apis/client
 # bitbucket.org/_metalogic_/authenticate v0.8.0
 ## explicit; go 1.21.0
 bitbucket.org/_metalogic_/authenticate
+# bitbucket.org/_metalogic_/authorize v0.0.0-20230919090810-1123dd40a78c => ../authorize
+## explicit; go 1.21.0
+bitbucket.org/_metalogic_/authorize
 # bitbucket.org/_metalogic_/build v1.0.2
 ## explicit; go 1.18
 bitbucket.org/_metalogic_/build
@@ -17,6 +20,9 @@ bitbucket.org/_metalogic_/colorable
 # bitbucket.org/_metalogic_/config v1.4.0
 ## explicit; go 1.15
 bitbucket.org/_metalogic_/config
+# bitbucket.org/_metalogic_/env v0.0.0-00010101000000-000000000000 => ../env
+## explicit; go 1.21.0
+bitbucket.org/_metalogic_/env
 # bitbucket.org/_metalogic_/eval v1.0.1
 ## explicit; go 1.15
 bitbucket.org/_metalogic_/eval
@@ -55,7 +61,7 @@ github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 ## explicit
 github.com/PuerkitoBio/urlesc
-# github.com/denisenkom/go-mssqldb v0.12.2
+# github.com/denisenkom/go-mssqldb v0.12.3
 ## explicit; go 1.13
 github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
@@ -164,3 +170,6 @@ golang.org/x/tools/internal/typeparams
 # gopkg.in/yaml.v2 v2.4.0
 ## explicit; go 1.15
 gopkg.in/yaml.v2
+# bitbucket.org/_metalogic_/access-apis => ../access-apis
+# bitbucket.org/_metalogic_/authorize => ../authorize
+# bitbucket.org/_metalogic_/env => ../env

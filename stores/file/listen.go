@@ -1,14 +1,14 @@
 package file
 
 import (
-	fauth "bitbucket.org/_metalogic_/forward-auth"
+	authz "bitbucket.org/_metalogic_/authorize"
 	"bitbucket.org/_metalogic_/log"
 	"github.com/fsnotify/fsnotify"
 )
 
 // Listen listens for changes to the access control file, calling
 // updateACS to refresh its caches on change
-func (store *FileStore) Listen(updateACS func(*fauth.AccessSystem) error) {
+func (store *FileStore) Listen(updateACS func(*authz.AccessSystem) error) {
 
 	go func() {
 		for {

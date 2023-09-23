@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"time"
 
+	authz "bitbucket.org/_metalogic_/authorize"
 	"bitbucket.org/_metalogic_/config"
-	fauth "bitbucket.org/_metalogic_/forward-auth"
 	. "bitbucket.org/_metalogic_/glib/http" // dot import fo avoid package prefix in reference (shutup lint)
 	. "bitbucket.org/_metalogic_/glib/sql"
 	"bitbucket.org/_metalogic_/log"
@@ -85,7 +85,7 @@ func (store *MSSql) Close() error {
 }
 
 // Load loads an access control system from the database
-func (store *MSSql) Load() (acs *fauth.AccessSystem, err error) {
+func (store *MSSql) Load() (acs *authz.AccessSystem, err error) {
 	var (
 		rows *sql.Rows
 	)
@@ -97,24 +97,24 @@ func (store *MSSql) Load() (acs *fauth.AccessSystem, err error) {
 	}
 	defer rows.Close()
 
-	var checksJSON string
+	var authorizationJSON string
 	for rows.Next() {
-		err = rows.Scan(&checksJSON)
+		err = rows.Scan(&authorizationJSON)
 	}
 	if err != nil {
 		log.Error(err.Error())
 		return acs, NewDBError(err.Error())
 	}
 
-	checks := &fauth.HostChecks{}
-	err = json.Unmarshal([]byte(checksJSON), checks)
+	authorization := &authz.Authorization{}
+	err = json.Unmarshal([]byte(authorizationJSON), authorization)
 	if err != nil {
 		log.Error(err.Error())
 		return acs, NewDBError(err.Error())
 	}
 
-	acs = &fauth.AccessSystem{
-		Checks: checks,
+	acs = &authz.AccessSystem{
+		Authorization: authorization,
 	}
 	return acs, nil
 }
@@ -136,7 +136,7 @@ func (store *MSSql) Tokens(rootToken string) (tokens map[string]string, err erro
 	// 	return tokens, err
 	// }
 
-	// var applications []fauth.Application
+	// var applications []authz.Application
 
 	// err = json.Unmarshal(data, applications)
 	// if err != nil {
@@ -185,5 +185,5 @@ func (store *MSSql) Stats() string {
 	return js
 }
 
-func (store *MSSql) Listen(func(*fauth.AccessSystem) error) {
+func (store *MSSql) Listen(func(*authz.AccessSystem) error) {
 }

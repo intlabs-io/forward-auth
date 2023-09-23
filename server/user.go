@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"bitbucket.org/_metalogic_/access-apis/client"
-	fauth "bitbucket.org/_metalogic_/forward-auth"
+	authz "bitbucket.org/_metalogic_/authorize"
 	. "bitbucket.org/_metalogic_/glib/http"
 	"bitbucket.org/_metalogic_/log"
 )
@@ -16,12 +16,12 @@ import (
 // @Description get User UUID
 // @Produce json
 // @Param uuid path string false "UUID of the tag"
-// @Success 200 {object} fauth.UserResponse
+// @Success 200 {object} authz.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /users/{uuid} [get]
-func User(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func User(svc *authz.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 		uid := params["uid"]
@@ -40,12 +40,12 @@ func User(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r 
 // @Description get users
 // @Produce json
 // @Param regex query string false "regex to match against tag names; uses * if none provided"
-// @Success 200 {array} fauth.UserResponse
+// @Success 200 {array} authz.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /users [get]
-func Users(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Users(svc *authz.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 		usersResponse, err := client.GetUsersRaw()
@@ -62,13 +62,13 @@ func Users(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r
 // @Summary create User
 // @Description create User
 // @Produce json
-// @Param body body fauth.User true "tag JSON object"
-// @Success 200 {object} fauth.UserResponse
+// @Param body body authz.User true "tag JSON object"
+// @Success 200 {object} authz.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /users [post]
-func CreateUser(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func CreateUser(svc *authz.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 		maxsize := getMaxUploadSize()
@@ -93,12 +93,12 @@ func CreateUser(svc *fauth.Auth, client *client.Client) func(w http.ResponseWrit
 // @Description update Users
 // @Produce json
 // @Param uuid path string true "UUID of the tag"
-// @Success 200 {object} fauth.UserResponse
+// @Success 200 {object} authz.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /users/{uid} [put]
-func UpdateUser(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func UpdateUser(svc *authz.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 		uid := params["uid"]
@@ -120,12 +120,12 @@ func UpdateUser(svc *fauth.Auth, client *client.Client) func(w http.ResponseWrit
 // @Description delete User
 // @Produce json
 // @Param uuid path string true "UUID of the tag"
-// @Success 200 {object} fauth.UserResponse
+// @Success 200 {object} authz.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /users/{uuid} [delete]
-func DeleteUser(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func DeleteUser(svc *authz.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 		uid := params["uid"]
