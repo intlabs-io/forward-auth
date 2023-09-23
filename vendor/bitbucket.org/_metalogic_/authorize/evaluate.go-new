@@ -1,0 +1,175 @@
+package authz
+
+import (
+	"bytes"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"strings"
+
+	"bitbucket.org/_metalogic_/config"
+	"bitbucket.org/_metalogic_/eval"
+
+	// "bitbucket.org/_metalogic_/ident" ident.Credentials
+	authn "bitbucket.org/_metalogic_/authenticate" // replaces above
+	"bitbucket.org/_metalogic_/log"
+)
+
+// Evaluate evaluates an access control expression against an authorization request with config and credentials
+func Evaluate(expr string, req *Request, authzConf *Config, credentials *authn.Credentials) (result bool, err error) {
+	slog.Debug("evaluating", "expr", expr, "authz", authzConf, "credentials", credentials)
+	// define evalation builtins
+	functions := map[string]eval.ExpressionFunction{
+		// allow returns true if HTTP request to URL returns HTTP status 200 ok
+		// eg: allow(action, user, "sources/{sid}", "https://example.com/check")
+		// action is one of EXISTS, CREATE, READ, UPDATE, DELETE
+		"allow": func(args ...interface{}) (interface{}, error) {
+			action, _ := args[0].(string)
+			uid, _ := args[1].(string)
+			rid, _ := args[2].(string)
+			url, _ := args[3].(string)
+			slog.Debug("checking user %s for access to resource '%s' at URL %s", "users", uid, "resource", rid, "url", url)
+
+			body := []byte(fmt.Sprintf(`{ "action": "%s", "user": "%s", "resource": "%s"}`, action, uid, rid))
+			key := config.MustGetConfig("ROOT_KEY")
+			client := &http.Client{}
+			req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+			if err != nil {
+				return false, err
+			}
+
+			req.Header.Set("Authorization", "Bearer "+key)
+			resp, err := client.Do(req)
+			if err != nil {
+				return false, err
+			}
+
+			if resp.StatusCode != 200 {
+				return false, fmt.Errorf(resp.Status)
+			}
+
+			return true, nil
+		},
+		// return true if the value of one of the bearer tokens is valid in the environment
+		// eg: bearer('ROOT_KEY', 'MC_APP_KEY' ...)
+		"bearer": func(args ...interface{}) (interface{}, error) {
+			if credentials.Token == "" {
+				return false, nil
+			}
+			var tokens []string
+			for _, arg := range args {
+				tokens = append(tokens, arg.(string))
+			}
+			slog.Debug("calling bearer(%v)", tokens)
+			return authzConf.CheckBearerAuth(credentials.Token, tokens...), nil
+		},
+		"classification": func(args ...interface{}) (interface{}, error) {
+			log.Debug("calling classification()")
+			return authzConf.jauth.Classification(credentials.JWT), nil
+		},
+		// return the result of concatenating each argument;
+		// arguments may be string literals or calls to other built-ins
+		// eg: concat(param(':tenantID'), '-', param(':userID'))
+		"concat": func(args ...interface{}) (interface{}, error) {
+			var parts []string
+
+			for _, arg := range args {
+				parts = append(parts, arg.(string))
+			}
+
+			return strings.Join(parts, ""), nil
+		},
+		// return the binding of a path or query parameter
+		// eg: param(':tenantID'), param('summary')
+		"param": func(args ...interface{}) (interface{}, error) {
+			param := args[0].(string)
+			slog.Debug("calling param(%s)", param)
+			if v, ok := req.Params[param]; ok {
+				return v[0], nil
+			}
+			return "", nil
+		},
+		// return true if identity has role permission in context
+		// eg: role('CREATE', 'INSTITUTION'),
+		// role('ACME', 'UPDATE', 'CONTENT') etc
+		"role": func(args ...interface{}) (interface{}, error) {
+			var (
+				context  string
+				action   string
+				category string
+			)
+			if len(args) == 2 {
+				// no context provided
+				context = authn.ContextsAll // default context
+				action = args[0].(string)
+				category = args[1].(string)
+			} else if len(args) == 3 {
+				context = args[0].(string)
+				action = args[1].(string)
+				category = args[2].(string)
+			} else {
+				return false, fmt.Errorf("function role takes 2 or 3 arguments")
+			}
+
+			identity := authn.FromJWT(credentials.JWT)
+			slog.Debug("calling role(%s,%s,%s)", context, action, category)
+			// return authzConf.CheckJWT(credentials.JWT, context, action, category), nil
+			return credentials.Check(context, action, category)
+		},
+		// return true if identity has root permission
+		"root": func(args ...interface{}) (interface{}, error) {
+			log.Debug("calling Superuser()")
+			return authzConf.jauth.Superuser(credentials.JWT, authzConf.owner.UID), nil
+		},
+		// return true if a request signed with tenant's private key is valid
+		// with respect to tenant's public key
+		// return true if request signature is valid with respect to private
+		// public key pair with given name
+		"signature": func(args ...interface{}) (interface{}, error) {
+			keyName, _ := args[0].(string)
+			slog.Debug("calling signature", "keyName", keyName)
+			return verify(verifier, keyName, authzConf.jauth.RSAPublicKeys()), nil
+		},
+		// return the subdomain of the request
+		"subdomain": func(args ...interface{}) (interface{}, error) {
+			slog.Debug("calling subdomain()")
+			return "TODO", nil
+		},
+		// return true if identity matches the user UUID in path
+		// eg: user(param(':uuid'))
+		"user": func(args ...interface{}) (interface{}, error) {
+			uuid, _ := args[0].(string)
+			slog.Debug("calling user(%s)", uuid)
+			return strings.EqualFold(authzConf.jauth.User(credentials.JWT), uuid), nil
+		},
+	}
+
+	expression, err := eval.NewEvaluableExpressionWithFunctions(expr, functions)
+	if err != nil {
+		log.Error(err)
+		return result, err
+	}
+
+	// TODO - check this - req.Params is map[string][]string
+	parameters := make(map[string]interface{}, 8)
+	for k, v := range req.Params {
+		parameters[k] = v
+	}
+
+	slog.Debug("evaluating expression %s", expr)
+	val, err := expression.Evaluate(parameters)
+	if err != nil {
+		log.Error(err)
+		return result, err
+	}
+
+	return val.(bool), nil
+}
+
+func redact(secret string) string {
+	l := len(secret)
+	if l <= 10 {
+		return "*REDACTED*"
+	}
+	return secret[:4] + " *REDACTED* " + secret[l-4:]
+}

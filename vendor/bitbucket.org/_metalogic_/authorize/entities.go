@@ -1,14 +1,14 @@
 /*******
-	forward-auth supports two types of bearer token: application
+	authorize supports two types of bearer token: application
 	tokens, used by applications in the Docker Swarm when making
 	HTTP requests and tenant tokens used by remote tenant client applications
 
 	Tokens may be stored by token name as Docker secrets allowing direct
-	access to the token value both by forward-auth and the calling application, or
+	access to the token value both by authorize and the calling application, or
 	in the database, which requires either direct database access or client requests
 	to an API exposing the token.
 
-	Bearer tokens are referenced in access rules through calls to the forward-auth bearer() built-in.
+	Bearer tokens are referenced in access rules through calls to the authorize bearer() built-in.
 	For example, in the following access rule expression the designated bearer token ROOT_KEY and
 	the application token called MC_APP_KEY are resolved. If the bearer token in the request matches bearer()
 	returns true.
@@ -34,7 +34,7 @@
 
 *******/
 
-package fauth
+package authz
 
 type Application struct {
 	Name   string `json:"name"`

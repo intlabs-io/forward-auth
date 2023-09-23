@@ -1,4 +1,4 @@
-package fauth
+package authz
 
 import (
 	"bytes"
@@ -30,16 +30,6 @@ const (
 	ANY = "ANY"
 	// ALL wildcard action matches any of CREATE, READ, UPDATE, DELETE, EXISTS; also used for all contexts
 	ALL = "ALL"
-)
-
-// Action constants as defined in database table auth.ACTIONS
-// HTTP methods are mapped to an action
-const (
-	CREATE = "CREATE"
-	READ   = "READ"
-	UPDATE = "UPDATE"
-	DELETE = "DELETE"
-	EXISTS = "EXISTS"
 )
 
 // Auth type holds data for authorization
@@ -100,7 +90,7 @@ func NewAuth(acs *AccessSystem, rootOverride bool, sessionMode, sessionName, jwt
 	}
 
 	auth.setRSAPublicKeys(acs.PublicKeys)
-	err = auth.setAccess(acs.Checks, false)
+	err = auth.setAccess(acs.Authorization, false)
 	if err != nil {
 		return auth, err
 	}
@@ -396,18 +386,6 @@ func (auth *Auth) UserID(jwt string) (uid string) {
 	return identity.UserID
 }
 
-type EmailRequest struct {
-	Email string `json:"email"`
-}
-
-// User type
-type UserRequest struct {
-	UID     string `json:"uid"`
-	Email   string `json:"email"`
-	Status  string `json:"status"`
-	Comment string `json:"comment,omitempty"`
-}
-
 // Action returns an action from an HTTP method
 func Action(method string) string {
 	switch method {
@@ -537,7 +515,7 @@ func Handler(rule Rule, auth *Auth) func(method, path string, params map[string]
 	}
 }
 
-func (auth *Auth) setAccess(checks *HostChecks, refresh bool) error {
+func (auth *Auth) setAccess(checks *Authorization, refresh bool) error {
 	if checks == nil {
 		slog.Warn("empty host checks for auth")
 		return nil
@@ -545,22 +523,22 @@ func (auth *Auth) setAccess(checks *HostChecks, refresh bool) error {
 	auth.overrides = checks.Overrides
 
 	// create Pat Host Muxers from Checks
-	for _, group := range checks.HostGroups {
+	for _, group := range checks.GroupChecks {
 		// default to deny
 		hostMux := pat.NewDenyMux()
 		if group.Default == "allow" {
 			hostMux = pat.NewAllowMux()
 		}
 		// each host in a group shares the hostMux
-		for _, host := range group.Hosts {
-			if v, ok := auth.overrides[host]; ok {
-				slog.Warn(fmt.Sprintf("%s override on host %s disables defined host checks", v, host))
+		for _, group := range group.Groups {
+			if v, ok := auth.overrides[group]; ok {
+				slog.Warn(fmt.Sprintf("%s override on host %s disables defined host checks", v, group))
 			}
-			if _, ok := auth.getMux(host); !refresh && ok {
-				slog.Warn(fmt.Sprintf("ignoring duplicate host checks for %s", host))
+			if _, ok := auth.getMux(group); !refresh && ok {
+				slog.Warn(fmt.Sprintf("ignoring duplicate host checks for %s", group))
 				continue
 			}
-			auth.setMux(host, hostMux)
+			auth.setMux(group, hostMux)
 		}
 		// add path prefixes to hostMux
 		for _, check := range group.Checks {
@@ -826,7 +804,7 @@ func (auth *Auth) UpdateFunc() (f func(*AccessSystem) error) {
 	return func(acs *AccessSystem) error {
 		auth.setTokens(acs.Tokens)
 		auth.setRSAPublicKeys(acs.PublicKeys)
-		return auth.setAccess(acs.Checks, true)
+		return auth.setAccess(acs.Authorization, true)
 	}
 }
 
