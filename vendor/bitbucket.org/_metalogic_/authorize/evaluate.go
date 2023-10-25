@@ -147,7 +147,7 @@ func (auth *Auth) CreateSession(token string, jwt *authn.JWT, reset bool) (id st
 }
 
 // TODO return error if app session and id not found
-func (auth *Auth) UpdateSession(id string, token, jwtToken, refreshToken string, expiry int64) (expiresAt time.Time) {
+func (auth *Auth) UpdateSession(id, token string, jwt *authn.JWT) (expiresAt time.Time) {
 	app, ok := auth.tokens[token]
 	if !ok {
 		return time.Time{}
@@ -158,7 +158,7 @@ func (auth *Auth) UpdateSession(id string, token, jwtToken, refreshToken string,
 		return time.Time{}
 	}
 
-	identity, err := authn.FromJWT(jwtToken, auth.keyFunc)
+	identity, err := authn.FromJWT(jwt.JWTToken, auth.keyFunc)
 	if err != nil {
 		slog.Error("failed get identity from auth", "error", err)
 		return time.Time{}
@@ -166,11 +166,11 @@ func (auth *Auth) UpdateSession(id string, token, jwtToken, refreshToken string,
 
 	sessions[id] = Session{
 		Identity:   identity,
-		JWTToken:   jwtToken,
-		JWTRefresh: refreshToken,
-		Expiry:     expiry,
+		JWTToken:   jwt.JWTToken,
+		JWTRefresh: jwt.RefreshToken,
+		Expiry:     jwt.ExpiresAt,
 	}
-	return time.Unix(expiry, 0)
+	return time.Unix(jwt.ExpiresAt, 0)
 }
 
 func (auth *Auth) Sessions(token string) (sessionsJSON string) {
