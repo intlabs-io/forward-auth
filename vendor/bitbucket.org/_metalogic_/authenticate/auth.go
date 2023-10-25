@@ -28,15 +28,50 @@ const (
 	ActionAll = "ALL"
 )
 
-// Auth type returned by a successful authentication
+// Auth type is returned by a successful user login workflow.
+//
+// JWT encapsulates the user credentials; they are present in the
+// Auth returned by a successful user/password login step of a user
+// who has not enabled two-factor authentication (*Valid2FA will be nil).
+// If the user has enabled two-factor authentication, the response from a
+// successful user/password login step will return an Auth in the response with
+// *Valid2FA = false and JWT set to nil. This should trigger the client to execute
+// a subsequent two-factor authentication step. If the two-factor authentication
+// step succeeds, *Twofactor.Valid = true and JWT is populated with the user credentials.
 type Auth struct {
-	JWT        string `json:"jwt"`
-	JWTRefresh string `json:"jwtRefresh"`
-	ExpiresAt  int64  `json:"expiresAt"`
+	Twofactor *Twofactor `json:"twofactor"`
+	JWT       *JWT       `json:"jwt"`
 }
 
-func (auth *Auth) JSON() string {
-	b, err := json.Marshal(auth)
+// Twofactor encapsulates the state of a two-factor authentication process.
+// If the user enabled two-factor authentication a Twofactor response is returned
+// immediately from a successful user/password login with Count = 0.
+// It is expected that the client will follow with a two-factor authentication
+// request. If that request succeeds a JWT response (see below) is returned.
+// If the request fails the Twofactor response is returned again with Valid = false.
+// - Count is the number of attempts to complete the two-factor authentication
+// - TenantID is the unique ID of the tenant of which the user is a member
+// - UserID is the unique of the user account carrying out the authentication.
+type Twofactor struct {
+	Count    int    `json:"count"`
+	Valid    bool   `json:"valid"`
+	TenantID string `json:"tid"`
+	UserID   string `json:"uid"`
+}
+
+// JWT encapsulates the user claims returned from a successful login
+// workflow. If the user has not enabled two-factor authentication the
+// response is returned immediately from a successful user/password login.
+// If the user has enabled two-factor authentication, the JWT is returned
+// at the completion of a subsequent successful two-factor authentication.
+type JWT struct {
+	JWTToken     string `json:"jwtToken"`
+	RefreshToken string `json:"refreshToken"`
+	ExpiresAt    int64  `json:"expiresAt"`
+}
+
+func (j *JWT) JSON() string {
+	b, err := json.Marshal(j)
 	if err != nil {
 		return fmt.Sprintf(`{"error": "%s"}`, err)
 	}

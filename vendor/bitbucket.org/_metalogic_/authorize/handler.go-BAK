@@ -1,7 +1,0 @@
-package authz
-
-import "bitbucket.org/_metalogic_/env"
-
-type Handler interface {
-	Handle(rule Rule, auth *Config) func(action, uri string, params map[string][]string, vars *env.Vars) (status int, message string)
-}

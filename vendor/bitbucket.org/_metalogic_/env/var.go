@@ -28,7 +28,7 @@ func (env *Vars) SetOut(key string, value any) {
 }
 
 // In returns the typed value for an input key or an error if
-// the mapped value is not of giiven type T
+// the mapped value is not of given type T
 func In[T any](env *Vars, key string) (t T, err error) {
 	value, ok := env.in[key]
 	if !ok {

@@ -5,9 +5,26 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 )
+
+const issuedAtLeeway = 1
+
+// CustomClaims type
+type CustomClaims struct {
+	Identity *Identity `json:"identity"`
+	jwt.RegisteredClaims
+}
+
+// override default Valid() method to allow clock drift of up to issuedAtLeewaySecs seconds
+func (c *CustomClaims) Valid() (err error) {
+	c.RegisteredClaims.IssuedAt.Add(-issuedAtLeeway * time.Second)
+	err = c.RegisteredClaims.Valid()
+	c.RegisteredClaims.IssuedAt.Add(issuedAtLeeway * time.Second)
+	return err
+}
 
 // Identity encapsulates attributes used in user authorization.
 //   - TenantID - the tenant ID of which this user is a member
@@ -61,6 +78,7 @@ func FromJWT(tknStr string, keyFunc jwt.Keyfunc) (identity *Identity, err error)
 		Identity *Identity `json:"identity"`
 		jwt.RegisteredClaims
 	}
+
 	// Initialize a new instance of `Claims`
 	claims := &Claims{}
 
@@ -160,17 +178,17 @@ func (user *Identity) Contexts() []string {
 //		   "uid": "5273d8a1-6bbd-4ccd-9bda-8340acb8cfe9",
 //	       "name": "REVIEW",
 //	       "tenant": "ACME",
-//         "description": "a state reviewer has READE action on ANY category, and APPEND action on the JOURNAL in each state",
+//         "description": "a province reviewer has READ action on ANY category, and APPEND action on the JOURNAL in each province",
 //	       "permissions": [
 //		      {
-//		         "context": "Alabama",
+//		         "context": "Alberta",
 //		         "actions": {
 //		            "ANY": ["READ"],
 //                  "JOURNAL": ["APPEND"]
 //		         }
 //		      },
 //		      {
-//		         "context": "Alaska",
+//		         "context": "British Columbia",
 //		         "actions": {
 //		            "ANY": ["READ"],
 //                  "JOURNAL": ["APPEND"]
