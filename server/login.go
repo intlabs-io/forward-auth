@@ -63,7 +63,7 @@ func Login(svc *authz.Auth) func(w http.ResponseWriter, r *http.Request, params 
 			return
 		}
 
-		identity, err := svc.JWTIdentity(auth.JWT)
+		identity, err := svc.JWTIdentity(auth.JWT.JWTToken)
 		if err != nil {
 			ErrJSON(w, NewServerError("failed to parse identity from login response: "+err.Error()))
 			return
@@ -75,7 +75,7 @@ func Login(svc *authz.Auth) func(w http.ResponseWriter, r *http.Request, params 
 			return
 		}
 
-		sessionID, expiresAt := svc.CreateSession(token, auth.JWT, auth.JWTRefresh, auth.ExpiresAt, false)
+		sessionID, expiresAt := svc.CreateSession(token, auth.JWT, false)
 
 		setSessionID(w, sessionMode, sessionName, sessionID, expiresAt)
 
@@ -159,7 +159,7 @@ func Refresh(svc *authz.Auth) func(w http.ResponseWriter, r *http.Request, param
 			return
 		}
 
-		identity, err := svc.JWTIdentity(auth.JWT)
+		identity, err := svc.JWTIdentity(auth.JWT.JWTToken)
 		if err != nil {
 			ErrJSON(w, NewServerError("failed to parse identity from login response: "+err.Error()))
 			return
@@ -176,7 +176,7 @@ func Refresh(svc *authz.Auth) func(w http.ResponseWriter, r *http.Request, param
 			return
 		}
 
-		expiresAt := svc.UpdateSession(id, token, auth.JWT, auth.JWTRefresh, auth.ExpiresAt)
+		expiresAt := svc.UpdateSession(id, token, auth.JWT.JWTToken, auth.JWT.RefreshToken, auth.JWT.ExpiresAt)
 
 		setSessionID(w, sessionMode, sessionName, id, expiresAt)
 
@@ -497,7 +497,7 @@ func StartPasswordReset(svc *authz.Auth, client *client.Client) func(w http.Resp
 			return
 		}
 
-		identity, err := svc.JWTIdentity(auth.JWT)
+		identity, err := svc.JWTIdentity(auth.JWT.JWTToken)
 		if err != nil {
 			ErrJSON(w, NewServerError("failed to parse identity from JWT"))
 			return
@@ -505,7 +505,7 @@ func StartPasswordReset(svc *authz.Auth, client *client.Client) func(w http.Resp
 
 		token := authz.Bearer(r)
 
-		id, expiresAt := svc.CreateSession(token, auth.JWT, auth.JWTRefresh, auth.ExpiresAt, true)
+		id, expiresAt := svc.CreateSession(token, auth.JWT, true)
 
 		// id is a 6 digit string emailed to the user
 

@@ -112,7 +112,7 @@ func NewAuth(acs *AccessSystem, rootOverride bool, sessionMode, sessionName, jwt
 	return auth, nil
 }
 
-func (auth *Auth) CreateSession(token, jwtToken, refreshToken string, expiry int64, reset bool) (id string, expiresAt time.Time) {
+func (auth *Auth) CreateSession(token string, jwt *authn.JWT, reset bool) (id string, expiresAt time.Time) {
 	app, ok := auth.tokens[token]
 	if !ok {
 		return id, time.Time{}
@@ -124,7 +124,7 @@ func (auth *Auth) CreateSession(token, jwtToken, refreshToken string, expiry int
 		id = uuid.New().String()
 	}
 
-	identity, err := authn.FromJWT(jwtToken, auth.keyFunc)
+	identity, err := authn.FromJWT(jwt.JWTToken, auth.keyFunc)
 	if err != nil {
 		slog.Error("failed get identity from auth", "error", err)
 		return id, time.Time{}
@@ -138,12 +138,12 @@ func (auth *Auth) CreateSession(token, jwtToken, refreshToken string, expiry int
 
 	auth.sessions[app][id] = Session{
 		Identity:   identity,
-		JWTToken:   jwtToken,
-		JWTRefresh: refreshToken,
-		Expiry:     expiry,
+		JWTToken:   jwt.JWTToken,
+		JWTRefresh: jwt.RefreshToken,
+		Expiry:     jwt.ExpiresAt,
 	}
 
-	return id, time.Unix(expiry, 0)
+	return id, time.Unix(jwt.ExpiresAt, 0)
 }
 
 // TODO return error if app session and id not found

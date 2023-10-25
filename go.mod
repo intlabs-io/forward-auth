@@ -5,7 +5,7 @@ go 1.21.0
 require (
 	bitbucket.org/_metalogic_/access-apis v1.3.3
 	bitbucket.org/_metalogic_/authenticate v0.8.1
-	bitbucket.org/_metalogic_/authorize v0.8.0
+	bitbucket.org/_metalogic_/authorize v0.8.1
 	bitbucket.org/_metalogic_/build v1.0.2
 	bitbucket.org/_metalogic_/config v1.4.0
 	bitbucket.org/_metalogic_/eval v1.0.1

@@ -5,7 +5,7 @@ bitbucket.org/_metalogic_/access-apis/client
 # bitbucket.org/_metalogic_/authenticate v0.8.1
 ## explicit; go 1.21.0
 bitbucket.org/_metalogic_/authenticate
-# bitbucket.org/_metalogic_/authorize v0.8.0
+# bitbucket.org/_metalogic_/authorize v0.8.1
 ## explicit; go 1.21.0
 bitbucket.org/_metalogic_/authorize
 # bitbucket.org/_metalogic_/build v1.0.2
