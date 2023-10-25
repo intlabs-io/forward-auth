@@ -356,7 +356,7 @@ func (c *Client) Login(email, password string) (a *authn.Auth, err error) {
 		return a, err
 	}
 
-	c.logger.Debug("login succeeded", "auth", a.JSON())
+	c.logger.Debug("login succeeded", "auth", a.JWT.JSON())
 
 	return a, nil
 
