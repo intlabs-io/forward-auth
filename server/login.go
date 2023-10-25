@@ -176,7 +176,7 @@ func Refresh(svc *authz.Auth) func(w http.ResponseWriter, r *http.Request, param
 			return
 		}
 
-		expiresAt := svc.UpdateSession(id, token, auth.JWT.JWTToken, auth.JWT.RefreshToken, auth.JWT.ExpiresAt)
+		expiresAt := svc.UpdateSession(id, token, auth.JWT)
 
 		setSessionID(w, sessionMode, sessionName, id, expiresAt)
 
