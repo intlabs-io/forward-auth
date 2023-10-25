@@ -2,16 +2,10 @@ module bitbucket.org/_metalogic_/forward-auth
 
 go 1.21.0
 
-replace bitbucket.org/_metalogic_/access-apis => ../access-apis
-
-replace bitbucket.org/_metalogic_/authorize => ../authorize
-
-replace bitbucket.org/_metalogic_/env => ../env
-
 require (
-	bitbucket.org/_metalogic_/access-apis v1.2.0
-	bitbucket.org/_metalogic_/authenticate v0.8.0
-	bitbucket.org/_metalogic_/authorize v0.0.0-20230919090810-1123dd40a78c
+	bitbucket.org/_metalogic_/access-apis v1.3.0
+	bitbucket.org/_metalogic_/authenticate v0.8.1
+	bitbucket.org/_metalogic_/authorize v0.8.0
 	bitbucket.org/_metalogic_/build v1.0.2
 	bitbucket.org/_metalogic_/config v1.4.0
 	bitbucket.org/_metalogic_/eval v1.0.1
@@ -36,7 +30,7 @@ require (
 require (
 	bitbucket.org/_metalogic_/color v1.0.4 // indirect
 	bitbucket.org/_metalogic_/colorable v1.0.3 // indirect
-	bitbucket.org/_metalogic_/env v0.0.0-00010101000000-000000000000 // indirect
+	bitbucket.org/_metalogic_/env v0.8.0 // indirect
 	bitbucket.org/_metalogic_/isatty v1.0.4 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
