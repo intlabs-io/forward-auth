@@ -11,17 +11,17 @@
   ],
   "tenants": [],
   "authorization": {
-    "hostGroups": [
+    "groupchecks": [
       {
         "name": "No Auth Application Hosts",
-        "hosts": [
+        "groups": [
           "traefik.localhost"
         ],
         "default": "allow"
       },
       {
         "name": "Authorization Host",
-        "hosts": [
+        "groups": [
           "{{.Host}}"
         ],
         "default": "deny",

@@ -6,13 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
 	_ "embed"
 
+	authz "bitbucket.org/_metalogic_/authorize"
 	"bitbucket.org/_metalogic_/config"
 	fauth "bitbucket.org/_metalogic_/forward-auth"
 	"bitbucket.org/_metalogic_/log"
@@ -67,9 +67,9 @@ func (store *FileStore) Database() (db fauth.Database, err error) {
 }
 
 // Load loads the Access System from files
-func (store *FileStore) Load() (acs *fauth.AccessSystem, err error) {
+func (store *FileStore) Load() (acs *authz.AccessSystem, err error) {
 
-	acs = &fauth.AccessSystem{}
+	acs = &authz.AccessSystem{}
 
 	acs, err = load(store)
 
@@ -83,7 +83,7 @@ func (store *FileStore) Load() (acs *fauth.AccessSystem, err error) {
 }
 
 // load acs from store
-func load(store *FileStore) (acs *fauth.AccessSystem, err error) {
+func load(store *FileStore) (acs *authz.AccessSystem, err error) {
 
 	// execute base template;
 	// we use template.HTML rather than string to avoid Go template escaping single quotes
@@ -116,7 +116,7 @@ func load(store *FileStore) (acs *fauth.AccessSystem, err error) {
 
 	// load the templated base Access Control System
 
-	acs = &fauth.AccessSystem{}
+	acs = &authz.AccessSystem{}
 
 	err = json.Unmarshal(buf.Bytes(), acs)
 	if err != nil {
@@ -152,7 +152,7 @@ func load(store *FileStore) (acs *fauth.AccessSystem, err error) {
 		return acs, err
 	}
 
-	access := &fauth.AccessSystem{}
+	access := &authz.AccessSystem{}
 
 	err = json.Unmarshal(data, access)
 	if err != nil {
@@ -189,11 +189,11 @@ func load(store *FileStore) (acs *fauth.AccessSystem, err error) {
 		return acs, err
 	}
 
-	loadChecks(access.Checks, acs)
+	loadChecks(access.Authorization, acs)
 	return acs, nil
 }
 
-func loadTokens(acs *fauth.AccessSystem, tokens map[string]string, publicKeys map[string]string) error {
+func loadTokens(acs *authz.AccessSystem, tokens map[string]string, publicKeys map[string]string) error {
 	for _, application := range acs.Applications {
 		// map application bearer token value to name
 		if application.Bearer != nil {
@@ -255,11 +255,11 @@ func loadTokens(acs *fauth.AccessSystem, tokens map[string]string, publicKeys ma
 	return nil
 }
 
-func loadChecks(checks *fauth.HostChecks, acs *fauth.AccessSystem) {
-	acs.Checks.HostGroups = append(acs.Checks.HostGroups, checks.HostGroups...)
+func loadChecks(checks *authz.Authorization, acs *authz.AccessSystem) {
+	acs.Authorization.GroupChecks = append(acs.Authorization.GroupChecks, checks.GroupChecks...)
 
 	for k, v := range checks.Overrides {
-		acs.Checks.Overrides[k] = v
+		acs.Authorization.Overrides[k] = v
 	}
 }
 
@@ -283,7 +283,7 @@ func (store *FileStore) Stats() (stats string) {
 }
 
 func readFile(file string) (data []byte, err error) {
-	data, err = ioutil.ReadFile(file)
+	data, err = os.ReadFile(file)
 	if err != nil {
 		return data, err
 	}

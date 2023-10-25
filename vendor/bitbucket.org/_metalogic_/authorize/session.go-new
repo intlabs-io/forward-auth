@@ -1,0 +1,109 @@
+package authz
+
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+
+	authn "bitbucket.org/_metalogic_/authenticate"
+	"bitbucket.org/_metalogic_/genstr"
+	"github.com/google/uuid"
+)
+
+type Sessions struct {
+	sessionMode string
+	sessionName string
+	sessions    map[string]map[string]session
+}
+
+func NewSession(mode, name string) *Sessions {
+	return &Sessions{
+		sessionMode: mode,
+		sessionName: name,
+		sessions:    make(map[string]map[string]session),
+	}
+}
+
+func (sc *Sessions) CreateSession(a *authn.Auth, app string, reset bool) (id string, expiresAt time.Time) {
+
+	if reset {
+		id = genstr.Number(6)
+	} else {
+		id = uuid.New().String()
+	}
+	sc.sessions[app][id] = session{
+		auth:     a,
+		uid:      a.User.UserID,
+		jwtToken: a.JWT,
+		// refreshToken: a.JwtRefresh,
+		expiry: a.ExpiresAt,
+	}
+	return id, time.Unix(a.ExpiresAt, 0)
+}
+
+func (sc *Sessions) UpdateSession(app, id string, a *authn.Auth) (expiresAt time.Time) {
+
+	sc.sessions[app][id] = session{
+		uid:      a.User.UserID,
+		jwtToken: a.JWT,
+		// refreshToken: a.JwtRefresh,
+		expiry: a.ExpiresAt,
+	}
+	return time.Unix(a.ExpiresAt, 0)
+}
+
+func (sc *Sessions) Sessions(app string) (sessionsJSON string) {
+
+	sessions := make([]string, 0)
+	for id, sess := range sc.sessions[app] {
+		if !sess.IsExpired() {
+			sessions = append(sessions, id)
+		}
+	}
+	data, _ := json.Marshal(sessions)
+	return string(data)
+}
+
+func (sc *Sessions) Session(app, id string) (s session, err error) {
+	s, ok := sc.sessions[app][id]
+	if !ok {
+		return s, fmt.Errorf("%s session not found for id %s", app, id)
+	}
+	return s, nil
+}
+
+func (sc *Sessions) DeleteSession(id string) {
+	delete(sc.sessions, id)
+}
+
+type session struct {
+	auth         *authn.Auth
+	uid          string // the uid of the session user
+	jwtToken     string
+	refreshToken string
+	expiry       int64 // the expiry time in Unix seconds of the JWT
+}
+
+func (s session) Auth() *authn.Auth {
+	return s.auth
+}
+
+func (s session) UID() string {
+	return s.uid
+}
+
+func (s *session) JWT() string {
+	return s.jwtToken
+}
+
+func (s *session) RefreshJWT() string {
+	return s.refreshToken
+}
+
+func (s *session) IsExpired() bool {
+	return time.Unix(s.expiry, 0).Before(time.Now())
+}
+
+func (s *session) Expires() time.Time {
+	return time.Unix(s.expiry, 0)
+}

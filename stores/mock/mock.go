@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	fauth "bitbucket.org/_metalogic_/forward-auth"
+	authz "bitbucket.org/_metalogic_/authorize"
 	"bitbucket.org/_metalogic_/log"
 )
 
@@ -54,9 +54,9 @@ func (mock *Mock) Version() string {
 }
 
 // Load returns a mock AccessSystem
-func (mock *Mock) Load() (acs *fauth.AccessSystem, err error) {
+func (mock *Mock) Load() (acs *authz.AccessSystem, err error) {
 
-	acs = &fauth.AccessSystem{
+	acs = &authz.AccessSystem{
 		PublicKeys: make(map[string]string),
 	}
 

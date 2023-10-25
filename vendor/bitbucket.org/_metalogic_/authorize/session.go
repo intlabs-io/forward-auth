@@ -1,4 +1,4 @@
-package fauth
+package authz
 
 import (
 	"encoding/json"

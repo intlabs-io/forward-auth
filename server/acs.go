@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"net/http"
 
+	authz "bitbucket.org/_metalogic_/authorize"
 	fauth "bitbucket.org/_metalogic_/forward-auth"
+
 	. "bitbucket.org/_metalogic_/glib/http"
 )
 
@@ -15,7 +17,7 @@ import (
 // @Description returns the defined host groups in an access control system
 // @ID get-hostgroups
 // @Produce  json
-// @Param body body fauth.HostGroup true "host group"
+// @Param body body authz.HostGroup true "host group"
 // @Success 200 {string} ok
 // @Failure 401 {object} ErrorResponse
 // @Failure 403 {object} ErrorResponse
@@ -59,7 +61,7 @@ func CreateHostGroup(userHeader string, store fauth.Store) func(w http.ResponseW
 		sessionGUID := StringHeader(r, userHeader, rootGUID)
 
 		decoder := json.NewDecoder(r.Body)
-		var group fauth.HostGroup
+		var group authz.GroupChecks
 
 		// unmarshal JSON into &answers
 		err = decoder.Decode(&group)
@@ -112,7 +114,7 @@ func UpdateHostGroup(userHeader string, store fauth.Store) func(w http.ResponseW
 		groupGUID := params["groupGUID"]
 
 		decoder := json.NewDecoder(r.Body)
-		var group fauth.HostGroup
+		var group authz.GroupChecks
 
 		// unmarshal JSON body into &group
 		err = decoder.Decode(&group)
@@ -184,22 +186,22 @@ func CreateHost(userHeader string, store fauth.Store) func(w http.ResponseWriter
 		groupGUID := params["groupGUID"]
 
 		decoder := json.NewDecoder(r.Body)
-		var host fauth.Host
+		var group authz.Group
 
 		// unmarshal JSON body into &group
-		err = decoder.Decode(&host)
+		err = decoder.Decode(&group)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
 		}
 
-		err = host.Validate()
+		err = group.Validate()
 		if err != nil {
 			ErrJSON(w, err)
 			return
 		}
 
-		hostChecks, err := db.CreateHost(sessionGUID, groupGUID, host.Hostname)
+		hostChecks, err := db.CreateHost(sessionGUID, groupGUID, group.Groupname)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -240,7 +242,7 @@ func UpdateHost(userHeader string, store fauth.Store) func(w http.ResponseWriter
 		hostGUID := params["hostGUID"]
 
 		decoder := json.NewDecoder(r.Body)
-		var host fauth.Host
+		var host authz.Group
 
 		// unmarshal JSON body into &group
 		err = decoder.Decode(&host)
@@ -255,7 +257,7 @@ func UpdateHost(userHeader string, store fauth.Store) func(w http.ResponseWriter
 			return
 		}
 
-		hostChecks, err := db.UpdateHost(sessionGUID, groupGUID, hostGUID, host.Hostname)
+		hostChecks, err := db.UpdateHost(sessionGUID, groupGUID, hostGUID, host.Groupname)
 		if err != nil {
 			ErrJSON(w, NewServerError(err.Error()))
 			return
@@ -313,7 +315,7 @@ func CreateCheck(userHeader string, store fauth.Store) func(w http.ResponseWrite
 		groupGUID := params["groupGUID"]
 
 		decoder := json.NewDecoder(r.Body)
-		var check fauth.Check
+		var check authz.Check
 
 		// unmarshal JSON body into &group
 		err = decoder.Decode(&check)
@@ -369,7 +371,7 @@ func UpdateCheck(userHeader string, store fauth.Store) func(w http.ResponseWrite
 		checkGUID := params["checkGUID"]
 
 		decoder := json.NewDecoder(r.Body)
-		var check fauth.Check
+		var check authz.Check
 
 		// unmarshal JSON body into &group
 		err = decoder.Decode(&check)
@@ -445,7 +447,7 @@ func CreatePath(userHeader string, store fauth.Store) func(w http.ResponseWriter
 		checkGUID := params["checkGUID"]
 
 		decoder := json.NewDecoder(r.Body)
-		var path fauth.Path
+		var path authz.Path
 		// unmarshal JSON body into &group
 		err = decoder.Decode(&path)
 		if err != nil {
@@ -501,7 +503,7 @@ func UpdatePath(userHeader string, store fauth.Store) func(w http.ResponseWriter
 		checkGUID := params["checkGUID"]
 		pathGUID := params["pathGUID"]
 		decoder := json.NewDecoder(r.Body)
-		var path fauth.Path
+		var path authz.Path
 		// unmarshal JSON body into &group
 		err = decoder.Decode(&path)
 		if err != nil {

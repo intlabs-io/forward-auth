@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 
+	authz "bitbucket.org/_metalogic_/authorize"
 	fauth "bitbucket.org/_metalogic_/forward-auth"
 	. "bitbucket.org/_metalogic_/glib/sql"
 	"bitbucket.org/_metalogic_/log"
@@ -44,7 +45,7 @@ func (store *MSSql) HostGroups() (groupsJSON string, err error) {
 	return groupsJSON, err
 }
 
-func (store *MSSql) CreateHostGroup(sessionGUID string, group fauth.HostGroup) (groupJSON string, err error) {
+func (store *MSSql) CreateHostGroup(sessionGUID string, group authz.GroupChecks) (groupJSON string, err error) {
 	txn, err := store.DB.BeginTx(context.TODO(), nil)
 	if err != nil {
 		log.Error(err)
@@ -55,9 +56,9 @@ func (store *MSSql) CreateHostGroup(sessionGUID string, group fauth.HostGroup) (
 	if err != nil {
 		return groupJSON, err
 	}
-	log.Debugf("processing check hosts: %v", group.Hosts)
-	for _, host := range group.Hosts {
-		hostGUID, hostJSON, err := createHost(txn, sessionGUID, groupGUID, host)
+	log.Debugf("processing check hosts: %v", group.Checks)
+	for _, check := range group.Checks {
+		hostGUID, hostJSON, err := createGroup(txn, sessionGUID, groupGUID, check.Name)
 		if err != nil {
 			txn.Rollback()
 			return groupJSON, err
@@ -95,7 +96,7 @@ func (store *MSSql) HostGroup(groupGUID string) (groupJSON string, err error) {
 	return groupJSON, err
 
 }
-func (store *MSSql) UpdateHostGroup(sessionGUID, groupGUID string, group fauth.HostGroup) (groupJSON string, err error) {
+func (store *MSSql) UpdateHostGroup(sessionGUID, groupGUID string, group authz.GroupChecks) (groupJSON string, err error) {
 	var (
 		rows *sql.Rows
 	)
@@ -322,7 +323,7 @@ func (store *MSSql) Checks(groupGUID string) (checksJSON string, err error) {
 	return checksJSON, err
 }
 
-func (store *MSSql) CreateCheck(sessionGUID, groupGUID string, check fauth.Check) (checkJSON string, err error) {
+func (store *MSSql) CreateCheck(sessionGUID, groupGUID string, check authz.Check) (checkJSON string, err error) {
 	var (
 		checkGUID string
 		rows      *sql.Rows
@@ -384,7 +385,7 @@ func (store *MSSql) Check(groupGUID, checkGUID string) (checkJSON string, err er
 	return checkJSON, err
 }
 
-func (store *MSSql) UpdateCheck(sessionGUID, groupGUID, checkGUID string, check fauth.Check) (checkJSON string, err error) {
+func (store *MSSql) UpdateCheck(sessionGUID, groupGUID, checkGUID string, check authz.Check) (checkJSON string, err error) {
 	var (
 		rows *sql.Rows
 	)
@@ -470,7 +471,7 @@ func (store *MSSql) Paths(groupGUID, checkGUID string) (pathsJSON string, err er
 	return pathsJSON, err
 }
 
-func (store *MSSql) CreatePath(sessionGUID, groupGUID, checkGUID string, path fauth.Path) (pathJSON string, err error) {
+func (store *MSSql) CreatePath(sessionGUID, groupGUID, checkGUID string, path authz.Path) (pathJSON string, err error) {
 	var (
 		pathGUID string
 		rows     *sql.Rows
@@ -537,7 +538,7 @@ func (store *MSSql) Path(groupGUID, checkGUID, pathGUID string) (pathJSON string
 	return pathJSON, err
 }
 
-func (store *MSSql) UpdatePath(sessionGUID, groupGUID, checkGUID, pathGUID string, path fauth.Path) (pathJSON string, err error) {
+func (store *MSSql) UpdatePath(sessionGUID, groupGUID, checkGUID, pathGUID string, path authz.Path) (pathJSON string, err error) {
 	var (
 		rows *sql.Rows
 	)

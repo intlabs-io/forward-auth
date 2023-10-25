@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"bitbucket.org/_metalogic_/access-apis/client"
-	fauth "bitbucket.org/_metalogic_/forward-auth"
+	authz "bitbucket.org/_metalogic_/authorize"
 	. "bitbucket.org/_metalogic_/glib/http"
 	"bitbucket.org/_metalogic_/log"
 )
@@ -21,7 +21,7 @@ import (
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /contexts/{uuid} [get]
-func Context(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Context(svc *authz.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 		uid := params["uid"]
@@ -45,7 +45,7 @@ func Context(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter,
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /contexts [get]
-func Contexts(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Contexts(svc *authz.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 		contextsResponse, err := client.GetContextsRaw()
@@ -68,7 +68,7 @@ func Contexts(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /contexts [post]
-func CreateContext(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func CreateContext(svc *authz.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 		maxsize := getMaxUploadSize()
@@ -98,7 +98,7 @@ func CreateContext(svc *fauth.Auth, client *client.Client) func(w http.ResponseW
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /contexts/{uid} [put]
-func UpdateContext(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func UpdateContext(svc *authz.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 		uid := params["uid"]
@@ -125,7 +125,7 @@ func UpdateContext(svc *fauth.Auth, client *client.Client) func(w http.ResponseW
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /contexts/{uuid} [delete]
-func DeleteContext(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func DeleteContext(svc *authz.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 		uid := params["uid"]

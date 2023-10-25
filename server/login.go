@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"bitbucket.org/_metalogic_/access-apis/client"
+	authz "bitbucket.org/_metalogic_/authorize"
 	"bitbucket.org/_metalogic_/config"
-	fauth "bitbucket.org/_metalogic_/forward-auth"
 	. "bitbucket.org/_metalogic_/glib/http"
 	"bitbucket.org/_metalogic_/log"
 )
@@ -26,10 +26,10 @@ import (
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Login(svc *authz.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
-		token := fauth.Bearer(r)
+		token := authz.Bearer(r)
 		if token == "" {
 			ErrJSON(w, NewBadRequestError("login requires a valid application bearer token"))
 			return
@@ -94,10 +94,10 @@ func Login(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-func Logout(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Logout(svc *authz.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
-		token := fauth.Bearer(r)
+		token := authz.Bearer(r)
 		if token == "" {
 			ErrJSON(w, NewBadRequestError("logout requires a valid application bearer token"))
 			return
@@ -123,9 +123,9 @@ func Logout(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Refresh(svc *authz.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		token := fauth.Bearer(r)
+		token := authz.Bearer(r)
 		if token == "" {
 			ErrJSON(w, NewBadRequestError("refresh requires a valid application bearer token"))
 			return
@@ -193,9 +193,9 @@ func Refresh(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-func Sessions(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Sessions(svc *authz.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		token := fauth.Bearer(r)
+		token := authz.Bearer(r)
 		if token == "" {
 			ErrJSON(w, NewBadRequestError("sessions requires a valid application bearer token"))
 			return
@@ -215,9 +215,9 @@ func Sessions(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, para
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // TODO return session details (should we do this?)
-func Session(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Session(svc *authz.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		token := fauth.Bearer(r)
+		token := authz.Bearer(r)
 		if token == "" {
 			ErrJSON(w, NewBadRequestError("refresh session a valid application bearer token"))
 			return
@@ -257,7 +257,7 @@ func Session(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, param
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-func Blocked(auth *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Blocked(auth *authz.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		w.Header().Set("Content-Type", "application/json")
 		msgJSONList(w, auth.Blocked())
@@ -273,7 +273,7 @@ func Blocked(auth *fauth.Auth) func(w http.ResponseWriter, r *http.Request, para
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-func Block(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Block(svc *authz.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		w.Header().Set("Content-Type", "application/json")
 		uid := params["uid"]
@@ -292,7 +292,7 @@ func Block(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-func Unblock(svc *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Unblock(svc *authz.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		uid := params["uid"]
 		svc.Unblock(uid)
@@ -433,12 +433,12 @@ func setResetToken(w http.ResponseWriter, sessionMode, sessionName, sessionID st
 // @Description change password
 // @Produce json
 // @Param uid path string true "UID of the user"
-// @Success 200 {object} fauth.UserResponse
+// @Success 200 {object} authz.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /users/{uid}/password [put]
-func ChangePassword(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func ChangePassword(svc *authz.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 		uid := params["uid"]
@@ -458,12 +458,12 @@ func ChangePassword(svc *fauth.Auth, client *client.Client) func(w http.Response
 // @Description set password
 // @Produce json
 // @Param uid path string true "UID of the user"
-// @Success 200 {object} fauth.UserResponse
+// @Success 200 {object} authz.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /users/{uid}/password [put]
-func SetPassword(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func SetPassword(svc *authz.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 		uid := params["uid"]
@@ -482,13 +482,13 @@ func SetPassword(svc *fauth.Auth, client *client.Client) func(w http.ResponseWri
 // @Summary initiate password reset
 // @Description initiate password reset
 // @Produce json
-// @Success 200 {object} fauth.UserResponse
+// @Success 200 {object} authz.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /password-reset [post]
 // { "email": "user account email"}
-func StartPasswordReset(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func StartPasswordReset(svc *authz.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 		auth, err := client.StartPasswordResetRaw(r.Body)
@@ -503,7 +503,7 @@ func StartPasswordReset(svc *fauth.Auth, client *client.Client) func(w http.Resp
 			return
 		}
 
-		token := fauth.Bearer(r)
+		token := authz.Bearer(r)
 
 		id, expiresAt := svc.CreateSession(token, auth.JWT, auth.JWTRefresh, auth.ExpiresAt, true)
 
@@ -541,12 +541,12 @@ func StartPasswordReset(svc *fauth.Auth, client *client.Client) func(w http.Resp
 // @Description recover user account
 // @Produce json
 // @Param uid path string true "UID of the user"
-// @Success 200 {object} fauth.UserResponse
+// @Success 200 {object} authz.UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /users/{uid}/password-reset [put]
-func ResetPassword(svc *fauth.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func ResetPassword(svc *authz.Auth, client *client.Client) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 		uid := params["uid"]

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	authz "bitbucket.org/_metalogic_/authorize"
 	fauth "bitbucket.org/_metalogic_/forward-auth"
 	. "bitbucket.org/_metalogic_/glib/http"
 	"bitbucket.org/_metalogic_/log"
@@ -28,7 +29,7 @@ var ok = []byte("ok")
 // @Failure 403 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /forward-auth/v1/auth [get]
-func Auth(auth *fauth.Auth, userHeader, traceHeader string) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Auth(auth *authz.Auth, userHeader, traceHeader string) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		if auth.RunMode() == "noAuth" {
@@ -143,7 +144,7 @@ func Auth(auth *fauth.Auth, userHeader, traceHeader string) func(w http.Response
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-func Tree(auth *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Tree(auth *authz.Auth) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		w.Header().Set("Content-Type", "application/json")
 		data, err := json.MarshalIndent(auth, "", "  ")
@@ -164,7 +165,7 @@ func Tree(auth *fauth.Auth) func(w http.ResponseWriter, r *http.Request, params 
 // @Failure 403 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /forward-auth/v1/auth [put]
-func Update(auth *fauth.Auth, store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func Update(auth *authz.Auth, store fauth.Store) func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		// get access control system from the store
 		acs, err := store.Load()
@@ -182,7 +183,7 @@ func Update(auth *fauth.Auth, store fauth.Store) func(w http.ResponseWriter, r *
 	}
 }
 
-func rootAuth(r *http.Request, auth *fauth.Auth) bool {
+func rootAuth(r *http.Request, auth *authz.Auth) bool {
 	authHeader := r.Header.Get("Authorization")
 
 	var token string
