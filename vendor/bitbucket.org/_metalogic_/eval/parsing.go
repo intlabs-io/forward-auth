@@ -160,11 +160,29 @@ func readToken(stream *lexerStream, state lexerState, functions map[string]Expre
 				}
 			}
 
-			// textual operator?
+			// textual operators
 			if tokenValue == "in" || tokenValue == "IN" {
 
 				// force lower case for consistency
 				tokenValue = "in"
+				kind = COMPARATOR
+			}
+			if tokenValue == "contains" || tokenValue == "CONTAINS" {
+
+				// force lower case for consistency
+				tokenValue = "contains"
+				kind = COMPARATOR
+			}
+			if tokenValue == "endsWith" || tokenValue == "ENDSWITH" {
+
+				// force lower case for consistency
+				tokenValue = "endsWith"
+				kind = COMPARATOR
+			}
+			if tokenValue == "startsWith" || tokenValue == "STARTSWITH" {
+
+				// force lower case for consistency
+				tokenValue = "startsWith"
 				kind = COMPARATOR
 			}
 

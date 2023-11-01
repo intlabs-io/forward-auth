@@ -29,9 +29,9 @@ type EvaluableExpression struct {
 
 	ChecksTypes bool
 
-	tokens           []ExpressionToken
-	evaluationStages *evaluationStage
-	inputExpression  string
+	tokens          []ExpressionToken
+	evaluationTree  *EvaluationTree
+	inputExpression string
 }
 
 // NewEvaluableExpression parses a new EvaluableExpression from the given [expression] string.
@@ -41,8 +41,8 @@ func NewEvaluableExpression(expression string) (*EvaluableExpression, error) {
 	return NewEvaluableExpressionWithFunctions(expression, functions)
 }
 
-// NewEvaluableExpressionFromTokens Similar to [NewEvaluableExpression], except that instead of a string, an
-// already-tokenized expression is given.
+// NewEvaluableExpressionFromTokens constructs an EvaluableExpression from an
+// already-tokenized expression [tokens].
 // This is useful in cases where you may be generating an expression automatically,
 // or using some other parser (e.g., to parse from a query language)
 func NewEvaluableExpressionFromTokens(tokens []ExpressionToken) (*EvaluableExpression, error) {
@@ -68,7 +68,7 @@ func NewEvaluableExpressionFromTokens(tokens []ExpressionToken) (*EvaluableExpre
 		return nil, err
 	}
 
-	ret.evaluationStages, err = planStages(ret.tokens)
+	ret.evaluationTree, err = planStages(ret.tokens)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func NewEvaluableExpressionWithFunctions(expression string, functions map[string
 		return nil, err
 	}
 
-	ret.evaluationStages, err = planStages(ret.tokens)
+	ret.evaluationTree, err = planStages(ret.tokens)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func NewEvaluableExpressionWithFunctions(expression string, functions map[string
 	return ret, nil
 }
 
-// Evaluate Same as `Eval`, but automatically wraps a map of parameters into a `govalute.Parameters` structure.
+// Evaluate Same as `Eval`, but automatically wraps a map of parameters into a `eval.Parameters` structure.
 func (expr EvaluableExpression) Evaluate(parameters map[string]interface{}) (interface{}, error) {
 
 	if parameters == nil {
@@ -138,7 +138,7 @@ func (expr EvaluableExpression) Evaluate(parameters map[string]interface{}) (int
 // e.g., if the expression is "foo + 1" and parameters contains "foo" = 2, this will return 3.0
 func (expr EvaluableExpression) Eval(parameters Parameters) (interface{}, error) {
 
-	if expr.evaluationStages == nil {
+	if expr.evaluationTree == nil {
 		return nil, nil
 	}
 
@@ -148,16 +148,16 @@ func (expr EvaluableExpression) Eval(parameters Parameters) (interface{}, error)
 		parameters = DUMMY_PARAMETERS
 	}
 
-	return expr.evaluateStage(expr.evaluationStages, parameters)
+	return expr.evaluateStage(expr.evaluationTree, parameters)
 }
 
-func (expr EvaluableExpression) evaluateStage(stage *evaluationStage, parameters Parameters) (interface{}, error) {
+func (expr EvaluableExpression) evaluateStage(stage *EvaluationTree, parameters Parameters) (interface{}, error) {
 
 	var left, right interface{}
 	var err error
 
-	if stage.leftStage != nil {
-		left, err = expr.evaluateStage(stage.leftStage, parameters)
+	if stage.left != nil {
+		left, err = expr.evaluateStage(stage.left, parameters)
 		if err != nil {
 			return nil, err
 		}
@@ -189,8 +189,8 @@ func (expr EvaluableExpression) evaluateStage(stage *evaluationStage, parameters
 		}
 	}
 
-	if right != shortCircuitHolder && stage.rightStage != nil {
-		right, err = expr.evaluateStage(stage.rightStage, parameters)
+	if right != shortCircuitHolder && stage.right != nil {
+		right, err = expr.evaluateStage(stage.right, parameters)
 		if err != nil {
 			return nil, err
 		}
@@ -217,7 +217,12 @@ func (expr EvaluableExpression) evaluateStage(stage *evaluationStage, parameters
 		}
 	}
 
+	if stage.operator == nil {
+		return nil, fmt.Errorf("cannot evaluate nil operator on stage: %+v", stage)
+	}
+
 	return stage.operator(left, right, parameters)
+
 }
 
 func typeCheck(check stageTypeCheck, value interface{}, symbol OperatorSymbol, format string) error {

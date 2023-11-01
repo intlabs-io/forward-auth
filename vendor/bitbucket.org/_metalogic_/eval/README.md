@@ -1,7 +1,6 @@
-eval
-====
+# eval
 
-A fork and refresh of github.com/knetic/govaluate.
+a fork and refresh of github.com/Knetic/govaluate
 
 ---
 

@@ -1,5 +1,11 @@
 package eval
 
+import (
+	"time"
+
+	"bitbucket.org/_metalogic_/glib/date"
+)
+
 // sanitizedParameters is a wrapper for Parameters that does sanitization as
 // parameters are accessed.
 type sanitizedParameters struct {
@@ -37,6 +43,10 @@ func castToFloat64(value interface{}) interface{} {
 		return float64(value.(int))
 	case float32:
 		return float64(value.(float32))
+	case date.Date:
+		return float64(value.(date.Date).UnixNano())
+	case time.Time:
+		return float64(value.(time.Time).UnixNano())
 	}
 
 	return value

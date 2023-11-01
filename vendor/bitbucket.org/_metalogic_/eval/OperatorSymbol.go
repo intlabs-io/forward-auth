@@ -1,5 +1,7 @@
 package eval
 
+import "fmt"
+
 // OperatorSymbol represents the valid symbols for operators.
 type OperatorSymbol int
 
@@ -43,6 +45,10 @@ const (
 	FUNCTIONAL
 	ACCESS
 	SEPARATE
+
+	CONTAINS_IN
+	ENDSWITH_IN
+	STARTSWITH_IN
 )
 
 type operatorPrecedence int
@@ -86,6 +92,12 @@ func findOperatorPrecedenceForSymbol(symbol OperatorSymbol) operatorPrecedence {
 	case REQ:
 		fallthrough
 	case NREQ:
+		fallthrough
+	case CONTAINS_IN:
+		fallthrough
+	case ENDSWITH_IN:
+		fallthrough
+	case STARTSWITH_IN:
 		fallthrough
 	case IN:
 		return comparatorPrecedence
@@ -142,15 +154,18 @@ func findOperatorPrecedenceForSymbol(symbol OperatorSymbol) operatorPrecedence {
 // Used during parsing of expressions to determine if a symbol is, in fact, a comparator.
 // Also used during evaluation to determine exactly which comparator is being used.
 var comparatorSymbols = map[string]OperatorSymbol{
-	"==": EQ,
-	"!=": NEQ,
-	">":  GT,
-	">=": GTE,
-	"<":  LT,
-	"<=": LTE,
-	"=~": REQ,
-	"!~": NREQ,
-	"in": IN,
+	"==":         EQ,
+	"!=":         NEQ,
+	">":          GT,
+	">=":         GTE,
+	"<":          LT,
+	"<=":         LTE,
+	"=~":         REQ,
+	"!~":         NREQ,
+	"in":         IN,
+	"contains":   CONTAINS_IN,
+	"endsWith":   ENDSWITH_IN,
+	"startsWith": STARTSWITH_IN,
 }
 
 var logicalSymbols = map[string]OperatorSymbol{
@@ -239,6 +254,8 @@ func (sym OperatorSymbol) String() string {
 		return "NOOP"
 	case VALUE:
 		return "VALUE"
+	case LITERAL:
+		return "LITERAL"
 	case EQ:
 		return "="
 	case NEQ:
@@ -261,6 +278,12 @@ func (sym OperatorSymbol) String() string {
 		return "||"
 	case IN:
 		return "in"
+	case CONTAINS_IN:
+		return "contains"
+	case ENDSWITH_IN:
+		return "endsWith"
+	case STARTSWITH_IN:
+		return "startsWith"
 	case BITWISE_AND:
 		return "&"
 	case BITWISE_OR:
@@ -295,6 +318,85 @@ func (sym OperatorSymbol) String() string {
 		return ":"
 	case COALESCE:
 		return "??"
+	case FUNCTIONAL:
+		return "FUNCTION"
+	case ACCESS:
+		return "ACCESS"
+	case SEPARATE:
+		return ","
 	}
-	return ""
+	return fmt.Sprintf("INVALID OPERATOR %d", sym)
+}
+
+func Symbol(symbol string) (op OperatorSymbol, err error) {
+
+	switch symbol {
+	case "NOOP":
+		return NOOP, nil
+	case "VALUE":
+		return VALUE, nil
+	case "EQ":
+		return EQ, nil
+	case "NEQ":
+		return NEQ, nil
+	case "GT":
+		return GT, nil
+	case "LT":
+		return LT, nil
+	case "GTE":
+		return GTE, nil
+	case "LTE":
+		return LTE, nil
+	case "REQ":
+		return REQ, nil
+	case "NREQ":
+		return NREQ, nil
+	case "AND":
+		return AND, nil
+	case "OR":
+		return OR, nil
+	case "IN":
+		return IN, nil
+	case "CONTAINS_IN":
+		return CONTAINS_IN, nil
+	case "ENDSWITH_IN":
+		return ENDSWITH_IN, nil
+	case "STARTSWITH_IN":
+		return STARTSWITH_IN, nil
+	case "BITWISE_AND":
+		return BITWISE_AND, nil
+	case "BITWISE_OR":
+		return BITWISE_OR, nil
+	case "BITWISE_XOR":
+		return BITWISE_XOR, nil
+	case "BITWISE_LSHIFT":
+		return BITWISE_LSHIFT, nil
+	case "BITWISE_RSHIFT":
+		return BITWISE_RSHIFT, nil
+	case "PLUS":
+		return PLUS, nil
+	case "MINUS":
+		return MINUS, nil
+	case "MULTIPLY":
+		return MULTIPLY, nil
+	case "DIVIDE":
+		return DIVIDE, nil
+	case "MODULUS":
+		return MODULUS, nil
+	case "EXPONENT":
+		return EXPONENT, nil
+	case "NEGATE":
+		return NEGATE, nil
+	case "INVERT":
+		return INVERT, nil
+	case "BITWISE_NOT":
+		return BITWISE_NOT, nil
+	case "TERNARY_TRUE":
+		return TERNARY_TRUE, nil
+	case "TERNARY_FALSE":
+		return TERNARY_FALSE, nil
+	case "COALESCE":
+		return COALESCE, nil
+	}
+	return op, fmt.Errorf("%s is not a valid operator", symbol)
 }
